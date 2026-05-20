@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls /Users/titouan.mazurier/Downloads/fontsource-converted/)",
+      "mcp__figma__get_design_context",
+      "Bash(npx vite *)",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(pkill -f \"vite\")"
+    ]
+  }
+}
