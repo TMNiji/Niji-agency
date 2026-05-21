@@ -1,4 +1,6 @@
-// Hero header — fixed top-left Niji logo (blue square + wordmark).
+// Hero header — fixed top-left Niji logo (blue square + wordmark)
+// plus a contextual section-name label that fades in for every section
+// except hero itself.
 export function createHeader() {
   const el = document.createElement('header');
   el.className = 'hero-header';
@@ -12,6 +14,17 @@ export function createHeader() {
         />
       </span>
     </a>
+    <span class="hero-header__section-label" aria-live="polite"></span>
   `;
-  return el;
+
+  const labelEl = el.querySelector('.hero-header__section-label');
+
+  return {
+    el,
+    /** Show a section name next to the logo (pass '' to hide). */
+    setSectionLabel(name) {
+      labelEl.textContent = name || '';
+      labelEl.classList.toggle('is-visible', !!name);
+    },
+  };
 }

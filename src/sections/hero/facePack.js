@@ -12,13 +12,7 @@ const PACK_H  = 560;
 const FOV     = 45;
 const FOV_RAD = (FOV * Math.PI) / 180;
 
-// Only the 5 Figma layers whose photo PNGs have real content are rendered.
-// The other 5 layers in node 164:2066 (`neck`, `side-right`, `forehead-right`,
-// `bg-eye-left`, `eye-left`) export from MCP as 100%-transparent placeholder
-// PNGs and are intentionally skipped — they'd be invisible anyway. They can
-// be reintroduced once proper exports are dropped into /public/hero.
-//
-// `left/top/w/h` are pack-local pixel coords lifted from Figma node 164:2066.
+// `left/top/w/h` are pack-local pixel coords (PACK_W×PACK_H space).
 // `srcW/srcH`    are the real pixel dimensions of the source PNG — used to
 //                reproduce Figma's `object-cover` centred crop in UV space.
 // `rz`           CSS rotation in degrees (negated to three.js' CCW-Y-up).
@@ -26,35 +20,59 @@ const FOV_RAD = (FOV * Math.PI) / 180;
 // `px/py`        mouse-parallax amplitudes in pixels (varied per fragment).
 // `z`            back-to-front render order tiebreaker.
 const FRAGS = [
-  { id: 'nose',          src: '/hero/face-right-side.png',
-    srcW: 1802, srcH: 2395,
-    left: 185.27, top: 285.71, w: 325.978, h: 183,
+  { id: 'neck',           src: '/hero/neck.png',
+    srcW: 488, srcH: 325,
+    left:  55, top: 370, w: 390, h: 260,
+    rz: 0,
+    vx:  0.00, vy: -0.80, speed: 0.90, px: 10, py: 24, z: -40 },
+
+  { id: 'center-head',    src: '/hero/center-head.png',
+    srcW: 326, srcH: 183,
+    left: 185.27, top: 285.71, w: 326, h: 183,
     rz: 0,
     vx:  0.50, vy: -0.65, speed: 1.10, px: 18, py: 22, z: -30 },
 
-  { id: 'eye-right',     src: '/hero/face-eye-band.png',
-    srcW:  292, srcH:  262,
-    left: 213.01, top: 243.14, w: 196.095, h: 110,
+  { id: 'cheek-left',     src: '/hero/cheek-left.png',
+    srcW: 148, srcH: 286,
+    left: 100, top: 230, w: 140, h: 271,
+    rz: 0,
+    vx: -1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: -20 },
+
+  { id: 'cheek-right',    src: '/hero/cheek-right.png',
+    srcW: 151, srcH: 294,
+    left: 265, top: 230, w: 140, h: 273,
+    rz: 0,
+    vx:  1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: -15 },
+
+  { id: 'eye-left',       src: '/hero/eye-left.png',
+    srcW: 105, srcH:  62,
+    left: 139, top: 243.14, w: 100, h:  59,
+    rz: 0,
+    vx: -0.15, vy:  0.95, speed: 1.35, px: 22, py: 18, z: -15 },
+
+  { id: 'eye-right',      src: '/hero/eye-right.png',
+    srcW: 205, srcH: 118,
+    left: 213.01, top: 243.14, w: 196, h: 113,
     rz: 0,
     vx:  0.15, vy:  0.95, speed: 1.40, px: 28, py: 18, z: -10 },
 
-  { id: 'side-left',     src: '/hero/face-left-vertical.png',
-    srcW: 1627, srcH: 2324,
-    left: 120.35, top: 243.14, w: 139.17,  h: 278,
-    rz: 0,
-    vx: -1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z:   0 },
-
-  { id: 'mouth',         src: '/hero/face-mouth-strip.png',
-    srcW: 2048, srcH: 2048,
-    left: 187.11, top: 312.52, w: 198.955, h: 112,
+  { id: 'mouth',          src: '/hero/mouth.png',
+    srcW: 207, srcH: 120,
+    left: 187.11, top: 312.52, w: 199, h: 115,
     rz: 0,
     vx: -0.05, vy: -0.90, speed: 1.45, px: 14, py: 28, z:  10 },
 
-  { id: 'forehead-left', src: '/hero/face-vector.png',
-    srcW:  494, srcH:  398,
-    left: 162.08, top: 140.09, w: 238.866, h: 191,
+  { id: 'forehead-left',  src: '/hero/forehead-left.png',
+    srcW: 252, srcH: 202,
+    left: 162.08, top: 140.09, w: 239, h: 191,
     rz: -1.56,
-    vx: -0.55, vy:  0.85, speed: 1.30, px: 20, py: 26, z:  30 },
+    vx: -0.55, vy:  0.85, speed: 1.30, px: 20, py: 26, z:  20 },
+
+  { id: 'forehead-right', src: '/hero/forehead-right.png',
+    srcW: 275, srcH: 236,
+    left: 260, top:  90, w: 220, h: 189,
+    rz:  1.20,
+    vx:  0.55, vy:  0.80, speed: 1.25, px: 20, py: 24, z:  25 },
 ];
 
 // Reproduce CSS `object-fit: cover` by tightening the texture's UV window so
@@ -73,7 +91,9 @@ function applyObjectCover(tex, sw, sh, dw, dh) {
   }
 }
 
-export function createFacePack({ webgl } = {}) {
+// imageSrcs: optional map of frag id → URL (from Sanity); falls back to
+// the static /hero/*.png paths when a key is absent or undefined.
+export function createFacePack({ webgl, imageSrcs = {} } = {}) {
   const scene  = new THREE.Scene();
   const loader = new THREE.TextureLoader();
 
@@ -86,7 +106,7 @@ export function createFacePack({ webgl } = {}) {
 
   const meshes = FRAGS.map((f) => {
     const geo = new THREE.PlaneGeometry(f.w, f.h);
-    const tex = loader.load(f.src);
+    const tex = loader.load(imageSrcs[f.id] ?? f.src);
     tex.colorSpace = THREE.SRGBColorSpace;
     applyObjectCover(tex, f.srcW, f.srcH, f.w, f.h);
 

@@ -1,6 +1,7 @@
 @import './fonts.css';
 @import './hero.css';
 @import './thinking.css';
+@import './chaos.css';
 
 :root {
   --bg:   #0a0a0a;

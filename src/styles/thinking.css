@@ -5,134 +5,20 @@
    front until its opacity reaches 0, revealing the orbital beneath.          */
 .thinking {
   position: relative;
-  overflow: hidden;
   z-index: 1;
 }
 
-/* ── Orbital system ────────────────────────────────────────────────────────── */
-
-.thinking__orbital {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  /* width/height intentionally 0 — children offset from centre */
-  width: 0;
-  height: 0;
-}
-
-.thinking__ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  transform: translate(-50%, -50%);
+/* Sticky viewport stage — pins for the full dwell range so the user
+   can interact with the orbital dots without the scene scrolling away.       */
+.thinking__stage {
+  position: sticky;
   top: 0;
-  left: 0;
-  opacity: 0;
-  transition: opacity 800ms ease;
-}
-
-.thinking.is-visible .thinking__ring              { opacity: 1; }
-.thinking.is-visible .thinking__ring--1           { transition-delay:   0ms; }
-.thinking.is-visible .thinking__ring--2           { transition-delay: 120ms; }
-.thinking.is-visible .thinking__ring--3           { transition-delay: 240ms; }
-
-.thinking__ring--1 { width: 350px; height: 350px; }
-.thinking__ring--2 { width: 570px; height: 570px; border-color: rgba(255,255,255,0.07); }
-.thinking__ring--3 { width: 660px; height: 660px; border-color: rgba(255,255,255,0.05); }
-
-/* Satellite dots */
-.thinking__dot {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.45);
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 600ms ease, background 200ms ease, transform 200ms ease;
-}
-
-.thinking__dot.is-open,
-.thinking__dot:hover {
-  background: rgba(255, 255, 255, 0.90);
-  transform: translate(-50%, -50%) scale(1.6);
-}
-
-.thinking.is-visible .thinking__dot { opacity: 1; }
-.thinking.is-visible .thinking__dot:nth-child(2) { transition-delay:  60ms; }
-.thinking.is-visible .thinking__dot:nth-child(3) { transition-delay: 120ms; }
-.thinking.is-visible .thinking__dot:nth-child(4) { transition-delay: 180ms; }
-.thinking.is-visible .thinking__dot:nth-child(5) { transition-delay: 240ms; }
-.thinking.is-visible .thinking__dot:nth-child(6) { transition-delay: 300ms; }
-.thinking.is-visible .thinking__dot:nth-child(7) { transition-delay: 360ms; }
-.thinking.is-visible .thinking__dot:nth-child(8) { transition-delay: 420ms; }
-
-/* ── Connector line SVG ───────────────────────────────────────────────────── */
-
-.thinking__connector {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 600ms ease 400ms;
-}
-
-.thinking.is-visible .thinking__connector { opacity: 1; }
-
-/* ── Phase labels — left spine ─────────────────────────────────────────────── */
-
-.thinking__phases {
-  position: absolute;
-  left: 48px;
-  top: 50%;
-  transform: translateY(-50%);
+  height: 100vh;
   display: flex;
-  flex-direction: column;
-  gap: 56px;
-  pointer-events: none;
-  z-index: 4;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
-
-.thinking__phase {
-  font-family: var(--font);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.22);
-  white-space: nowrap;
-  opacity: 0;
-  transform: translateX(-8px);
-  transition: opacity 500ms ease, transform 500ms ease, color 300ms ease;
-}
-
-.thinking__phase.is-active { color: rgba(255, 255, 255, 0.80); }
-
-.thinking.is-visible .thinking__phase              { opacity: 1; transform: none; }
-.thinking.is-visible .thinking__phase:nth-child(1) { transition-delay: 100ms; }
-.thinking.is-visible .thinking__phase:nth-child(2) { transition-delay: 200ms; }
-.thinking.is-visible .thinking__phase:nth-child(3) { transition-delay: 300ms; }
-
-/* ── Folder cards ─────────────────────────────────────────────────────────── */
-
-.thinking__cards {
-  position: absolute;
-  left: max(24px, calc(50% - 380px));
-  top: 50%;
-  transform: translateY(-50%);
-  width: 187px;
-  z-index: 3;
-  opacity: 0;
-  translate: -16px 0;
-  transition: opacity 600ms ease 200ms, translate 600ms ease 200ms;
-}
-
-.thinking.is-visible .thinking__cards {
-  opacity: 1;
-  translate: 0 0;
-}
-
-.thinking__card { display: block; }
 
 /* ── Folder card component ─────────────────────────────────────────────────── */
 
@@ -202,16 +88,6 @@
   flex-shrink: 0;
 }
 
-/* ── Dot popup ─────────────────────────────────────────────────────────────── */
-
-.thinking__popup {
-  position: absolute;
-  z-index: 6;
-  /* Positioned by JS — no static left/top */
-}
-
-.thinking__popup[hidden] { display: none; }
-
 /* ── Service panel — right side ───────────────────────────────────────────── */
 
 .thinking__services {
@@ -222,7 +98,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 220px;
+  max-width: 260px;
   z-index: 3;
 }
 
@@ -234,10 +110,11 @@
 
 .thinking.is-visible .thinking__service              { opacity: 0.32; transform: none; }
 .thinking.is-visible .thinking__service.is-open      { opacity: 1; }
-.thinking.is-visible .thinking__service:nth-child(1) { transition-delay: 150ms; }
-.thinking.is-visible .thinking__service:nth-child(2) { transition-delay: 250ms; }
-.thinking.is-visible .thinking__service:nth-child(3) { transition-delay: 350ms; }
-.thinking.is-visible .thinking__service:nth-child(4) { transition-delay: 450ms; }
+.thinking.is-visible .thinking__service:hover        { opacity: 0.75; }
+.thinking.is-visible .thinking__service:nth-child(1)  { transition-delay: 150ms; }
+.thinking.is-visible .thinking__service:nth-child(2)  { transition-delay: 250ms; }
+.thinking.is-visible .thinking__service:nth-child(3)  { transition-delay: 350ms; }
+.thinking.is-visible .thinking__service:nth-child(4)  { transition-delay: 450ms; }
 
 /* Tag button: /NAME or >NAME */
 .thinking__service-tag {
@@ -246,24 +123,22 @@
   text-align: left;
   background: none;
   border: none;
-  padding: 6px 0;
+  padding: 4px 0;
   font-family: var(--font);
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 400;
-  letter-spacing: 0.20em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #fff;
   cursor: pointer;
-  transition: opacity 200ms ease;
+  transition: color 200ms ease;
 }
 
-.thinking__service-tag:hover { opacity: 0.7; }
-
-/* Dropdown sub-items — collapsed by default, expand when is-open */
+/* Dropdown sub-items — collapsed by default, expand on hover or is-open */
 .thinking__service-sub {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   max-height: 0;
   overflow: hidden;
   transition: max-height 320ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -273,15 +148,67 @@
 }
 
 .thinking__service.is-open .thinking__service-sub {
-  max-height: 100px;
+  max-height: 120px;
   opacity: 1;
 }
 
 .thinking__service-sub-item {
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.50);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
   padding: 2px 0;
+}
+
+/* ── AI links — bottom-centre of the thinking stage ──────────────────────── */
+
+.thinking__ai-links {
+  position: absolute;
+  bottom: clamp(32px, 5vh, 56px);
+  right: clamp(40px, 4vw, 80px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 500ms ease 500ms;
+}
+
+.thinking.is-visible .thinking__ai-links { opacity: 1; }
+
+.thinking__ai-links-label {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  white-space: nowrap;
+}
+
+.thinking__ai-links-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.thinking__ai-btn {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.70);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+  padding: 6px 14px;
+  transition: color 220ms ease, border-color 220ms ease, background 220ms ease;
+}
+
+.thinking__ai-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.06);
 }

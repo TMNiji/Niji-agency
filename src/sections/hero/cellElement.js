@@ -55,7 +55,7 @@ export function createCellElement() {
    */
   function setProgress(progress) {
     const p = Math.max(0, Math.min(1, progress));
-    const t = Math.max(0, Math.min(1, (p - 0.25) / 0.55));
+    const t = Math.max(0, Math.min(1, (p - 0.2) / 0.45));
     const eased = t * t * (3 - 2 * t); // smoothstep
     el.style.setProperty('--cell-opacity', String(eased));
     el.style.setProperty('--cell-scale', String(0.7 + eased * 0.3));

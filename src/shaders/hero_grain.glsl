@@ -42,27 +42,21 @@ void main() {
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
   float aspect = uResolution.x / uResolution.y;
 
-  // Light source descends from far above the top edge to screen centre.
-  // srcY = 1.60 means the hotspot is 160% up the screen (well above the top);
-  // srcY = 0.50 places it exactly at vertical centre when progress = 1.
-  float srcY = mix(1.60, 0.50, uProgress);
+  // ── Hero-phase: light settles quickly to centre so it doesn't feel like
+  //    scrolling *down* — reaches centre by progress ≈ 0.5.
+  float srcY = mix(1.20, 0.50, clamp(uProgress * 2.0, 0.0, 1.0));
 
-  // Aspect-corrected coords relative to the moving light source.
-  // X is squashed (×0.55) so the halo reads as a wide, horizontally-stretched
-  // oval that fills the top of the viewport rather than a tight circular spot.
   vec2 p;
   p.x = (uv.x - 0.5) * aspect * 0.55;
   p.y = srcY - uv.y;
-
   float d = length(p);
 
-  // Perfectly-circular distance from screen centre — used for the cell ring
-  // so the membrane is always a true circle regardless of the X squash above.
+  // Aspect-corrected coords centred on screen.
   vec2 cUv = uv - vec2(0.5);
   cUv.x *= aspect;
   float dc = length(cUv);
 
-  // Background halo — gets tighter and more focused as the light descends.
+  // Background halo.
   float fallSharpness = mix(1.30, 5.50, uProgress);
   float fall = exp(-d * fallSharpness);
   float core = smoothstep(
@@ -71,35 +65,76 @@ void main() {
     d
   );
 
-  // Cell membrane ring — perfectly circular, radius ~19% of screen height.
-  // Fades in only after the halo has descended to mid-screen (progress > 0.45).
+  // Cell membrane ring — starts appearing immediately with the first scroll.
   float cellR    = 0.19;
   float ringW    = 0.028;
-  float ringProg = smoothstep(0.45, 1.0, uProgress);
+  float ringProg = smoothstep(0.0, 0.60, uProgress);
   float ring     = smoothstep(ringW, 0.0, abs(dc - cellR)) * ringProg;
-  ring = ring * ring; // square to sharpen the membrane edge
+  ring = ring * ring;
 
-  // Thin secondary ring slightly inside — gives depth like a cell nucleus wall
   float ring2 = smoothstep(0.018, 0.0, abs(dc - cellR * 0.62)) * ringProg * 0.4;
 
-  // Radial-only noise: rigorously left/right symmetric, evolves over time.
-  float n = snoise(vec2(d * 1.7, uTime * 0.08));
-  float wobble = 1.0 + 0.05 * n * smoothstep(0.35, 1.50, d);
+  float n       = snoise(vec2(d * 1.7, uTime * 0.08));
+  float wobble  = 1.0 + 0.05 * n * smoothstep(0.35, 1.50, d);
   float breathe = 0.96 + 0.04 * sin(uTime * 0.22);
 
-  // Halo and core intensity both fade as the light condenses into the ring.
   float haloStr = mix(0.78, 0.12, uProgress);
   float coreStr = mix(0.42, 0.06, uProgress);
   float lightMix =
     (fall * haloStr + core * coreStr + ring * 0.85 + ring2 * 0.3)
     * breathe * wobble;
 
-  vec3 deep = vec3(0.016, 0.016, 0.020);
-  vec3 col = mix(deep, vec3(lightMix * 0.5), lightMix);
+  // ── Progress gates ────────────────────────────────────────────────────────────
+  float cytoProg = smoothstep(0.05, 0.65, uProgress);
+  float cellProg = smoothstep(0.20, 0.75, uProgress);
 
-  // Single-layer per-pixel film grain.
-  // mod() on a fast counter avoids the 1-second seed wrap that produced a
-  // visible "refresh" pulse; full-res sampling keeps grain at 1-pixel size.
+  // ── Background atmospheric glow — covers the full viewport ───────────────────
+  // exp(-dc * 0.80): ~41% intensity at screen corners (dc ≈ 1.0, aspect 16:9)
+  float nebulaCentral = exp(-dc * 0.80) * cytoProg;
+  float dc1 = length(cUv - vec2( 0.38,  0.12));
+  float dc2 = length(cUv + vec2( 0.32,  0.20));
+  float nebulaOff = (exp(-dc1 * 1.80) * 0.55 + exp(-dc2 * 2.00) * 0.45) * cytoProg;
+  float nebula = (nebulaCentral + nebulaOff) * 0.07;
+
+  // ── Cytoplasm — subtle white interior fill inside the ring ───────────────────
+  float cytoFill = smoothstep(cellR * 1.02, cellR * 0.02, dc) * cytoProg;
+  float cyto = cytoFill * 0.14;
+
+  // ── Organelles — 3 bright points orbiting inside the nucleus ─────────────────
+  float organelles = 0.0;
+  float nucR = cellR * 0.55;
+  for (int i = 0; i < 3; i++) {
+    float fi    = float(i);
+    float angle = fi / 3.0 * 6.28318 + uTime * (0.11 + fi * 0.05);
+    float r     = nucR * (0.38 + 0.22 * sin(fi * 2.3));
+    float od    = length(cUv - vec2(cos(angle), sin(angle)) * r);
+    float oSize = 0.007 + 0.003 * sin(fi * 1.7 + uTime * 0.9);
+    organelles += smoothstep(oSize, 0.0, od);
+  }
+  organelles *= cellProg * 0.55;
+
+  // ── Membrane particles — drift around the cell ring ───────────────────────────
+  float drift = 0.0;
+  for (int i = 0; i < 7; i++) {
+    float fi    = float(i);
+    float angle = fi / 7.0 * 6.28318 + uTime * (0.03 + fi * 0.007);
+    float r     = cellR * (1.0 + 0.04 * sin(fi * 2.7 + uTime * 0.5));
+    float dd    = length(cUv - vec2(cos(angle), sin(angle)) * r);
+    drift += smoothstep(0.006, 0.0, dd) * 0.65;
+  }
+  drift *= cellProg;
+
+  // ── Composite — black and white only ─────────────────────────────────────────
+  float intensity =
+      lightMix * 0.5
+    + nebula
+    + cyto
+    + (organelles + drift * 0.6) * 0.9;
+
+  intensity = clamp(intensity, 0.0, 1.0);
+  vec3 col = vec3(intensity);
+
+  // Film grain.
   float grain = hash(gl_FragCoord.xy + mod(uTime * 60.0, 997.0));
   col += (grain - 0.5) * 0.05;
 
