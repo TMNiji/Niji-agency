@@ -18,6 +18,15 @@ export function createTimeline({ labels, startIndex = 0, onChange } = {}) {
   el.className = 'hero-timeline';
   el.setAttribute('aria-label', 'Section navigation');
 
+  // Vertical spine rail + sliding indicator dot.
+  const rail = document.createElement('div');
+  rail.className = 'hero-timeline__rail';
+  el.appendChild(rail);
+
+  const indicator = document.createElement('div');
+  indicator.className = 'hero-timeline__indicator';
+  el.appendChild(indicator);
+
   // 3 fixed label slots — prev / current / next — never translate.
   const slotNames = ['prev', 'current', 'next'];
   const slots = slotNames.map((name) => {
@@ -46,14 +55,38 @@ export function createTimeline({ labels, startIndex = 0, onChange } = {}) {
   let dragStartY = 0;
   let dragStartOffset = 0;
 
-  function updateLabels() {
+  // Slot vertical positions as fractions of the timeline height.
+  // Matches the CSS: prev=28%, current=50%, next=72%.
+  const SLOT_POSITIONS = [0.28, 0.50, 0.72];
+
+  function updateLabels(animate = false) {
     slots.forEach((slot, i) => {
-      const idx = currentIndex + (i - 1); // -1 = prev, 0 = current, +1 = next
+      const idx = currentIndex + (i - 1); // -1=prev, 0=current, +1=next
       const text = slot.querySelector('.hero-timeline__text');
-      const label = idx >= 0 && idx < labels.length ? labels[idx] : '';
-      text.textContent = label;
-      slot.style.opacity = label ? '1' : '0';
+      const newLabel = idx >= 0 && idx < labels.length ? labels[idx] : '';
+
+      if (animate && text.textContent !== newLabel) {
+        slot.classList.add('is-exiting');
+        setTimeout(() => {
+          text.textContent = newLabel;
+          slot.style.opacity = newLabel ? '1' : '0';
+          slot.classList.remove('is-exiting');
+          slot.classList.add('is-entering');
+          // Remove entering class after transition completes
+          setTimeout(() => slot.classList.remove('is-entering'), 220);
+        }, 120);
+      } else {
+        text.textContent = newLabel;
+        slot.style.opacity = newLabel ? '1' : '0';
+      }
     });
+
+    // Slide indicator to align with the current label slot (index 1 = current).
+    // The indicator top is expressed as % of the timeline element height.
+    const pct = SLOT_POSITIONS[1] * 100; // always at "current" position = 50%
+    indicator.style.top = `${pct}%`;
+    indicator.classList.add('is-pulsing');
+    setTimeout(() => indicator.classList.remove('is-pulsing'), 400);
   }
 
   function applyTransform() {
@@ -72,7 +105,7 @@ export function createTimeline({ labels, startIndex = 0, onChange } = {}) {
     }
     dragY = 0;
     track.classList.remove('is-dragging');
-    updateLabels();
+    updateLabels(true);
     applyTransform();
   }
 
@@ -107,9 +140,10 @@ export function createTimeline({ labels, startIndex = 0, onChange } = {}) {
   return {
     el,
     setIndex(i) {
+      const prev = currentIndex;
       currentIndex = Math.max(0, Math.min(labels.length - 1, i));
       dragY = 0;
-      updateLabels();
+      updateLabels(currentIndex !== prev);
       applyTransform();
     },
     getIndex() { return currentIndex; },

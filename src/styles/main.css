@@ -40,6 +40,32 @@ section {
   position: relative;
 }
 
+/* ── Noise grain overlay — covers all layers at very low opacity ────────── */
+#noise {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  opacity: 0.038;
+  mix-blend-mode: overlay;
+  animation: noise-drift 0.1s steps(1) infinite;
+}
+
+@keyframes noise-drift {
+  0%   { background-position:   0px   0px; }
+  11%  { background-position: -64px -32px; }
+  22%  { background-position:  32px -64px; }
+  33%  { background-position: -32px  32px; }
+  44%  { background-position:  64px   0px; }
+  55%  { background-position:   0px  64px; }
+  66%  { background-position: -64px  64px; }
+  77%  { background-position:  32px  32px; }
+  88%  { background-position: -32px -64px; }
+  100% { background-position:  64px -32px; }
+}
+
 /* Lenis */
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }

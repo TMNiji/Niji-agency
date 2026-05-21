@@ -102,6 +102,63 @@
 .hero-timeline__label-row[data-slot="current"] { top: 50%; transform: translateY(-50%); }
 .hero-timeline__label-row[data-slot="next"]    { bottom: 28%; }
 
+/* Spine rail — thin vertical line behind labels */
+.hero-timeline__rail {
+  position: absolute;
+  left: 15px;
+  top: 8%;
+  bottom: 8%;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255,255,255,0.10) 20%,
+    rgba(255,255,255,0.10) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Sliding indicator — sits at the "current" slot (50%) */
+.hero-timeline__indicator {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 0 rgba(255,255,255,0.5);
+  transition: top 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-timeline__indicator.is-pulsing {
+  animation: indicator-ping 0.4s ease-out forwards;
+}
+
+@keyframes indicator-ping {
+  0%   { box-shadow: 0 0 0 0px  rgba(255,255,255,0.55); }
+  60%  { box-shadow: 0 0 0 9px  rgba(255,255,255,0.12); }
+  100% { box-shadow: 0 0 0 14px rgba(255,255,255,0.00); }
+}
+
+/* Label exit/enter transitions when section changes */
+.hero-timeline__label-row.is-exiting .hero-timeline__text,
+.hero-timeline__label-row.is-exiting .hero-timeline__long {
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.hero-timeline__label-row.is-entering .hero-timeline__text,
+.hero-timeline__label-row.is-entering .hero-timeline__long {
+  opacity: 1 !important;
+  transform: translateY(0);
+  transition: opacity 180ms ease 20ms, transform 180ms ease 20ms;
+}
+
 .hero-timeline__track {
   position: absolute;
   top: 0;

@@ -194,21 +194,37 @@
 }
 
 .thinking__ai-btn {
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.70);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 2px;
-  padding: 6px 14px;
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
   transition: color 220ms ease, border-color 220ms ease, background 220ms ease;
+  flex-shrink: 0;
+}
+
+.thinking__ai-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  flex-shrink: 0;
 }
 
 .thinking__ai-btn:hover {
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.45);
   background: rgba(255, 255, 255, 0.06);
+}
+
+/* Fallback text label (if no logo matched) */
+.thinking__ai-btn-text {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }

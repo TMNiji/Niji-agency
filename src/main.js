@@ -6,6 +6,7 @@ import { mountHero }          from './sections/hero/index.js';
 import { mountThinking }      from './sections/thinking/index.js';
 import { mountChaos }         from './sections/chaos/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
+import { initNoise }         from '@modules/noise.js';
 
 const SECTIONS = [
   {
@@ -30,6 +31,8 @@ const SECTIONS = [
     triggerEnd: 'bottom top',
   },
 ];
+
+initNoise();
 
 async function boot() {
   // Fetch CMS content and init scroll concurrently — neither blocks the other.

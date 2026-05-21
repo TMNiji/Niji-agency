@@ -42,13 +42,10 @@ void main() {
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
   float aspect = uResolution.x / uResolution.y;
 
-  // ── Hero-phase: light settles quickly to centre so it doesn't feel like
-  //    scrolling *down* — reaches centre by progress ≈ 0.5.
-  float srcY = mix(1.20, 0.50, clamp(uProgress * 2.0, 0.0, 1.0));
-
+  // Light source pinned to viewport centre — no vertical sliding.
   vec2 p;
   p.x = (uv.x - 0.5) * aspect * 0.55;
-  p.y = srcY - uv.y;
+  p.y = 0.50 - uv.y;
   float d = length(p);
 
   // Aspect-corrected coords centred on screen.
@@ -78,8 +75,9 @@ void main() {
   float wobble  = 1.0 + 0.05 * n * smoothstep(0.35, 1.50, d);
   float breathe = 0.96 + 0.04 * sin(uTime * 0.22);
 
-  float haloStr = mix(0.78, 0.12, uProgress);
-  float coreStr = mix(0.42, 0.06, uProgress);
+  // Halo and core dissolve completely as the cell takes over.
+  float haloStr = mix(0.78, 0.0, uProgress);
+  float coreStr = mix(0.42, 0.0, uProgress);
   float lightMix =
     (fall * haloStr + core * coreStr + ring * 0.85 + ring2 * 0.3)
     * breathe * wobble;
