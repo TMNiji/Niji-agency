@@ -1,11 +1,16 @@
-// Clients section — 3D fan of glass cards.
+// Clients section — cards stacked along the Z axis, cycling on scroll.
 //
-// Eight cards in two mirrored half-fans facing inward: each pivot is placed on
-// a horizontal row and tilted around its own Y axis. Inner cards (closest to
-// the centre line) carry the most rotateY, outer cards approach face-on. A
-// shared perspective on the stage turns this into a true 3D arrangement —
-// hover lifts a card forward (translateZ + Y), clicking opens a centred
-// detail panel with logo + caption.
+// Eight cards are arranged one behind the other in 3D. Scroll progress
+// (0 → 1) maps to a fractional "focused index" across the queue: at any
+// scroll position the matching card sits at z=0 (in focus, fully lit), the
+// cards still upcoming are stacked behind it (z negative, dim by depth),
+// and the cards already passed lift upward and fade out as they exit toward
+// the camera. As the user scrolls, the queue advances one card at a time.
+//
+// Mouse movement applies a soft parallax tilt to the whole stack (rotateY +
+// rotateX), revealing the depth of the upcoming queue from a slight angle.
+// Clicking any visible card opens the centred detail panel with logo +
+// caption.
 
 const DEFAULT_TITLE    = 'Grands noms.';
 const DEFAULT_SUBTITLE = 'Projets à leur hauteur.';
@@ -21,15 +26,18 @@ const DEFAULT_CLIENTS = [
   { name: 'Solstice',  caption: 'Retail · Omnichannel 2024' },
 ];
 
-// Fan geometry — symmetric, mirrored around the centre.
-const N_PER_SIDE   = 4;
-const INNER_GAP    = 28;   // px between the two innermost cards
-const STEP_X       = 88;   // horizontal step between adjacent cards
-const STEP_ROT_Y   = 11;   // rotateY decrement per step outward (deg)
-const INNER_ROT_Y  = 44;   // rotateY of the innermost cards (deg)
-const TILT_X       = -4;   // shared backward tilt for cinematic depth (deg)
+// Stack geometry
+const Z_GAP        = 110;   // px between adjacent cards along Z
+const X_GAP        = 24;    // px each card offsets sideways (so the stack reads)
+const TRAVEL_START = 1100;  // distance the front card starts pushed back (px)
+const Z_RANGE      = 1100;  // distance over which opacity rises from 0 → 1
 
-export function mountClients({ container, title = DEFAULT_TITLE, subtitle = DEFAULT_SUBTITLE, clients = DEFAULT_CLIENTS } = {}) {
+// Mouse parallax
+const MOUSE_LERP   = 0.08;
+const ROT_Y_MAX    = 9;     // deg of stack rotateY at mouseX = ±1
+const ROT_X_MAX    = 4;     // deg of stack rotateX at mouseY = ±1
+
+export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, subtitle = DEFAULT_SUBTITLE, clients = DEFAULT_CLIENTS } = {}) {
   const section = container.querySelector('[data-section="clients"]');
   if (!section) return null;
   section.classList.add('clients');
@@ -47,31 +55,15 @@ export function mountClients({ container, title = DEFAULT_TITLE, subtitle = DEFA
   `;
   stage.appendChild(titleEl);
 
-  // ── Fan stage (sits inside a 3D-perspective wrapper) ──────────────────────
-  const fan = document.createElement('div');
-  fan.className = 'clients__fan';
-  stage.appendChild(fan);
+  // ── Stack — 3D container ──────────────────────────────────────────────────
+  const stack = document.createElement('div');
+  stack.className = 'clients__stack';
+  stage.appendChild(stack);
 
-  // Soft "spotlight" pool beneath the cards.
-  const stand = document.createElement('div');
-  stand.className = 'clients__stand';
-  stage.appendChild(stand);
-
-  clients.forEach((client, i) => {
-    const onLeft        = i < N_PER_SIDE;
-    const side          = onLeft ? -1 : 1;
-    const idxFromCenter = onLeft ? (N_PER_SIDE - 1 - i) : (i - N_PER_SIDE);
-    // idxFromCenter: 0 = innermost, N_PER_SIDE - 1 = outermost
-
-    const x    = side * (INNER_GAP / 2 + idxFromCenter * STEP_X);
-    const rotY = -side * (INNER_ROT_Y - idxFromCenter * STEP_ROT_Y);
-
+  const N = clients.length;
+  const cards = clients.map((client, i) => {
     const pivot = document.createElement('div');
     pivot.className = 'clients__card-pivot';
-    pivot.style.transform = `translate3d(${x}px, 0, 0) rotateY(${rotY}deg) rotateX(${TILT_X}deg)`;
-    // Stacking is handled by 3D depth (preserve-3d), but for browsers that
-    // collapse the stacking context we hint with a z-index too.
-    pivot.style.zIndex = String(100 - idxFromCenter);
 
     const card = document.createElement('div');
     card.className = 'clients__card';
@@ -94,12 +86,69 @@ export function mountClients({ container, title = DEFAULT_TITLE, subtitle = DEFA
 
     card.appendChild(inner);
     pivot.appendChild(card);
-    fan.appendChild(pivot);
+    stack.appendChild(pivot);
 
     pivot.addEventListener('click', () => openDetail(client));
+    return { el: pivot, index: i };
   });
 
-  // ── Detail overlay ────────────────────────────────────────────────────────
+  // ── Per-frame state ───────────────────────────────────────────────────────
+  let scrollProgress = 0;
+  let targetMouseX = 0, targetMouseY = 0;
+  let curMouseX    = 0, curMouseY    = 0;
+  let rafId = 0;
+
+  orchestrator?.onProgress('clients', ({ progress }) => {
+    scrollProgress = progress;
+  });
+
+  function onPointerMove(e) {
+    const rect = section.getBoundingClientRect();
+    targetMouseX = ((e.clientX - rect.left) / rect.width)  * 2 - 1; // -1..1
+    targetMouseY = ((e.clientY - rect.top)  / rect.height) * 2 - 1; // -1..1
+  }
+  function onPointerLeave() { targetMouseX = 0; targetMouseY = 0; }
+
+  section.addEventListener('pointermove', onPointerMove);
+  section.addEventListener('pointerleave', onPointerLeave);
+
+  // Symmetric X offsets so the stack reads as a centred queue.
+  const xCenterOffset = (N - 1) * X_GAP / 2;
+
+  function update() {
+    curMouseX += (targetMouseX - curMouseX) * MOUSE_LERP;
+    curMouseY += (targetMouseY - curMouseY) * MOUSE_LERP;
+
+    stack.style.transform =
+      `rotateY(${(curMouseX * ROT_Y_MAX).toFixed(2)}deg) ` +
+      `rotateX(${(-curMouseY * ROT_X_MAX).toFixed(2)}deg)`;
+
+    // travelZ = -(1 - progress) * TRAVEL_START
+    //   progress=0 → travelZ = -TRAVEL_START   (stack deep in darkness)
+    //   progress=1 → travelZ = 0               (front card at z=0)
+    const travelZ = -(1 - scrollProgress) * TRAVEL_START;
+
+    cards.forEach(({ el, index }) => {
+      const baseZ = -index * Z_GAP;
+      const z     = baseZ + travelZ;
+      const x     = index * X_GAP - xCenterOffset;
+
+      // Opacity rises linearly with Z distance to the camera (z=0 plane).
+      // Clamp to a tiny minimum so the card silhouette never fully disappears
+      // even at the deepest end of the stack.
+      const opacity = Math.max(0.03, Math.min(1, 1 + z / Z_RANGE));
+
+      el.style.transform = `translate3d(${x.toFixed(1)}px, 0, ${z.toFixed(1)}px)`;
+      el.style.opacity   = opacity.toFixed(3);
+      // Keep deep cards from intercepting pointer events meant for visible ones.
+      el.style.pointerEvents = opacity > 0.2 ? 'auto' : 'none';
+    });
+
+    rafId = requestAnimationFrame(update);
+  }
+  rafId = requestAnimationFrame(update);
+
+  // ── Detail overlay (unchanged behaviour) ──────────────────────────────────
   const detail = document.createElement('div');
   detail.className = 'clients__detail';
   detail.hidden = true;
@@ -143,15 +192,16 @@ export function mountClients({ container, title = DEFAULT_TITLE, subtitle = DEFA
   detailBackdrop.addEventListener('click', closeDetail);
   detailClose.addEventListener('click', closeDetail);
 
-  function onKey(e) {
-    if (e.key === 'Escape') closeDetail();
-  }
+  function onKey(e) { if (e.key === 'Escape') closeDetail(); }
   window.addEventListener('keydown', onKey);
 
   return {
     section,
     destroy() {
+      cancelAnimationFrame(rafId);
       clearTimeout(closeTimer);
+      section.removeEventListener('pointermove', onPointerMove);
+      section.removeEventListener('pointerleave', onPointerLeave);
       window.removeEventListener('keydown', onKey);
     },
   };

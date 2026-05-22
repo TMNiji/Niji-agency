@@ -112,7 +112,7 @@ async function boot() {
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
   const chaos    = mountChaos({ container: root });
   const video    = mountVideo({ container: root, orchestrator });
-  const clients  = mountClients({ container: root });
+  const clients  = mountClients({ container: root, orchestrator });
 
   // Wire drag-to-scrub: timeline calls this when the user drags the ruler strip.
   hero?.timeline?.setScrollHandler((y) => lenis.scrollTo(y, { duration: 0.15 }));
