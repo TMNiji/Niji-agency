@@ -7,8 +7,8 @@
 // pack flies away.
 import * as THREE from 'three';
 
-const PACK_W  = 500;
-const PACK_H  = 560;
+const PACK_W  = 504;
+const PACK_H  = 561;
 const FOV     = 45;
 const FOV_RAD = (FOV * Math.PI) / 180;
 
@@ -22,57 +22,57 @@ const FOV_RAD = (FOV * Math.PI) / 180;
 const FRAGS = [
   { id: 'neck',           src: '/hero/neck.png',
     srcW: 488, srcH: 325,
-    left:  55, top: 370, w: 390, h: 260,
+    left: 126.81, top: 257.05, w: 487.50, h: 325.22,
     rz: 0,
     vx:  0.00, vy: -0.80, speed: 0.90, px: 10, py: 24, z: -40 },
 
   { id: 'center-head',    src: '/hero/center-head.png',
     srcW: 326, srcH: 183,
-    left: 185.27, top: 285.71, w: 326, h: 183,
+    left: 39.04, top: 244.97, w: 326.22, h: 183.14,
     rz: 0,
-    vx:  0.50, vy: -0.65, speed: 1.10, px: 18, py: 22, z: -30 },
+    vx:  0.50, vy: -0.65, speed: 1.10, px: 18, py: 22, z: 0 },
 
   { id: 'cheek-left',     src: '/hero/cheek-left.png',
     srcW: 148, srcH: 286,
-    left: 100, top: 230, w: 140, h: 271,
+    left: 0.00, top: 183.75, w: 139.27, h: 278.21,
     rz: 0,
-    vx: -1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: -20 },
+    vx: -1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: -50 },
 
   { id: 'cheek-right',    src: '/hero/cheek-right.png',
     srcW: 151, srcH: 294,
-    left: 265, top: 230, w: 140, h: 273,
+    left: 361.05, top: 150.73, w: 142.95, h: 286.22,
     rz: 0,
-    vx:  1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: -15 },
+    vx:  1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: -50 },
 
   { id: 'eye-left',       src: '/hero/eye-left.png',
     srcW: 105, srcH:  62,
-    left: 139, top: 243.14, w: 100, h:  59,
+    left: 123.75, top: 208.76, w: 96.87, h: 54.04,
     rz: 0,
-    vx: -0.15, vy:  0.95, speed: 1.35, px: 22, py: 18, z: -15 },
+    vx: -0.15, vy:  0.95, speed: 1.35, px: 22, py: 18, z: 30 },
 
   { id: 'eye-right',      src: '/hero/eye-right.png',
     srcW: 205, srcH: 118,
-    left: 213.01, top: 243.14, w: 196, h: 113,
+    left: 249.57, top: 183.76, w: 196.24, h: 110.08,
     rz: 0,
     vx:  0.15, vy:  0.95, speed: 1.40, px: 28, py: 18, z: -10 },
 
   { id: 'mouth',          src: '/hero/mouth.png',
     srcW: 207, srcH: 120,
-    left: 187.11, top: 312.52, w: 199, h: 115,
+    left: 146.13, top: 379.06, w: 208.58, h: 117.42,
     rz: 0,
-    vx: -0.05, vy: -0.90, speed: 1.45, px: 14, py: 28, z:  10 },
+    vx: -0.05, vy: -0.90, speed: 1.45, px: 14, py: 28, z:  20 },
 
   { id: 'forehead-left',  src: '/hero/forehead-left.png',
     srcW: 252, srcH: 202,
-    left: 162.08, top: 140.09, w: 239, h: 191,
+    left: 162.76, top: 140.24, w: 239.06, h: 191.13,
     rz: -1.56,
-    vx: -0.55, vy:  0.85, speed: 1.30, px: 20, py: 26, z:  20 },
+    vx: -0.55, vy:  0.85, speed: 1.30, px: 20, py: 26, z: -30 },
 
   { id: 'forehead-right', src: '/hero/forehead-right.png',
     srcW: 275, srcH: 236,
-    left: 260, top:  90, w: 220, h: 189,
-    rz:  1.20,
-    vx:  0.55, vy:  0.80, speed: 1.25, px: 20, py: 24, z:  25 },
+    left: 201.70, top: 162.17, w: 237.80, h: 190.14,
+    rz: -9.90,
+    vx:  0.55, vy:  0.80, speed: 1.25, px: 20, py: 24, z: -20 },
 ];
 
 // Reproduce CSS `object-fit: cover` by tightening the texture's UV window so

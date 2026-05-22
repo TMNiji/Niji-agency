@@ -13,9 +13,10 @@
 const MOVING_THRESHOLD = 2.0;  // px/frame — above this: still in flight
 const AT_POINT_MARGIN  = 2;    // px       — within this of a snap point: done
 const SETTLE_DEBOUNCE  = 120;  // ms       — quiet window after input before forcing a snap check
-// Snap only when within this fraction of viewport height of a target.
-// Outside the window, the user is mid-section consuming content — let them rest.
-const SNAP_WINDOW_VH   = 0.4;
+// Snap window — fraction of viewport height around a target within which the
+// snap will fire. Set high so the user always resolves to the nearest section
+// anchor no matter where on the page they stopped scrolling.
+const SNAP_WINDOW_VH   = 10;
 
 export function initSnapScroll(lenis, getSnapPoints) {
   let isSnapping = false;

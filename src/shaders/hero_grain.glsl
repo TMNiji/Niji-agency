@@ -14,7 +14,12 @@ void main() {
   vec3 col = vec3(0.0);
 
   // ── Cell — revealed by scroll progress ──────────────────────────────────
-  float reveal = smoothstep(0.0, 0.70, uProgress);
+  // Reveal range tightened so the cell is essentially fully present by the
+  // time the face-pack fragments finish fading (opacity hits 0 around
+  // uProgress ≈ 0.40, see facePack.js). Previously this used a 0→0.70 range,
+  // which left the cell at ~60% intensity at the moment the face vanished —
+  // producing a visible gap between "face gone" and "cell here".
+  float reveal = smoothstep(0.0, 0.42, uProgress);
   col += drawCell(cUv, reveal, 0.0);
 
   // ── Cinematic finish ─────────────────────────────────────────────────────

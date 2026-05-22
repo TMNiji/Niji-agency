@@ -18,14 +18,23 @@ const TICK_PITCH = 12;   // px between adjacent ticks
 const TICK_W_BASE = 16;  // default tick width (px)
 const N_TICKS = 800;     // covers ~9 600 px total — enough for all viewports
 
-// 5-tick cluster centred on nearest grid position.
-const CLUSTER = [
-  { offset: -24, width: 14 },
-  { offset: -12, width: 24 },
-  { offset:   0, width: 40 },
-  { offset: +12, width: 24 },
-  { offset: +24, width: 14 },
-];
+// Cluster radius (in ticks) — touch this many on either side of viewport centre.
+const CLUSTER_RADIUS = 3;
+
+// Cluster control points: at integer distances d=0,1,2,3 from the exact
+// viewport-centre, tick width matches the original [14,24,40,24,14] cluster
+// shape. Between integers we lerp linearly so widths shift continuously
+// with sub-pixel scroll — no 12-px snap that produced the visual jump.
+const CLUSTER_W_AT = [40, 24, 14, TICK_W_BASE];
+// Same idea for brightness so the bright zone tracks viewport centre smoothly.
+const CLUSTER_A_AT = [0.88, 0.88, 0.55, 0.16];
+
+function clusterAt(d, table) {
+  if (d >= CLUSTER_RADIUS) return table[table.length - 1];
+  const i = Math.floor(d);
+  const f = d - i;
+  return table[i] + (table[i + 1] - table[i]) * f;
+}
 
 // Fade range: label is fully opaque when ≤ FADE_PEAK px from centre,
 // fully dim when ≥ FADE_EDGE px away.
@@ -34,7 +43,12 @@ const FADE_EDGE = 160;
 const OPACITY_MIN = 0.22;
 const OPACITY_MAX = 0.90;
 
-export function createTimeline({ labels, startIndex = 0, onChange } = {}) {
+// labelAnchors: parallel array of 'top' | 'bottom' per label.
+//   'top'    (default) — label centres on cluster when user enters the section.
+//   'bottom' — label centres on cluster when user reaches the section's end
+//              (scrollY = section.bottom - vH). Use this for labels that
+//              represent a state reached only after scrolling through the section.
+export function createTimeline({ labels, labelAnchors = [], startIndex = 0, onChange } = {}) {
   const el = document.createElement('nav');
   el.className = 'hero-timeline';
   el.setAttribute('aria-label', 'Section navigation');
@@ -55,29 +69,45 @@ export function createTimeline({ labels, startIndex = 0, onChange } = {}) {
 
   // ── Section name labels — inside the track at scroll-relative y ─────────────
   // Positions are computed once the DOM has settled (double rAF).
-  const sectionLabelEls = labels.map((text) => {
-    const s = document.createElement('span');
+  // Each label is a button so it acts as a real anchor: clicking it jumps the
+  // page to that section's top via the registered scrollHandler.
+  let sectionPositions   = [];  // y (track space) per label — centre offset for visual fade
+  let sectionScrollStarts = []; // raw scroll-top of each section — used for click navigation
+
+  const sectionLabelEls = labels.map((text, i) => {
+    const s = document.createElement('button');
     s.className = 'hero-timeline__section-label';
     s.textContent = text;
     s.style.opacity = String(OPACITY_MIN);
+    s.addEventListener('click', () => {
+      const start = sectionScrollStarts[i];
+      if (start !== undefined) scrollHandler?.(start === 0 ? 0 : start + 4);
+    });
     track.appendChild(s);
     return s;
   });
 
-  let sectionPositions = [];  // y (track space) per section label
-
   function cacheSectionPositions() {
     const vH = window.innerHeight;
     const sections = document.querySelectorAll('[data-section]');
-    sectionPositions = Array.from(sections).map((sec) => {
-      const scrollStart = sec.getBoundingClientRect().top + window.scrollY;
-      return scrollStart + vH / 2;
+    sectionScrollStarts = Array.from(sections).map((sec, i) => {
+      const rect = sec.getBoundingClientRect();
+      if ((labelAnchors[i] ?? 'top') === 'bottom') {
+        // Scroll position when section end reaches viewport bottom.
+        return Math.round(rect.bottom + window.scrollY - vH);
+      }
+      return Math.round(rect.top + window.scrollY);
     });
+    sectionPositions = sectionScrollStarts.map((start) => start + vH / 2);
     sectionLabelEls.forEach((lEl, i) => {
       if (sectionPositions[i] !== undefined) {
         lEl.style.top = `${sectionPositions[i]}px`;
       }
     });
+    // Refresh opacities now that positions are known — without this, labels
+    // would stay at OPACITY_MIN (grey) until the user scrolls and triggers
+    // update() through the Lenis 'scroll' listener.
+    update();
   }
 
   // Wait for layout to settle before measuring section positions.
@@ -96,25 +126,31 @@ export function createTimeline({ labels, startIndex = 0, onChange } = {}) {
     // 1. Translate track so tick[i] appears at viewport y = i*TICK_PITCH - scrollY.
     track.style.transform = `translateY(${-scrollY}px)`;
 
-    // 2. Snap cluster centre to nearest tick-grid position.
-    const centerY = Math.round((scrollY + vH / 2) / TICK_PITCH) * TICK_PITCH;
+    // 2. Cluster centre tracks the exact viewport centre — no snapping to the
+    //    tick grid, so the bright zone glides smoothly with scroll instead of
+    //    jumping in 12 px increments. The center is expressed as a fractional
+    //    tick index; nearby ticks are widened/brightened by their continuous
+    //    distance from it.
+    const centerIdxF = (scrollY + vH / 2) / TICK_PITCH;
+    const baseIdx = Math.round(centerIdxF);
 
-    // 3. Reset previous cluster (5 ops max).
+    // 3. Reset previous cluster (max 2*CLUSTER_RADIUS+1 ops).
     prevClusterTicks.forEach((t) => {
-      t.style.width = `${TICK_W_BASE}px`;
-      t.classList.remove('is-active');
+      t.style.width = '';
+      t.style.background = '';
     });
     prevClusterTicks = [];
 
-    // 4. Highlight new cluster.
-    CLUSTER.forEach(({ offset, width }) => {
-      const idx = (centerY + offset) / TICK_PITCH;
+    // 4. Apply continuous width + brightness for each tick in the cluster window.
+    for (let off = -CLUSTER_RADIUS; off <= CLUSTER_RADIUS; off++) {
+      const idx = baseIdx + off;
       const t = ticks[idx];
-      if (!t) return;
-      t.style.width = `${width}px`;
-      t.classList.add('is-active');
+      if (!t) continue;
+      const d = Math.abs(idx - centerIdxF);
+      t.style.width = `${clusterAt(d, CLUSTER_W_AT).toFixed(2)}px`;
+      t.style.background = `rgba(255,255,255,${clusterAt(d, CLUSTER_A_AT).toFixed(3)})`;
       prevClusterTicks.push(t);
-    });
+    }
 
     // 5. Fade each section label by its distance from the cluster centre.
     const viewportCenter = vH / 2;

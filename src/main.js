@@ -5,6 +5,8 @@ import { initSnapScroll }     from '@modules/snapScroll.js';
 import { mountHero }          from './sections/hero/index.js';
 import { mountThinking }      from './sections/thinking/index.js';
 import { mountChaos }         from './sections/chaos/index.js';
+import { mountVideo }         from './sections/video/index.js';
+import { mountClients }       from './sections/clients/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
 
@@ -12,25 +14,44 @@ const SECTIONS = [
   {
     id: 'hero',
     label: 'Identity',
-    triggerHeight: '80vh',   // section 1 — longer gesture, full explosion in ~80vh
+    // 140vh: longer gesture so the explosion isn't hyper-sensitive to small
+    // scrolls. 80vh used to land the user mid-explosion on a single trackpad swipe.
+    triggerHeight: '140vh',
     triggerStart: 'top top',
     triggerEnd: 'bottom top',
   },
   {
     id: 'thinking',
     label: 'Thinking',
-    triggerHeight: '220vh',  // section 2 — cell + orbital; extra height gives sticky dwell for interaction
-    triggerStart: 'top top', // progress starts when thinking hits viewport top
-    triggerEnd: 'center top', // progress=1 at halfway through; sticky lasts for dot interaction
+    triggerHeight: '160vh',  // section 2 — cell + orbital; 160vh of dwell for dot interaction
+    triggerStart: 'top top',
+    triggerEnd: 'bottom top', // progress=1 right as chaos starts — no dead scroll between sections
   },
   {
     id: 'chaos',
     label: 'Beyond',
-    triggerHeight: '250vh',  // section 3 — extra space for the deliberate prism pacing
+    labelAnchor: 'bottom', // "Beyond" = state after the rainbow; show label near section end
+    // Reduced from 250vh — previous value padded a long dead-scroll stretch
+    // between Thinking and Beyond. 160vh keeps the prism deliberate without
+    // wasting screen estate.
+    triggerHeight: '160vh',
     triggerStart: 'top top',
-    // Use 'bottom bottom' (not 'bottom top') because chaos is the last section:
-    // 'bottom top' would require scrolling *past* maxScroll to reach progress=1.
-    // With 'bottom bottom', progress 0→1 maps cleanly onto scroll 0→maxScroll.
+    triggerEnd: 'bottom top', // chaos is no longer last — progress 0→1 across the section
+  },
+  {
+    id: 'video',
+    label: 'Video',
+    triggerHeight: '150vh',  // section 4 — scroll-scrubbed transparent video
+    triggerStart: 'top top',
+    triggerEnd: 'bottom top',
+  },
+  {
+    id: 'clients',
+    label: 'Clients',
+    triggerHeight: '150vh',  // section 5 — last section, snaps to doc bottom
+    triggerStart: 'top top',
+    // 'bottom bottom' so progress 0→1 maps cleanly onto scroll 0→maxScroll
+    // (would otherwise require scrolling past maxScroll to reach progress=1).
     triggerEnd: 'bottom bottom',
   },
 ];
@@ -72,9 +93,10 @@ async function boot() {
   // 1-second debounce: after the last timeline drag, wait before scrolling.
   let dragScrollTimer = null;
 
-  const sectionLabels = SECTIONS.map((s) => s.label);
+  const sectionLabels       = SECTIONS.map((s) => s.label);
+  const sectionLabelAnchors = SECTIONS.map((s) => s.labelAnchor ?? 'top');
   const hero     = mountHero({
-    container: root, orchestrator, webgl, sectionLabels, content: sanityContent,
+    container: root, orchestrator, webgl, sectionLabels, sectionLabelAnchors, content: sanityContent,
     onSectionChange: (index) => {
       clearTimeout(dragScrollTimer);
       dragScrollTimer = setTimeout(() => {
@@ -89,6 +111,8 @@ async function boot() {
   });
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
   const chaos    = mountChaos({ container: root });
+  const video    = mountVideo({ container: root, orchestrator });
+  const clients  = mountClients({ container: root });
 
   // Wire drag-to-scrub: timeline calls this when the user drags the ruler strip.
   hero?.timeline?.setScrollHandler((y) => lenis.scrollTo(y, { duration: 0.15 }));
@@ -137,23 +161,49 @@ async function boot() {
       webgl.shaderPlane.setProgress(1);
       webgl.shaderPlane.setShader('hero_grain');
       hero?.timeline?.setIndex(1);
+    } else {
+      // Going down into video — drop the prism, return to the dark grain bg.
+      webgl.shaderPlane.setShader('hero_grain');
+      webgl.shaderPlane.setProgress(0);
+      hero?.timeline?.setIndex(3);
     }
+  });
+
+  // ── Video + Clients — reveal stage when active ──────────────────────────
+  const setActive = (id, on) => {
+    const el = document.querySelector(`[data-section="${id}"]`);
+    if (el) el.classList.toggle('is-visible', on);
+  };
+
+  orchestrator.onEnter('video',   () => { setActive('video', true);  hero?.timeline?.setIndex(3); });
+  orchestrator.onLeave('video',   ({ direction }) => {
+    setActive('video', false);
+    if (direction === 'up') hero?.timeline?.setIndex(2);
+  });
+
+  orchestrator.onEnter('clients', () => { setActive('clients', true); hero?.timeline?.setIndex(4); });
+  orchestrator.onLeave('clients', ({ direction }) => {
+    setActive('clients', false);
+    if (direction === 'up') hero?.timeline?.setIndex(3);
   });
 
   orchestrator.refresh();
 
-  // ── Snap-scroll — section tops + document bottom ──────────────────────────
-  // Non-zero snap targets get +4 px so Lenis's ease-out, which can settle
-  // 1–2 px short, still crosses the ScrollTrigger start boundary and fires
-  // onEnter reliably. Including doc-bottom lets users snap forward when they
-  // pause near the end of the final section.
+  // ── Snap-scroll — every section top plus the document bottom ────────────
+  // All five section tops are anchors so the user always lands on a
+  // well-defined viewport no matter where they pause scrolling. The snap
+  // window in snapScroll.js is wide enough that a stop anywhere in the page
+  // resolves to the nearest anchor.
+  // Non-zero targets get +4 px so Lenis's ease-out still crosses the
+  // ScrollTrigger start boundary reliably.
   initSnapScroll(lenis, () => {
-    const tops = SECTIONS.map((s) => {
-      const el = document.querySelector(`[data-section="${s.id}"]`);
-      if (!el) return 0;
+    const snapIds = ['hero', 'thinking', 'chaos', 'video', 'clients'];
+    const tops = snapIds.map((id) => {
+      const el = document.querySelector(`[data-section="${id}"]`);
+      if (!el) return null;
       const top = Math.round(el.getBoundingClientRect().top + window.scrollY);
       return top === 0 ? 0 : top + 4;
-    });
+    }).filter((t) => t !== null);
     const docBottom = document.documentElement.scrollHeight - window.innerHeight;
     return [...tops, docBottom];
   });
@@ -161,7 +211,7 @@ async function boot() {
   // Drive the timeline ruler with Lenis's smoothed scroll position.
   lenis.on('scroll', ({ scroll }) => { hero?.timeline?.update(scroll); });
 
-  window.__niji = { lenis, webgl, orchestrator, hero, thinking, chaos };
+  window.__niji = { lenis, webgl, orchestrator, hero, thinking, chaos, video, clients };
 }
 
 boot();

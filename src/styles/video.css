@@ -1,0 +1,78 @@
+/* ── Video section — transparent video pinned to viewport ─────────────────── */
+
+.video {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fixed stage — viewport-pinned, transparent so the WebGL gradient shows through.
+   Hidden by default since all section stages overlap as fixed-position siblings;
+   only the active one fades in. */
+.video__stage {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 350ms ease;
+}
+
+.video.is-visible .video__stage { opacity: 1; }
+
+.video__el {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* Placeholder — visible until a real video loads */
+.video__placeholder {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 300ms ease;
+}
+
+.video__placeholder.is-hidden { opacity: 0; }
+
+.video__placeholder-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: clamp(28px, 4vw, 56px) clamp(40px, 6vw, 88px);
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.video__placeholder-icon {
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1;
+}
+
+.video__placeholder-label {
+  font-family: var(--font);
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.video__placeholder-hint {
+  font-family: var(--font);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.32);
+}

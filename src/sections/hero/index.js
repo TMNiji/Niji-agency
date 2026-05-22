@@ -5,7 +5,7 @@ import { createFacePack } from './facePack.js';
 
 const DEFAULT_TITLE = 'We make products for humans and agents';
 
-export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null, onSectionChange = null } = {}) {
+export function mountHero({ container, orchestrator, webgl, sectionLabels = [], sectionLabelAnchors = [], content = null, onSectionChange = null } = {}) {
   const section = container.querySelector('[data-section="hero"]');
   if (!section) return null;
 
@@ -31,7 +31,7 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   );
 
   const header   = createHeader();
-  const timeline = createTimeline({ labels: sectionLabels, startIndex: 0, onChange: onSectionChange });
+  const timeline = createTimeline({ labels: sectionLabels, labelAnchors: sectionLabelAnchors, startIndex: 0, onChange: onSectionChange });
   const title    = createTitle({ text: content?.hero?.title ?? DEFAULT_TITLE });
   const facePack = createFacePack({ webgl, imageSrcs });
 
@@ -48,7 +48,10 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   section.appendChild(overlay);
 
   stage.appendChild(timeline.el);
-  section.appendChild(header.el);
+  // Hoist header outside #app's stacking context (z-index:1) so its z-index:9999
+  // wins against the body-level #noise overlay (z-index:9998). Otherwise #app's
+  // local context caps the header below the grain.
+  document.body.appendChild(header.el);
 
   requestAnimationFrame(() => requestAnimationFrame(() => title.play()));
 

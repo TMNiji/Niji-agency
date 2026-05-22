@@ -53,12 +53,13 @@ export function createOrbital({ stage }) {
   });
 
   // Create dot elements (positioned dynamically in updatePositions)
+  // transform is driven entirely by JS — CSS has no transform rule for these.
   const dotEls = DOTS_DEF.map((d) => {
     const el = document.createElement('div');
     el.className = 'hero-orbital__dot';
     const label = document.createElement('span');
     label.className = 'hero-orbital__dot-label';
-    label.textContent = '/placeholder';
+    label.textContent = '/PLACEHOLDER';
     el.appendChild(label);
     wrap.appendChild(el);
     return { el, def: d, x: 0, y: 0 };
@@ -85,6 +86,65 @@ export function createOrbital({ stage }) {
       dot.el.style.top  = `${dot.y}px`;
     });
   }
+
+  // ── Mouse-follow — each dot individually drifts toward the cursor ───────────
+  // A dot only reacts when the cursor enters its own influence radius.
+  // Smoothstep falloff: full displacement at the dot's centre, zero at the edge.
+  const INFLUENCE_R = 120;  // px — radius around each dot that triggers a reaction
+  const FOLLOW_MAX  = 9;    // px — maximum displacement at cursor centre
+  const FOLLOW_LERP = 0.10; // fraction per frame — spring smoothing
+
+  const followOffsets = dotEls.map(() => ({ x: 0, y: 0 }));
+  let mouseStageX = null;
+  let mouseStageY = null;
+  let followRafId = null;
+
+  function applyTransforms() {
+    const sw = stage.offsetWidth  || window.innerWidth;
+    const sh = stage.offsetHeight || window.innerHeight;
+    const ox = sw / 2;
+    const oy = sh / 2;
+
+    dotEls.forEach((dot, i) => {
+      let targetX = 0;
+      let targetY = 0;
+
+      if (mouseStageX !== null) {
+        const dx   = mouseStageX - (ox + dot.x);
+        const dy   = mouseStageY - (oy + dot.y);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < INFLUENCE_R && dist > 0) {
+          // Smoothstep: 1 at dot centre → 0 at influence edge
+          const t      = 1 - dist / INFLUENCE_R;
+          const smooth = t * t * (3 - 2 * t);
+          const pull   = smooth * FOLLOW_MAX;
+          targetX = (dx / dist) * pull;
+          targetY = (dy / dist) * pull;
+        }
+      }
+
+      const fo = followOffsets[i];
+      fo.x += (targetX - fo.x) * FOLLOW_LERP;
+      fo.y += (targetY - fo.y) * FOLLOW_LERP;
+
+      dot.el.style.transform =
+        `translate(calc(-50% + ${fo.x.toFixed(2)}px), calc(-50% + ${fo.y.toFixed(2)}px))`;
+    });
+
+    followRafId = requestAnimationFrame(applyTransforms);
+  }
+
+  stage.addEventListener('mousemove', (e) => {
+    const rect = stage.getBoundingClientRect();
+    mouseStageX = e.clientX - rect.left;
+    mouseStageY = e.clientY - rect.top;
+  }, { passive: true });
+
+  stage.addEventListener('mouseleave', () => {
+    mouseStageX = null;
+    mouseStageY = null;
+  }, { passive: true });
 
   updatePositions();
 
@@ -194,12 +254,14 @@ export function createOrbital({ stage }) {
   function show() {
     wrap.style.setProperty('--orbital-opacity', '1');
     wrap.style.setProperty('--orbital-scale', '1');
+    if (!followRafId) followRafId = requestAnimationFrame(applyTransforms);
   }
   function hide() {
     wrap.style.setProperty('--orbital-opacity', '0');
     wrap.style.setProperty('--orbital-scale', '0.88');
+    if (followRafId) { cancelAnimationFrame(followRafId); followRafId = null; }
   }
 
-  hide(); // start hidden
+  hide(); // start hidden — RAF will start on first show()
   return { show, hide, closePopup };
 }

@@ -56,8 +56,8 @@
    bright as they approach the cluster. Drag vertically to scrub. */
 .hero-timeline {
   position: fixed;
-  top: 0;
-  bottom: 0;
+  top: 48px;
+  bottom: 48px;
   left: 48px;
   width: 200px;       /* tick area (≤40px) + gap + label text */
   overflow: clip;
@@ -94,6 +94,13 @@
 /* Per-section name labels — live inside the track at scroll-relative y.
    Opacity is driven per-frame by JS based on distance from the cluster. */
 .hero-timeline__section-label {
+  /* Reset <button> defaults */
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+
   position: absolute;
   left: 52px;
   font-family: var(--font);
@@ -106,12 +113,12 @@
   transform: translateY(-50%);
 }
 
-/* Header */
+/* Header — above the noise overlay (z-index 9998) so grain never affects the logo */
 .hero-header {
   position: fixed;
   top: 48px;
   left: 48px;
-  z-index: 10;
+  z-index: 9999;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -172,22 +179,29 @@
   box-shadow:
     0 0  6px  4px rgba(255, 255, 255, 0.55),
     0 0 16px  8px rgba(255, 255, 255, 0.20);
-  transform: translate(-50%, -50%);
+  /* transform managed entirely by JS (mouse-follow lerp + -50% centering) */
   cursor: pointer;
   pointer-events: auto;
+  will-change: transform;
   transition: box-shadow 400ms ease, width 250ms ease, height 250ms ease;
 }
 
-/* Persistent label beneath each orbital dot */
+/* Expanded hitbox — invisible padding around the visual dot */
+.hero-orbital__dot::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+}
+
+/* Persistent label to the right of each orbital dot */
 .hero-orbital__dot-label {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--font);
-  font-size: 11px;
+  top: 50%;
+  left: calc(100% + 12px);
+  transform: translateY(-50%);
+  font-family: 'DotGothic16', monospace;
+  font-size: 16px;
   font-weight: 400;
-  letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.55);
   white-space: nowrap;
   pointer-events: none;

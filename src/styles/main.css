@@ -2,6 +2,8 @@
 @import './hero.css';
 @import './thinking.css';
 @import './chaos.css';
+@import './video.css';
+@import './clients.css';
 
 :root {
   --bg:   #0a0a0a;
