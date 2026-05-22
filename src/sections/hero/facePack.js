@@ -18,61 +18,68 @@ const FOV_RAD = (FOV * Math.PI) / 180;
 // `rz`           CSS rotation in degrees (negated to three.js' CCW-Y-up).
 // `vx/vy/speed`  scroll-driven radial explosion vector + magnitude.
 // `px/py`        mouse-parallax amplitudes in pixels (varied per fragment).
-// `z`            back-to-front render order tiebreaker.
+// `z`            back-to-front render order only; resting planes stay at z=0
+//                so Figma x/y/w/h values are not perspective-shifted.
 const FRAGS = [
   { id: 'neck',           src: '/hero/neck.png',
     srcW: 488, srcH: 325,
-    left: 126.81, top: 257.05, w: 487.50, h: 325.22,
-    rz: 0,
-    vx:  0.00, vy: -0.80, speed: 0.90, px: 10, py: 24, z: -40 },
+    left: 48.00, top: 257.05, w: 487.50, h: 325.22,
+    rz: 0, flipX: true,
+    vx:  0.00, vy: -0.80, speed: 0.90, px: 10, py: 24, z: 0 },
 
   { id: 'center-head',    src: '/hero/center-head.png',
     srcW: 326, srcH: 183,
     left: 39.04, top: 244.97, w: 326.22, h: 183.14,
     rz: 0,
-    vx:  0.50, vy: -0.65, speed: 1.10, px: 18, py: 22, z: 0 },
+    vx:  0.50, vy: -0.65, speed: 1.10, px: 18, py: 22, z: 10 },
 
   { id: 'cheek-left',     src: '/hero/cheek-left.png',
     srcW: 148, srcH: 286,
     left: 0.00, top: 183.75, w: 139.27, h: 278.21,
     rz: 0,
-    vx: -1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: -50 },
+    vx: -1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: 20 },
 
   { id: 'cheek-right',    src: '/hero/cheek-right.png',
     srcW: 151, srcH: 294,
     left: 361.05, top: 150.73, w: 142.95, h: 286.22,
     rz: 0,
-    vx:  1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: -50 },
+    vx:  1.00, vy:  0.10, speed: 1.00, px: 26, py: 14, z: 21 },
+
+  { id: 'bg-eye-left',    src: '/hero/bg-eye-left.png',
+    srcW: 210, srcH: 168,
+    left: 77.25, top: 150.73, w: 209.42, h: 167.13,
+    rz: 0,
+    vx: -0.35, vy:  0.55, speed: 1.05, px: 18, py: 18, z: 70 },
 
   { id: 'eye-left',       src: '/hero/eye-left.png',
     srcW: 105, srcH:  62,
     left: 123.75, top: 208.76, w: 96.87, h: 54.04,
     rz: 0,
-    vx: -0.15, vy:  0.95, speed: 1.35, px: 22, py: 18, z: 30 },
+    vx: -0.15, vy:  0.95, speed: 1.35, px: 22, py: 18, z: 80 },
 
   { id: 'eye-right',      src: '/hero/eye-right.png',
     srcW: 205, srcH: 118,
     left: 249.57, top: 183.76, w: 196.24, h: 110.08,
     rz: 0,
-    vx:  0.15, vy:  0.95, speed: 1.40, px: 28, py: 18, z: -10 },
+    vx:  0.15, vy:  0.95, speed: 1.40, px: 28, py: 18, z: 60 },
 
   { id: 'mouth',          src: '/hero/mouth.png',
     srcW: 207, srcH: 120,
     left: 146.13, top: 379.06, w: 208.58, h: 117.42,
     rz: 0,
-    vx: -0.05, vy: -0.90, speed: 1.45, px: 14, py: 28, z:  20 },
+    vx: -0.05, vy: -0.90, speed: 1.45, px: 14, py: 28, z: 81 },
 
   { id: 'forehead-left',  src: '/hero/forehead-left.png',
     srcW: 252, srcH: 202,
-    left: 162.76, top: 140.24, w: 239.06, h: 191.13,
+    left: 126.00, top: 58.00, w: 239.06, h: 191.13,
     rz: -1.56,
-    vx: -0.55, vy:  0.85, speed: 1.30, px: 20, py: 26, z: -30 },
+    vx: -0.55, vy:  0.85, speed: 1.30, px: 20, py: 26, z: 50 },
 
   { id: 'forehead-right', src: '/hero/forehead-right.png',
     srcW: 275, srcH: 236,
-    left: 201.70, top: 162.17, w: 237.80, h: 190.14,
+    left: 220.00, top: 46.00, w: 237.80, h: 190.14,
     rz: -9.90,
-    vx:  0.55, vy:  0.80, speed: 1.25, px: 20, py: 24, z: -20 },
+    vx:  0.55, vy:  0.80, speed: 1.25, px: 20, py: 24, z: 40 },
 ];
 
 // Reproduce CSS `object-fit: cover` by tightening the texture's UV window so
@@ -126,9 +133,10 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     // (y is flipped because Figma's y grows downward, three.js' grows up).
     const ox = -PACK_W / 2 + f.left + f.w / 2;
     const oy =  PACK_H / 2 - f.top  - f.h / 2;
-    const oz = f.z;
+    const oz = 0;
 
     mesh.position.set(ox, oy, oz);
+    mesh.renderOrder = f.z;
     if (f.flipX) mesh.scale.x = -1;
     mesh.rotation.z = (f.rz * Math.PI) / 180;
 
@@ -141,8 +149,8 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     return mesh;
   });
 
-  // Sort back-to-front so alpha blending works without depth fighting
-  meshes.sort((a, b) => a.userData.oz - b.userData.oz);
+  // Sort back-to-front so alpha blending follows the Figma layer stack.
+  meshes.sort((a, b) => a.renderOrder - b.renderOrder);
   meshes.forEach((m) => scene.add(m));
 
   const onResize = (w, h) => {
@@ -171,25 +179,26 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     const p = Math.max(0, Math.min(1, progress));
     // Ease-out quartic: fast initial blast, gradual deceleration
     const e = 1 - Math.pow(1 - p, 4);
-    const reach = Math.max(window.innerWidth, window.innerHeight) * 1.6;
+    const reach = Math.max(window.innerWidth, window.innerHeight);
+    const forward = camZ * 0.78 * e;
     // Parallax fades out as the pack explodes away
     const parallaxFade = 1 - e;
 
     meshes.forEach((mesh) => {
       const d = mesh.userData;
-      const tx = d.vx * reach * e * d.speed;
-      const ty = d.vy * reach * e * d.speed;
+      const tx = d.vx * reach * e * d.speed * 0.62;
+      const ty = d.vy * reach * e * d.speed * 0.44;
 
       const mpx =  d.px * mouse.x * parallaxFade;
       const mpy = -d.py * mouse.y * parallaxFade;
 
-      mesh.position.set(d.ox + tx + mpx, d.oy + ty + mpy, d.oz);
+      mesh.position.set(d.ox + tx + mpx, d.oy + ty + mpy, d.oz + forward * d.speed);
 
       // Y-axis card-flip proportional to horizontal travel (key 3D feel)
-      const rotY = d.vx * Math.PI * 0.9 * e;
+      const rotY = d.vx * Math.PI * 0.52 * e;
       // X-axis tilt proportional to vertical travel
-      const rotX = d.vy * Math.PI * 0.4 * e;
-      mesh.rotation.set(rotX, rotY, d.initRz + d.vx * 0.5 * e);
+      const rotX = d.vy * Math.PI * 0.25 * e;
+      mesh.rotation.set(rotX, rotY, d.initRz + d.vx * 0.32 * e);
 
       mesh.material.opacity = Math.max(0, 1 - e * 1.15);
     });

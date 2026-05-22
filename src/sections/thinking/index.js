@@ -129,14 +129,19 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
   aiLinks.appendChild(aiLinksButtons);
 
   // ── Right panel — services stacked above AI links, bottom-right ──────────
+  // Appended to <body> (not the stage) so it escapes the .thinking stacking
+  // context and can sit above the noise overlay (z-index 9998).
   const rightPanel = document.createElement('div');
   rightPanel.className = 'thinking__right-panel';
   rightPanel.appendChild(services);
   rightPanel.appendChild(aiLinks);
-  stage.appendChild(rightPanel);
+  document.body.appendChild(rightPanel);
 
   // ── Orchestration ──────────────────────────────────────────────────────────
-  const reveal = () => section.classList.add('is-visible');
+  const reveal = () => {
+    section.classList.add('is-visible');
+    rightPanel.classList.add('is-visible');
+  };
 
   // Debounced hide — the ease-out snap animation can land 1-2px before the
   // trigger start, momentarily firing onLeaveBack before correcting itself.
@@ -158,6 +163,7 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
 
   orchestrator?.onLeave('thinking', ({ direction }) => {
     section.classList.remove('is-visible');
+    rightPanel.classList.remove('is-visible');
     clearTimeout(hideTimer);
     if (direction === 'up') {
       // Debounce: a micro-bounce snap can briefly cross the start boundary going
@@ -184,5 +190,5 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
     if (rect.top <= 0 && rect.bottom > 0) reveal();
   });
 
-  return { section, orbital };
+  return { section, orbital, rightPanel };
 }

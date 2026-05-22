@@ -1,10 +1,11 @@
-// Clients section — fan of cards.
+// Clients section — 3D fan of glass cards.
 //
-// Cards are laid out as a static fan (hand-of-cards), each rotated around a
-// shared pivot point well below the fan's visible centre. Hovering a card
-// lifts it radially outward from the pivot to signal interactivity. Clicking
-// a card opens a centred detail panel showing the logo larger plus a short
-// caption; click the backdrop or press Escape to dismiss.
+// Eight cards in two mirrored half-fans facing inward: each pivot is placed on
+// a horizontal row and tilted around its own Y axis. Inner cards (closest to
+// the centre line) carry the most rotateY, outer cards approach face-on. A
+// shared perspective on the stage turns this into a true 3D arrangement —
+// hover lifts a card forward (translateZ + Y), clicking opens a centred
+// detail panel with logo + caption.
 
 const DEFAULT_TITLE    = 'Grands noms.';
 const DEFAULT_SUBTITLE = 'Projets à leur hauteur.';
@@ -20,7 +21,13 @@ const DEFAULT_CLIENTS = [
   { name: 'Solstice',  caption: 'Retail · Omnichannel 2024' },
 ];
 
-const FAN_ARC = 52; // total angular spread of the fan (degrees)
+// Fan geometry — symmetric, mirrored around the centre.
+const N_PER_SIDE   = 4;
+const INNER_GAP    = 28;   // px between the two innermost cards
+const STEP_X       = 88;   // horizontal step between adjacent cards
+const STEP_ROT_Y   = 11;   // rotateY decrement per step outward (deg)
+const INNER_ROT_Y  = 44;   // rotateY of the innermost cards (deg)
+const TILT_X       = -4;   // shared backward tilt for cinematic depth (deg)
 
 export function mountClients({ container, title = DEFAULT_TITLE, subtitle = DEFAULT_SUBTITLE, clients = DEFAULT_CLIENTS } = {}) {
   const section = container.querySelector('[data-section="clients"]');
@@ -40,28 +47,41 @@ export function mountClients({ container, title = DEFAULT_TITLE, subtitle = DEFA
   `;
   stage.appendChild(titleEl);
 
-  // ── Fan ───────────────────────────────────────────────────────────────────
+  // ── Fan stage (sits inside a 3D-perspective wrapper) ──────────────────────
   const fan = document.createElement('div');
   fan.className = 'clients__fan';
   stage.appendChild(fan);
 
-  const N    = clients.length;
-  const step = N > 1 ? FAN_ARC / (N - 1) : 0;
-  const mid  = (N - 1) / 2;
+  // Soft "spotlight" pool beneath the cards.
+  const stand = document.createElement('div');
+  stand.className = 'clients__stand';
+  stage.appendChild(stand);
 
   clients.forEach((client, i) => {
-    const angle = -FAN_ARC / 2 + i * step;
+    const onLeft        = i < N_PER_SIDE;
+    const side          = onLeft ? -1 : 1;
+    const idxFromCenter = onLeft ? (N_PER_SIDE - 1 - i) : (i - N_PER_SIDE);
+    // idxFromCenter: 0 = innermost, N_PER_SIDE - 1 = outermost
+
+    const x    = side * (INNER_GAP / 2 + idxFromCenter * STEP_X);
+    const rotY = -side * (INNER_ROT_Y - idxFromCenter * STEP_ROT_Y);
+
     const pivot = document.createElement('div');
     pivot.className = 'clients__card-pivot';
-    pivot.style.transform = `rotate(${angle}deg)`;
-    // Outer cards sit lower in the stack so the middle one is on top.
-    pivot.style.zIndex = String(100 - Math.round(Math.abs(i - mid)));
+    pivot.style.transform = `translate3d(${x}px, 0, 0) rotateY(${rotY}deg) rotateX(${TILT_X}deg)`;
+    // Stacking is handled by 3D depth (preserve-3d), but for browsers that
+    // collapse the stacking context we hint with a z-index too.
+    pivot.style.zIndex = String(100 - idxFromCenter);
 
     const card = document.createElement('div');
     card.className = 'clients__card';
 
     const inner = document.createElement('div');
     inner.className = 'clients__card-inner';
+
+    const sheen = document.createElement('div');
+    sheen.className = 'clients__card-sheen';
+    inner.appendChild(sheen);
 
     const glow = document.createElement('div');
     glow.className = 'clients__card-glow';
@@ -88,6 +108,7 @@ export function mountClients({ container, title = DEFAULT_TITLE, subtitle = DEFA
     <button class="clients__detail-close" type="button" aria-label="Close">×</button>
     <div class="clients__detail-content">
       <div class="clients__detail-card">
+        <div class="clients__detail-card-sheen"></div>
         <div class="clients__detail-card-glow"></div>
         <div class="clients__detail-card-logo"></div>
       </div>
@@ -108,7 +129,6 @@ export function mountClients({ container, title = DEFAULT_TITLE, subtitle = DEFA
     detailLogo.textContent = client?.name ?? '';
     detailText.textContent = client?.caption ?? '';
     detail.hidden = false;
-    // Double rAF so the opacity/transform transition actually fires.
     requestAnimationFrame(() => requestAnimationFrame(() => {
       section.classList.add('is-detail-open');
     }));

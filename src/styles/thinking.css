@@ -23,7 +23,6 @@
 
 /* Re-enable pointer events on interactive children */
 .thinking__stage .hero-orbital__dot,
-.thinking__stage .thinking__right-panel,
 .thinking__stage .hero-popup { pointer-events: auto; }
 
 /* ── Folder card component ─────────────────────────────────────────────────── */
@@ -94,18 +93,24 @@
   flex-shrink: 0;
 }
 
-/* ── Right panel — services + AI links stacked, bottom-right ─────────────── */
+/* ── Right panel — services + AI links stacked, bottom-right ───────────────
+   Appended to <body> in JS so it escapes the .thinking (z-index:1) stacking
+   context. position:fixed + z-index:9999 puts it above the noise overlay
+   (z-index 9998), matching the hero header pattern. */
 
 .thinking__right-panel {
-  position: absolute;
+  position: fixed;
   right: clamp(40px, 4vw, 80px);
   bottom: clamp(32px, 5vh, 56px);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 20px;
-  z-index: 3;
+  z-index: 9999;
+  pointer-events: none;
 }
+
+.thinking__right-panel > * { pointer-events: auto; }
 
 /* ── Service panel ──────────────────────────────────────────────────────────  */
 
@@ -123,13 +128,13 @@
   transition: opacity 600ms ease, transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.thinking.is-visible .thinking__service                         { opacity: 0.32; transform: scale(1); }
-.thinking.is-visible .thinking__service.is-open                  { opacity: 1; }
-.thinking.is-visible .thinking__service:not(.is-open):hover      { opacity: 0.75; transition: opacity 150ms ease-out, transform 700ms cubic-bezier(0.22, 1, 0.36, 1); }
-.thinking.is-visible .thinking__service:nth-child(1)  { transition-delay: 100ms; }
-.thinking.is-visible .thinking__service:nth-child(2)  { transition-delay: 220ms; }
-.thinking.is-visible .thinking__service:nth-child(3)  { transition-delay: 340ms; }
-.thinking.is-visible .thinking__service:nth-child(4)  { transition-delay: 460ms; }
+.thinking__right-panel.is-visible .thinking__service                    { opacity: 0.32; transform: scale(1); }
+.thinking__right-panel.is-visible .thinking__service.is-open             { opacity: 1; }
+.thinking__right-panel.is-visible .thinking__service:not(.is-open):hover { opacity: 0.75; transition: opacity 150ms ease-out, transform 700ms cubic-bezier(0.22, 1, 0.36, 1); }
+.thinking__right-panel.is-visible .thinking__service:nth-child(1)  { transition-delay: 100ms; }
+.thinking__right-panel.is-visible .thinking__service:nth-child(2)  { transition-delay: 220ms; }
+.thinking__right-panel.is-visible .thinking__service:nth-child(3)  { transition-delay: 340ms; }
+.thinking__right-panel.is-visible .thinking__service:nth-child(4)  { transition-delay: 460ms; }
 
 /* Tag button: /NAME or >NAME */
 .thinking__service-tag {
@@ -191,7 +196,7 @@
   transition: opacity 500ms ease 500ms, transform 700ms cubic-bezier(0.22, 1, 0.36, 1) 400ms;
 }
 
-.thinking.is-visible .thinking__ai-links { opacity: 1; transform: scale(1); }
+.thinking__right-panel.is-visible .thinking__ai-links { opacity: 1; transform: scale(1); }
 
 .thinking__ai-links-label {
   font-family: 'DotGothic16', monospace;

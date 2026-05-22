@@ -1,12 +1,11 @@
-/* ── Clients section — fan of cards + click-to-detail ────────────────────── */
+/* ── Clients section — 3D fan of glass cards ──────────────────────────────── */
 
 .clients {
   position: relative;
   z-index: 1;
 }
 
-/* Fixed stage pinned to viewport while scrolling through the section.
-   Hidden by default since fixed stages overlap; only the active one fades in. */
+/* Stage establishes the perspective for the 3D fan inside. */
 .clients__stage {
   position: fixed;
   inset: 0;
@@ -15,6 +14,8 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity 350ms ease;
+  perspective: 1800px;
+  perspective-origin: 50% 56%;
 }
 
 .clients.is-visible .clients__stage {
@@ -22,20 +23,21 @@
   pointer-events: auto;
 }
 
-/* ── Title — top-centre ──────────────────────────────────────────────────── */
+/* ── Title ───────────────────────────────────────────────────────────────── */
 
 .clients__title {
   position: absolute;
-  top: clamp(120px, 14vh, 180px);
+  top: clamp(110px, 12vh, 160px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   text-align: center;
   pointer-events: none;
   z-index: 1;
+  transition: opacity 300ms ease;
 }
 
 .clients__title-line {
@@ -55,105 +57,162 @@
   color: #fff;
 }
 
-/* ── Fan ─────────────────────────────────────────────────────────────────── */
-/* The fan's anchor is the shared pivot point. Each card-pivot is a zero-size
-   element at that anchor and rotates around it; the card itself sits a fixed
-   distance above (transform-origin offsets handle the radial spread). */
+/* ── Fan — 3D container ──────────────────────────────────────────────────── */
 
 .clients__fan {
   position: absolute;
   left: 50%;
-  top: 62%;       /* fan centre — cards extend above this */
+  top: 58%;
   width: 0;
   height: 0;
-  filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.55));
-  transition: opacity 350ms ease, transform 350ms ease, filter 350ms ease;
+  transform-style: preserve-3d;
 }
+
+/* Soft pool of light beneath the fan — sells the "cards standing on glass". */
+.clients__stand {
+  position: absolute;
+  left: 50%;
+  top: 88%;
+  transform: translateX(-50%);
+  width: clamp(520px, 70vw, 1080px);
+  height: 220px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(129, 71, 245, 0.30) 0%, rgba(129, 71, 245, 0.0) 55%),
+    radial-gradient(ellipse at 50% 20%, rgba(0, 101, 255, 0.18) 0%, rgba(0, 101, 255, 0.0) 65%);
+  filter: blur(28px);
+  mix-blend-mode: screen;
+  opacity: 0.9;
+  transition: opacity 500ms ease;
+}
+
+/* ── Card pivot — receives 3D position + rotation ────────────────────────── */
 
 .clients__card-pivot {
   position: absolute;
-  left: 0;
-  top: 0;
-  /* Rotate around a point 540px below the fan anchor → cards fan above */
-  transform-origin: 0 540px;
-  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.clients__card {
-  position: absolute;
-  left: calc(clamp(140px, 14vw, 200px) / -2);
-  top:  calc(clamp(280px, 36vh, 420px) / -2);
-  width:  clamp(140px, 14vw, 200px);
-  height: clamp(280px, 36vh, 420px);
+  top: 50%;
+  left: 50%;
+  width:  clamp(140px, 12vw, 180px);
+  height: clamp(280px, 36vh, 400px);
+  margin-left: calc(clamp(140px, 12vw, 180px) / -2);
+  margin-top:  calc(clamp(280px, 36vh, 400px) / -2);
+  transform-style: preserve-3d;
+  transition: transform 550ms cubic-bezier(0.22, 1, 0.36, 1);
   cursor: pointer;
 }
+
+/* Card body — sits inside the pivot, never receives its own rotation.
+   The hover lift translates the body in its local frame (already rotated by
+   the pivot) so the card pops radially out of the fan toward the viewer. */
+.clients__card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: translateZ(0) translateY(0);
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Drop-shadow uses filter so it follows the rotated card geometry. */
+  filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.5));
+}
+
+.clients__card-pivot:hover { z-index: 999; }
+
+.clients__card-pivot:hover .clients__card {
+  transform: translateZ(60px) translateY(-22px);
+  filter: drop-shadow(0 40px 60px rgba(0, 0, 0, 0.6))
+          drop-shadow(0 0 30px rgba(129, 71, 245, 0.35));
+}
+
+/* ── Glass surface ───────────────────────────────────────────────────────── */
 
 .clients__card-inner {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 22px 22px 14px 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.015) 45%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 90px 90px 18px 18px;
+  background:
+    linear-gradient(
+      170deg,
+      rgba(255, 255, 255, 0.13) 0%,
+      rgba(255, 255, 255, 0.04) 30%,
+      rgba(255, 255, 255, 0.02) 60%,
+      rgba(255, 255, 255, 0.06) 100%
+    );
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset -1px 0 0 rgba(255, 255, 255, 0.06);
   overflow: hidden;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  /* Hover lift translates -Y in the card's local (rotated) frame, so the
-     card slides radially outward from the fan pivot. */
-  transform: translateY(0);
-  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
-              border-color 320ms ease,
-              box-shadow 320ms ease;
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  transition: border-color 320ms ease, box-shadow 320ms ease;
 }
 
-/* Glow inside each card — blue→purple radial */
+.clients__card-pivot:hover .clients__card-inner {
+  border-color: rgba(255, 255, 255, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 1px 0 0 rgba(255, 255, 255, 0.10),
+    inset -1px 0 0 rgba(255, 255, 255, 0.10);
+}
+
+/* Diagonal sheen — catches imagined light on the glass face */
+.clients__card-sheen {
+  position: absolute;
+  inset: -20% -30%;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.0) 60%
+  );
+  pointer-events: none;
+}
+
+/* Inner gradient glow — blue → purple, blurred volumetric column */
 .clients__card-glow {
   position: absolute;
-  inset: 12% 20%;
+  inset: 8% 14%;
   background:
-    radial-gradient(ellipse at 50% 45%, rgba(129, 71, 245, 0.55) 0%, rgba(129, 71, 245, 0.0) 65%),
-    linear-gradient(180deg, rgba(0, 101, 255, 0.0) 0%, rgba(0, 101, 255, 0.35) 50%, rgba(129, 71, 245, 0.0) 100%);
-  filter: blur(18px);
+    radial-gradient(ellipse at 50% 50%, rgba(129, 71, 245, 0.68) 0%, rgba(129, 71, 245, 0.0) 60%),
+    linear-gradient(180deg,
+      rgba(60, 120, 255, 0.0)  0%,
+      rgba(60, 120, 255, 0.55) 40%,
+      rgba(150, 80, 245, 0.45) 70%,
+      rgba(150, 80, 245, 0.0)  100%
+    );
+  filter: blur(22px);
   border-radius: 50%;
   pointer-events: none;
 }
 
 .clients__card-logo {
   position: absolute;
-  inset: 0;
+  inset: auto 0 7% 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 400;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.55);
   text-align: center;
-  padding: 0 12px;
+  padding: 0 10px;
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 280ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms ease;
 }
 
-/* Hover: card lifts radially outward + brighter glow ring */
-.clients__card-pivot:hover { z-index: 999; }
-
-.clients__card-pivot:hover .clients__card-inner {
-  transform: translateY(-28px);
-  border-color: rgba(255, 255, 255, 0.28);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
-    0 0 22px rgba(129, 71, 245, 0.35),
-    0 24px 40px rgba(0, 0, 0, 0.45);
+.clients__card-pivot:hover .clients__card-logo {
+  opacity: 1;
+  transform: translateY(0);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 /* ── Detail overlay — opens on card click ────────────────────────────────── */
@@ -167,7 +226,7 @@
   z-index: 10;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 350ms ease;
+  transition: opacity 380ms ease;
 }
 
 .clients.is-detail-open .clients__detail {
@@ -178,33 +237,33 @@
 .clients__detail-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.62);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: radial-gradient(ellipse at center, rgba(15, 8, 32, 0.55) 0%, rgba(0, 0, 0, 0.78) 70%);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
 }
 
 .clients__detail-close {
   position: absolute;
   top: clamp(24px, 4vh, 40px);
   right: clamp(24px, 3vw, 48px);
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
   color: rgba(255, 255, 255, 0.85);
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
-  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+  transition: background 220ms ease, border-color 220ms ease, color 220ms ease;
 }
 
 .clients__detail-close:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.36);
   color: #fff;
 }
 
@@ -213,42 +272,63 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
-  transform: scale(0.92);
-  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  gap: 36px;
+  transform: scale(0.9) translateY(20px);
+  transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.clients.is-detail-open .clients__detail-content { transform: scale(1); }
+.clients.is-detail-open .clients__detail-content {
+  transform: scale(1) translateY(0);
+}
 
-/* Centred detail card — same look as fan cards, larger size */
+/* Detail card — same material, larger size, soft glow */
 .clients__detail-card {
   position: relative;
   width:  clamp(240px, 22vw, 320px);
-  height: clamp(400px, 50vh, 560px);
-  border-radius: 28px 28px 18px 18px;
+  height: clamp(420px, 56vh, 600px);
+  border-radius: 160px 160px 22px 22px;
   background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 45%,
-    rgba(255, 255, 255, 0.06) 100%
+    170deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(255, 255, 255, 0.02) 60%,
+    rgba(255, 255, 255, 0.08) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.20);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-    0 40px 80px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 rgba(255, 255, 255, 0.40),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    0 50px 100px rgba(0, 0, 0, 0.65),
+    0 0 60px rgba(129, 71, 245, 0.25);
   overflow: hidden;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+.clients__detail-card-sheen {
+  position: absolute;
+  inset: -20% -30%;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.12) 45%,
+    rgba(255, 255, 255, 0.0) 60%
+  );
+  pointer-events: none;
 }
 
 .clients__detail-card-glow {
   position: absolute;
-  inset: 12% 18%;
+  inset: 8% 12%;
   background:
-    radial-gradient(ellipse at 50% 45%, rgba(129, 71, 245, 0.70) 0%, rgba(129, 71, 245, 0.0) 65%),
-    linear-gradient(180deg, rgba(0, 101, 255, 0.0) 0%, rgba(0, 101, 255, 0.45) 50%, rgba(129, 71, 245, 0.0) 100%);
-  filter: blur(22px);
+    radial-gradient(ellipse at 50% 50%, rgba(129, 71, 245, 0.80) 0%, rgba(129, 71, 245, 0.0) 60%),
+    linear-gradient(180deg,
+      rgba(60, 120, 255, 0.0)  0%,
+      rgba(60, 120, 255, 0.60) 40%,
+      rgba(150, 80, 245, 0.50) 70%,
+      rgba(150, 80, 245, 0.0)  100%
+    );
+  filter: blur(28px);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -262,7 +342,7 @@
   font-family: var(--font);
   font-size: clamp(20px, 1.8vw, 28px);
   font-weight: 400;
-  letter-spacing: 0.20em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: #fff;
   text-align: center;
@@ -273,22 +353,26 @@
   font-family: var(--font);
   font-size: clamp(12px, 1vw, 14px);
   font-weight: 400;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.62);
   text-align: center;
   max-width: 480px;
 }
 
-/* When detail is open, dim and slightly shrink the fan behind */
+/* When detail is open, push the fan back + dim */
 .clients.is-detail-open .clients__fan {
-  opacity: 0.18;
-  transform: scale(0.96);
-  filter: blur(3px) drop-shadow(0 25px 50px rgba(0, 0, 0, 0.55));
+  transform: scale(0.94);
+  opacity: 0.22;
+  filter: blur(4px);
+  transition: opacity 350ms ease, transform 350ms ease, filter 350ms ease;
   pointer-events: none;
 }
 
+.clients.is-detail-open .clients__stand {
+  opacity: 0.25;
+}
+
 .clients.is-detail-open .clients__title {
-  opacity: 0.35;
-  transition: opacity 300ms ease;
+  opacity: 0.30;
 }

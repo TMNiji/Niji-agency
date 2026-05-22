@@ -30,10 +30,10 @@ const SECTIONS = [
   {
     id: 'chaos',
     label: 'Beyond',
-    labelAnchor: 'bottom', // "Beyond" = state after the rainbow; show label near section end
-    // Reduced from 250vh — previous value padded a long dead-scroll stretch
-    // between Thinking and Beyond. 160vh keeps the prism deliberate without
-    // wasting screen estate.
+    // Anchor at chaos top — Beyond label sits at the natural section start,
+    // immediately after Thinking on the ruler. (The previous 'bottom' anchor
+    // pushed the label deep inside the section, creating a stray marker
+    // between Thinking and where Beyond visually begins.)
     triggerHeight: '160vh',
     triggerStart: 'top top',
     triggerEnd: 'bottom top', // chaos is no longer last — progress 0→1 across the section
