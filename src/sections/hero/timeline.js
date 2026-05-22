@@ -98,7 +98,11 @@ export function createTimeline({ labels, labelAnchors = [], startIndex = 0, onCh
       }
       return Math.round(rect.top + window.scrollY);
     });
-    sectionPositions = sectionScrollStarts.map((start) => start + vH / 2);
+    // Snap targets in main.js land non-hero sections at start+4 (small offset
+    // so Lenis's ease-out reliably crosses the ScrollTrigger boundary). Mirror
+    // that offset here so each label centres exactly on the cluster when the
+    // user is snapped to its section — otherwise labels sit 4 px above centre.
+    sectionPositions = sectionScrollStarts.map((start) => start + vH / 2 + (start === 0 ? 0 : 4));
     sectionLabelEls.forEach((lEl, i) => {
       if (sectionPositions[i] !== undefined) {
         lEl.style.top = `${sectionPositions[i]}px`;

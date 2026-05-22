@@ -27,15 +27,17 @@ const DEFAULT_CLIENTS = [
 ];
 
 // Stack geometry
-const Z_GAP        = 110;   // px between adjacent cards along Z
-const X_GAP        = 24;    // px each card offsets sideways (so the stack reads)
-const TRAVEL_START = 1100;  // distance the front card starts pushed back (px)
-const Z_RANGE      = 1100;  // distance over which opacity rises from 0 → 1
+const Z_GAP      = 140;   // px between adjacent cards along Z
+const Z_RANGE    = 720;   // depth fade-out distance for upcoming cards
+const X_PEEK     = 14;    // px each upcoming card offsets sideways (so the stack reads)
+const X_PEEK_CAP = 4;     // cap the lateral offset after this many cards back
+const EXIT_Y     = 90;    // px a passed card lifts upward per unit of `rel`
+const EXIT_FADE  = 2.5;   // 1/EXIT_FADE = fraction of one card's scroll over which a passed card fades
 
 // Mouse parallax
-const MOUSE_LERP   = 0.08;
-const ROT_Y_MAX    = 9;     // deg of stack rotateY at mouseX = ±1
-const ROT_X_MAX    = 4;     // deg of stack rotateX at mouseY = ±1
+const MOUSE_LERP = 0.08;
+const ROT_Y_MAX  = 9;     // deg of stack rotateY at mouseX = ±1
+const ROT_X_MAX  = 4;     // deg of stack rotateX at mouseY = ±1
 
 export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, subtitle = DEFAULT_SUBTITLE, clients = DEFAULT_CLIENTS } = {}) {
   const section = container.querySelector('[data-section="clients"]');
@@ -112,9 +114,6 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
   section.addEventListener('pointermove', onPointerMove);
   section.addEventListener('pointerleave', onPointerLeave);
 
-  // Symmetric X offsets so the stack reads as a centred queue.
-  const xCenterOffset = (N - 1) * X_GAP / 2;
-
   function update() {
     curMouseX += (targetMouseX - curMouseX) * MOUSE_LERP;
     curMouseY += (targetMouseY - curMouseY) * MOUSE_LERP;
@@ -123,25 +122,44 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
       `rotateY(${(curMouseX * ROT_Y_MAX).toFixed(2)}deg) ` +
       `rotateX(${(-curMouseY * ROT_X_MAX).toFixed(2)}deg)`;
 
-    // travelZ = -(1 - progress) * TRAVEL_START
-    //   progress=0 → travelZ = -TRAVEL_START   (stack deep in darkness)
-    //   progress=1 → travelZ = 0               (front card at z=0)
-    const travelZ = -(1 - scrollProgress) * TRAVEL_START;
+    // Fractional index of the card currently in focus.
+    //   progress=0 → focusedIdx=0       (card 0 in focus)
+    //   progress=1 → focusedIdx=N-1     (last card in focus)
+    // Smootherstep within each step makes the focus "linger" near the integer
+    // positions, so each card has a clear "in focus" beat before the next one
+    // takes its place — rather than the index sliding linearly through.
+    const totalSteps = N - 1;
+    const stepProg   = scrollProgress * totalSteps;
+    const stepIdx    = Math.floor(stepProg);
+    const stepFrac   = Math.min(1, Math.max(0, stepProg - stepIdx));
+    const ease       = stepFrac * stepFrac * stepFrac * (stepFrac * (stepFrac * 6 - 15) + 10);
+    const focusedIdx = Math.min(totalSteps, stepIdx + ease);
 
     cards.forEach(({ el, index }) => {
-      const baseZ = -index * Z_GAP;
-      const z     = baseZ + travelZ;
-      const x     = index * X_GAP - xCenterOffset;
+      // rel < 0 → already passed; rel = 0 → in focus; rel > 0 → upcoming.
+      const rel = index - focusedIdx;
 
-      // Opacity rises linearly with Z distance to the camera (z=0 plane).
-      // Clamp to a tiny minimum so the card silhouette never fully disappears
-      // even at the deepest end of the stack.
-      const opacity = Math.max(0.03, Math.min(1, 1 + z / Z_RANGE));
+      // Z: focused card at 0, upcoming stacked behind.
+      // Passed cards stay at z=0 (no perspective growth) — they exit via Y + opacity.
+      const z = -Math.max(0, rel) * Z_GAP;
+      // Passed cards drift upward as they exit.
+      const y = rel < 0 ? rel * EXIT_Y : 0;
+      // Upcoming cards peek sideways so the queue silhouette reads.
+      const x = Math.max(0, Math.min(X_PEEK_CAP, rel)) * X_PEEK;
 
-      el.style.transform = `translate3d(${x.toFixed(1)}px, 0, ${z.toFixed(1)}px)`;
+      let opacity;
+      if (rel >= 0) {
+        // Behind / at focus: opacity rises with Z distance to camera.
+        opacity = Math.max(0.04, Math.min(1, 1 + z / Z_RANGE));
+      } else {
+        // Already passed: fade out quickly over a fraction of one card's scroll.
+        opacity = Math.max(0, 1 + rel * EXIT_FADE);
+      }
+
+      el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px)`;
       el.style.opacity   = opacity.toFixed(3);
-      // Keep deep cards from intercepting pointer events meant for visible ones.
-      el.style.pointerEvents = opacity > 0.2 ? 'auto' : 'none';
+      // Only the card(s) the user can actually see should receive clicks.
+      el.style.pointerEvents = opacity > 0.3 ? 'auto' : 'none';
     });
 
     rafId = requestAnimationFrame(update);

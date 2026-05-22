@@ -10,51 +10,58 @@ import { mountClients }       from './sections/clients/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
 
+// All sections share the same 200vh height so every snap-to-snap hop takes
+// the same scroll distance (one full section). The rainbow → colorful-bg
+// transition is driven by thinking's last quarter (see onProgress below), so
+// by the time CONCEPTION snaps in at chaos.top the colorful background is
+// already at full strength.
+const SECTION_HEIGHT = '200vh';
+
 const SECTIONS = [
   {
     id: 'hero',
-    label: 'Identity',
-    // 140vh: longer gesture so the explosion isn't hyper-sensitive to small
-    // scrolls. 80vh used to land the user mid-explosion on a single trackpad swipe.
-    triggerHeight: '140vh',
+    label: 'VISION',
+    triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
     triggerEnd: 'bottom top',
   },
   {
     id: 'thinking',
-    label: 'Thinking',
-    triggerHeight: '160vh',  // section 2 — cell + orbital; 160vh of dwell for dot interaction
+    label: 'BUILD',
+    triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
-    triggerEnd: 'bottom top', // progress=1 right as chaos starts — no dead scroll between sections
+    triggerEnd: 'bottom top',
   },
   {
     id: 'chaos',
-    label: 'Beyond',
-    // Anchor at chaos top — Beyond label sits at the natural section start,
-    // immediately after Thinking on the ruler. (The previous 'bottom' anchor
-    // pushed the label deep inside the section, creating a stray marker
-    // between Thinking and where Beyond visually begins.)
-    triggerHeight: '160vh',
+    label: 'CONCEPTION',
+    triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
-    triggerEnd: 'bottom top', // chaos is no longer last — progress 0→1 across the section
+    triggerEnd: 'bottom top',
   },
   {
     id: 'video',
-    label: 'Video',
-    triggerHeight: '150vh',  // section 4 — scroll-scrubbed transparent video
+    label: 'DESIGN',
+    triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
     triggerEnd: 'bottom top',
   },
   {
     id: 'clients',
-    label: 'Clients',
-    triggerHeight: '150vh',  // section 5 — last section, snaps to doc bottom
+    label: 'CLIENTS',
+    triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
     // 'bottom bottom' so progress 0→1 maps cleanly onto scroll 0→maxScroll
     // (would otherwise require scrolling past maxScroll to reach progress=1).
     triggerEnd: 'bottom bottom',
   },
 ];
+
+// Fraction of thinking's scroll devoted to the rainbow → colorful-bg
+// transition. Below this threshold, the cell + dots are shown (hero_grain).
+// Above it, the prism shader animates so the colorful bg is full by the
+// time the user lands on CONCEPTION at chaos.top.
+const PRISM_THRESHOLD = 0.75;
 
 initNoise();
 
@@ -134,37 +141,65 @@ async function boot() {
     }
   });
 
-  // ── Chaos — prism shader, scroll-driven ────────────────────────────────────
-  // Use direct setShader (not setShaderWithTransition): the cell is rendered
-  // identically in both shaders at the transition point, so a hard swap is
-  // visually seamless — and avoids the fade-to-black gap that made the cell
-  // briefly disappear.
+  // ── Rainbow transition — driven by thinking's last quarter ─────────────────
+  // Below PRISM_THRESHOLD: hero_grain @ uProgress=1 (cell + dots).
+  // Above PRISM_THRESHOLD: prism shader animates so colorful bg is full by
+  // the moment chaos.top (CONCEPTION snap) is reached.
+  let prismActive = false;
+  const setUIVisible = (visible) => {
+    const orbital = document.querySelector('.hero-orbital');
+    const panel   = document.querySelector('.thinking__right-panel');
+    const opacity = String(visible.toFixed(3));
+    if (orbital) { orbital.style.transition = 'none'; orbital.style.opacity = opacity; }
+    if (panel)   { panel.style.transition   = 'none'; panel.style.opacity   = opacity; }
+  };
 
+  orchestrator.onProgress('thinking', ({ progress }) => {
+    if (progress >= PRISM_THRESHOLD) {
+      const p = Math.min(1, (progress - PRISM_THRESHOLD) / (1 - PRISM_THRESHOLD));
+      if (!prismActive) {
+        webgl.shaderPlane.setShader('prism');
+        prismActive = true;
+      }
+      webgl.shaderPlane.setProgress(p);
+      setUIVisible(1 - p);
+    } else if (prismActive) {
+      webgl.shaderPlane.setShader('hero_grain');
+      webgl.shaderPlane.setProgress(1);
+      setUIVisible(1);
+      prismActive = false;
+    }
+  });
+
+  // ── Chaos — colorful background holds at uProgress=1 ───────────────────────
   orchestrator.onEnter('chaos', () => {
     webgl.shaderPlane.setShader('prism');
+    webgl.shaderPlane.setProgress(1);
+    prismActive = true;
+    setUIVisible(0);
 
-    // Delay the timeline/label update — shader animation is immediate.
     clearTimeout(timelineUpdateTimer);
     timelineUpdateTimer = setTimeout(() => {
       hero?.timeline?.setIndex(2);
     }, 2000);
   });
 
-  // uProgress is driven by scroll position through the chaos section.
-  orchestrator.onProgress('chaos', ({ progress }) => {
-    webgl.shaderPlane.setProgress(progress);
+  orchestrator.onProgress('chaos', () => {
+    webgl.shaderPlane.setProgress(1);
   });
 
   orchestrator.onLeave('chaos', ({ direction }) => {
     clearTimeout(timelineUpdateTimer);
     if (direction === 'up') {
-      webgl.shaderPlane.setProgress(1);
-      webgl.shaderPlane.setShader('hero_grain');
+      // Going back up into thinking — thinking's onProgress will re-drive the
+      // shader from its current progress, so don't force a shader swap here.
       hero?.timeline?.setIndex(1);
     } else {
       // Going down into video — drop the prism, return to the dark grain bg.
       webgl.shaderPlane.setShader('hero_grain');
       webgl.shaderPlane.setProgress(0);
+      prismActive = false;
+      setUIVisible(1);
       hero?.timeline?.setIndex(3);
     }
   });
