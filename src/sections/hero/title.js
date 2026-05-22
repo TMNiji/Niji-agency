@@ -1,4 +1,4 @@
-// Hero title — contenteditable, with a glyph-scramble decoding effect on first paint.
+// Hero title — glyph-scramble decoding effect on first paint.
 
 const GLYPHS = '!<>-_\\/[]{}—=+*^?#________01∮ABCDEF0123456789';
 
@@ -6,7 +6,6 @@ const GLYPHS = '!<>-_\\/[]{}—=+*^?#________01∮ABCDEF0123456789';
  * Reveals the title character-by-character using a "decoding" scramble.
  * - Each character cycles through random glyphs before resolving to its target.
  * - Stagger per character + ease-out gives a tech/glitch feel.
- * - Preserves the user's ability to edit the text afterwards.
  *
  * @param {Object} opts
  * @param {string} opts.text  - target string to resolve to
@@ -16,8 +15,6 @@ const GLYPHS = '!<>-_\\/[]{}—=+*^?#________01∮ABCDEF0123456789';
 export function createTitle({ text, duration = 1200, stagger = 22 } = {}) {
   const el = document.createElement('h1');
   el.className = 'hero-title';
-  el.setAttribute('contenteditable', 'plaintext-only');
-  el.setAttribute('spellcheck', 'false');
   el.dataset.text = text;
 
   // Pre-fill with random glyphs so layout settles before the animation runs.
@@ -58,11 +55,6 @@ export function createTitle({ text, duration = 1200, stagger = 22 } = {}) {
     }
     requestAnimationFrame(frame);
   }
-
-  // If the user starts editing during the animation, snap to the real text.
-  el.addEventListener('focus', () => {
-    el.textContent = text;
-  }, { once: true });
 
   // Public API
   return {

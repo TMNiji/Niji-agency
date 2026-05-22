@@ -42,18 +42,24 @@ void main() {
   // ── Phase timing ──────────────────────────────────────────────────────────
   //   0.00 → 0.42  bolt travels diagonal bottom-left → cell centre
   //   0.38 → 0.55  cell glows from impact (energize)
-  //   0.42 → 0.88  rainbow refracts from cell's right edge
+  //   0.42 → 0.58  rainbow refracts (the "split")
   //   0.50 → 0.75  bolt fades out as rainbow takes over
-  //   0.65 → 1.00  brand-colour fog fills the atmosphere
-  float boltArrival = smoothstep(0.00, 0.42, uProgress);
-  float boltFade    = 1.0 - smoothstep(0.50, 0.75, uProgress);
-  float energize    = smoothstep(0.38, 0.48, uProgress)
-                    * (1.0 - smoothstep(0.55, 0.90, uProgress));
-  float rainbowProg = smoothstep(0.42, 0.88, uProgress);
-  float fogProg     = smoothstep(0.65, 1.00, uProgress);
+  //   0.60 → 0.78  rainbow's sharp band fades — definition lost
+  //   0.68 → 0.92  rainbow's wide glow fades — blur dissolves
+  //   0.60 → 0.90  cell fades alongside the rainbow it spawned
+  //   0.55 → 0.95  three-colour atmospheric background takes over (resting state)
+  float boltArrival   = smoothstep(0.00, 0.42, uProgress);
+  float boltFade      = 1.0 - smoothstep(0.50, 0.75, uProgress);
+  float energize      = smoothstep(0.38, 0.48, uProgress)
+                      * (1.0 - smoothstep(0.55, 0.90, uProgress));
+  float rainbowAppear = smoothstep(0.42, 0.58, uProgress);
+  float bandFade      = 1.0 - smoothstep(0.60, 0.78, uProgress);
+  float glowFade      = 1.0 - smoothstep(0.68, 0.92, uProgress);
+  float cellFade      = 1.0 - smoothstep(0.60, 0.90, uProgress);
+  float bgProg        = smoothstep(0.55, 0.95, uProgress);
 
-  // ── Cell — always visible ─────────────────────────────────────────────────
-  col += drawCell(c, 1.0, energize);
+  // ── Cell — visible at start (continuity with thinking), fades into bg ─────
+  col += drawCell(c, 1.0, energize) * cellFade;
 
   // ── White bolt — diagonal from off-screen bottom-left to cell centre ──────
   vec2 bFrom = vec2(-aspect * 0.54, -0.50);
@@ -83,20 +89,34 @@ void main() {
   float band = smoothstep(-0.30, 0.05, u) * smoothstep(1.30, 0.95, u);
   float glow = smoothstep(-0.60, 0.00, u) * smoothstep(1.60, 1.00, u);
 
+  // Two-stage fade creates the "blur" effect: the crisp band loses definition
+  // first, then the diffuse glow softly dissolves into the background.
   vec3 rbCol = brandGradient(clamp(u, 0.0, 1.0));
-  col += rbCol * (band * 0.88 + glow * 0.18) * fwd * rainbowProg;
+  col += rbCol * (band * 0.88 * bandFade + glow * 0.20 * glowFade)
+       * fwd * rainbowAppear;
 
-  // ── Atmospheric fog — brand colours filling the surrounding void ──────────
-  float ta = uTime * 0.10;
-  vec2 ca = vec2(cos(ta)        * 0.42 * aspect, sin(ta * 0.80)        * 0.30);
-  vec2 cb = vec2(cos(ta + 2.09) * 0.36 * aspect, sin(ta * 0.90 + 1.50) * 0.34);
-  vec2 cc = vec2(cos(ta + 4.19) * 0.48 * aspect, sin(ta * 0.65 + 3.00) * 0.26);
-  float blobA = exp(-dot(c - ca, c - ca) * 2.2);
-  float blobB = exp(-dot(c - cb, c - cb) * 2.8);
-  float blobC = exp(-dot(c - cc, c - cc) * 2.5);
-  col += vec3(0.506, 0.278, 0.961) * blobA * fogProg * 0.55; // #8147F5
-  col += vec3(0.733, 0.278, 0.961) * blobB * fogProg * 0.50; // #BB47F5
-  col += vec3(0.984, 0.373, 0.702) * blobC * fogProg * 0.45; // #FB5FB3
+  // ── Three-colour atmospheric background — chaos section's resting state ──
+  // Heavily blurred large blobs in fixed positions create the smooth gradient
+  // from the storyboard: deep purple cool side, pink centre, orange warm side.
+  // Slow drift gives the atmosphere life without distracting from UI content.
+  //   blurFalloff = 0.55 → blobs extend ~1.5 viewport heights before fading
+  //                       out, ensuring full screen coverage at any aspect.
+  float ta = uTime * 0.04;
+  vec2 posPurple = vec2(-0.40 * aspect + cos(ta)       * 0.03,
+                         0.00          + sin(ta * 0.7) * 0.04);
+  vec2 posPink   = vec2( 0.05 * aspect + cos(ta + 2.1) * 0.04,
+                        -0.08          + sin(ta * 0.8 + 1.5) * 0.05);
+  vec2 posOrange = vec2( 0.42 * aspect + cos(ta + 4.2) * 0.03,
+                         0.14          + sin(ta * 0.6 + 3.0) * 0.04);
+
+  float blurFalloff = 0.55;  // smaller = wider blobs = more diffuse blur
+  float fPurple = exp(-dot(c - posPurple, c - posPurple) * blurFalloff);
+  float fPink   = exp(-dot(c - posPink,   c - posPink)   * blurFalloff);
+  float fOrange = exp(-dot(c - posOrange, c - posOrange) * blurFalloff);
+
+  col += vec3(0.506, 0.278, 0.961) * fPurple * bgProg * 0.70; // #8147F5
+  col += vec3(0.984, 0.373, 0.702) * fPink   * bgProg * 0.62; // #FB5FB3
+  col += vec3(1.000, 0.635, 0.000) * fOrange * bgProg * 0.75; // #FFA200
 
   // ── Cinematic finish ──────────────────────────────────────────────────────
   col *= vignette(dc);

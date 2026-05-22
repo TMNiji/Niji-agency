@@ -25,12 +25,15 @@ export default defineConfig({
     sourcemap: true,
     target: 'es2020',
     assetsInlineLimit: 4096,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
-          sanity: ['@sanity/client'],
-          animation: ['gsap', 'lenis'],
-          three: ['three'],
+        manualChunks(id) {
+          if (!id.includes('/node_modules/')) return null;
+          if (id.includes('/@sanity/client/')) return 'sanity';
+          if (id.includes('/gsap/') || id.includes('/lenis/')) return 'animation';
+          if (id.includes('/three/')) return 'three';
+          return null;
         },
       },
     },
