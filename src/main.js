@@ -12,7 +12,7 @@ const SECTIONS = [
   {
     id: 'hero',
     label: 'Identity',
-    triggerHeight: '30vh',   // section 1 — short gesture, full explosion in ~30vh
+    triggerHeight: '80vh',   // section 1 — longer gesture, full explosion in ~80vh
     triggerStart: 'top top',
     triggerEnd: 'bottom top',
   },
@@ -26,9 +26,12 @@ const SECTIONS = [
   {
     id: 'chaos',
     label: 'Beyond',
-    triggerHeight: '150vh',  // section 3 — prism transition; sticky dwell for the animation
+    triggerHeight: '250vh',  // section 3 — extra space for the deliberate prism pacing
     triggerStart: 'top top',
-    triggerEnd: 'bottom top',
+    // Use 'bottom bottom' (not 'bottom top') because chaos is the last section:
+    // 'bottom top' would require scrolling *past* maxScroll to reach progress=1.
+    // With 'bottom bottom', progress 0→1 maps cleanly onto scroll 0→maxScroll.
+    triggerEnd: 'bottom bottom',
   },
 ];
 
@@ -66,71 +69,97 @@ async function boot() {
     webgl.shaderPlane.setProgress(1);
   });
 
+  // 1-second debounce: after the last timeline drag, wait before scrolling.
+  let dragScrollTimer = null;
+
   const sectionLabels = SECTIONS.map((s) => s.label);
-  const hero     = mountHero({ container: root, orchestrator, webgl, sectionLabels, content: sanityContent });
+  const hero     = mountHero({
+    container: root, orchestrator, webgl, sectionLabels, content: sanityContent,
+    onSectionChange: (index) => {
+      clearTimeout(dragScrollTimer);
+      dragScrollTimer = setTimeout(() => {
+        const s  = SECTIONS[index];
+        if (!s) return;
+        const el = document.querySelector(`[data-section="${s.id}"]`);
+        if (!el) return;
+        const top = Math.round(el.getBoundingClientRect().top + window.scrollY);
+        lenis.scrollTo(top === 0 ? 0 : top + 4, { duration: 0.7 });
+      }, 1000);
+    },
+  });
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
   const chaos    = mountChaos({ container: root });
 
+  // Wire drag-to-scrub: timeline calls this when the user drags the ruler strip.
+  hero?.timeline?.setScrollHandler((y) => lenis.scrollTo(y, { duration: 0.15 }));
+
   // ── Timeline + header label — sync with active section ──────────────────────
+  // 2-second delay so the timeline update doesn't flash on quick scroll-through.
+  let timelineUpdateTimer = null;
+
   orchestrator.onEnter('thinking', () => {
-    hero?.timeline?.setIndex(1);
-    hero?.header?.setSectionLabel('Thinking');
+    clearTimeout(timelineUpdateTimer);
+    timelineUpdateTimer = setTimeout(() => {
+      hero?.timeline?.setIndex(1);
+    }, 2000);
   });
   orchestrator.onLeave('thinking', ({ direction }) => {
+    clearTimeout(timelineUpdateTimer);
     if (direction === 'up') {
       hero?.timeline?.setIndex(0);
-      hero?.header?.setSectionLabel('');
     }
   });
 
-  // ── Chaos — prism shader, time-based animation ──────────────────────────────
-  let chaosRafId = null;
+  // ── Chaos — prism shader, scroll-driven ────────────────────────────────────
+  // Use direct setShader (not setShaderWithTransition): the cell is rendered
+  // identically in both shaders at the transition point, so a hard swap is
+  // visually seamless — and avoids the fade-to-black gap that made the cell
+  // briefly disappear.
 
   orchestrator.onEnter('chaos', () => {
     webgl.shaderPlane.setShader('prism');
-    webgl.shaderPlane.setProgress(0);
-    hero?.timeline?.setIndex(2);
-    hero?.header?.setSectionLabel('Beyond');
 
-    let startTime = null;
-    const DURATION = 2000; // ms for the full bolt→rainbow→fog sequence
+    // Delay the timeline/label update — shader animation is immediate.
+    clearTimeout(timelineUpdateTimer);
+    timelineUpdateTimer = setTimeout(() => {
+      hero?.timeline?.setIndex(2);
+    }, 2000);
+  });
 
-    function tick(ts) {
-      if (!startTime) startTime = ts;
-      const p = Math.min((ts - startTime) / DURATION, 1.0);
-      webgl.shaderPlane.setProgress(p);
-      if (p < 1.0) chaosRafId = requestAnimationFrame(tick);
-    }
-
-    cancelAnimationFrame(chaosRafId);
-    chaosRafId = requestAnimationFrame(tick);
+  // uProgress is driven by scroll position through the chaos section.
+  orchestrator.onProgress('chaos', ({ progress }) => {
+    webgl.shaderPlane.setProgress(progress);
   });
 
   orchestrator.onLeave('chaos', ({ direction }) => {
-    cancelAnimationFrame(chaosRafId);
-    chaosRafId = null;
+    clearTimeout(timelineUpdateTimer);
     if (direction === 'up') {
-      webgl.shaderPlane.setShader('hero_grain');
       webgl.shaderPlane.setProgress(1);
+      webgl.shaderPlane.setShader('hero_grain');
       hero?.timeline?.setIndex(1);
-      hero?.header?.setSectionLabel('Thinking');
     }
   });
 
   orchestrator.refresh();
 
-  // ── Snap-scroll — always land on a section boundary ─────────────────────────
+  // ── Snap-scroll — section tops + document bottom ──────────────────────────
   // Non-zero snap targets get +4 px so Lenis's ease-out, which can settle
   // 1–2 px short, still crosses the ScrollTrigger start boundary and fires
-  // onEnter reliably.
-  initSnapScroll(lenis, () =>
-    SECTIONS.map((s) => {
+  // onEnter reliably. Including doc-bottom lets users snap forward when they
+  // pause near the end of the final section.
+  initSnapScroll(lenis, () => {
+    const tops = SECTIONS.map((s) => {
       const el = document.querySelector(`[data-section="${s.id}"]`);
       if (!el) return 0;
       const top = Math.round(el.getBoundingClientRect().top + window.scrollY);
       return top === 0 ? 0 : top + 4;
-    }),
-  );
+    });
+    const docBottom = document.documentElement.scrollHeight - window.innerHeight;
+    return [...tops, docBottom];
+  });
+
+  // Drive the timeline ruler with Lenis's smoothed scroll position.
+  lenis.on('scroll', ({ scroll }) => { hero?.timeline?.update(scroll); });
 
   window.__niji = { lenis, webgl, orchestrator, hero, thinking, chaos };
 }

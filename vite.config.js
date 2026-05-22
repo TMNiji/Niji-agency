@@ -17,7 +17,6 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       '@modules': resolve(__dirname, 'src/modules'),
       '@shaders': resolve(__dirname, 'src/shaders'),
-      '@content': resolve(__dirname, 'src/content'),
       '@styles': resolve(__dirname, 'src/styles'),
     },
   },
@@ -26,6 +25,15 @@ export default defineConfig({
     sourcemap: true,
     target: 'es2020',
     assetsInlineLimit: 4096,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          sanity: ['@sanity/client'],
+          animation: ['gsap', 'lenis'],
+          three: ['three'],
+        },
+      },
+    },
   },
   server: {
     host: true,

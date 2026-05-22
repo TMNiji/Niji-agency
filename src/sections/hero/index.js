@@ -5,7 +5,7 @@ import { createFacePack } from './facePack.js';
 
 const DEFAULT_TITLE = 'We make products for humans and agents';
 
-export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null } = {}) {
+export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null, onSectionChange = null } = {}) {
   const section = container.querySelector('[data-section="hero"]');
   if (!section) return null;
 
@@ -31,7 +31,7 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   );
 
   const header   = createHeader();
-  const timeline = createTimeline({ labels: sectionLabels, startIndex: 0 });
+  const timeline = createTimeline({ labels: sectionLabels, startIndex: 0, onChange: onSectionChange });
   const title    = createTitle({ text: content?.hero?.title ?? DEFAULT_TITLE });
   const facePack = createFacePack({ webgl, imageSrcs });
 
@@ -47,7 +47,7 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   overlay.appendChild(title.el);
   section.appendChild(overlay);
 
-  section.appendChild(timeline.el);
+  stage.appendChild(timeline.el);
   section.appendChild(header.el);
 
   requestAnimationFrame(() => requestAnimationFrame(() => title.play()));
@@ -55,6 +55,16 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   orchestrator?.onProgress('hero', ({ progress }) => {
     facePack.setProgress(progress);
     webgl?.shaderPlane?.setProgress(progress);
+
+    // Mirror the facepack's ease-out quartic so the title dissolves in exact
+    // lockstep with the exploding fragments. Same formula as facePack.js:
+    //   e = 1 - (1 - p)^4  — fast initial blast, gradual deceleration
+    //   opacity = 1 - e * 1.15  — matches fragment fade-out timing
+    // A small upward drift (up to 28 px) echoes the dominant upward trajectory
+    // of the head fragments without fighting the explosion visually.
+    const e = 1 - Math.pow(1 - progress, 4);
+    title.el.style.opacity   = String(Math.max(0, 1 - e * 1.15).toFixed(3));
+    title.el.style.transform = `scale(${(1 + e * 0.05).toFixed(4)}) translateY(${(-e * 28).toFixed(1)}px)`;
   });
 
   return { section, header, timeline, title, facePack };

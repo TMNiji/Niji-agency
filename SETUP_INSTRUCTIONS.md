@@ -40,9 +40,9 @@ export default {
 This allows you to access the studio from **any device** without running a local server:
 
 ```bash
-cd studio
 npm install
-npm run deploy
+npm --prefix studio install
+npm run studio:deploy
 ```
 
 You'll be prompted:
@@ -68,8 +68,8 @@ Enter something like: `niji-agency` → your studio will be at `https://niji-age
 3. Import GitHub repository: `https://github.com/TMNiji/Niji-agency`
 4. Vercel auto-detects Vite config
 5. Add environment variables:
-   - `SANITY_STUDIO_PROJECT_ID` = `YOUR_PROJECT_ID`
-   - `SANITY_STUDIO_DATASET` = `production`
+   - `VITE_SANITY_PROJECT_ID` = `YOUR_PROJECT_ID`
+   - `VITE_SANITY_DATASET` = `production`
 6. Deploy
 
 **Your live site:** `https://your-vercel-project.vercel.app`
@@ -178,8 +178,8 @@ SANITY_STUDIO_DATASET=production
 
 ### Vercel Project Settings
 ```
-SANITY_STUDIO_PROJECT_ID=kpguac1f
-SANITY_STUDIO_DATASET=production
+VITE_SANITY_PROJECT_ID=kpguac1f
+VITE_SANITY_DATASET=production
 ```
 
 ---
@@ -196,7 +196,7 @@ SANITY_STUDIO_DATASET=production
 
 | Problem | Solution |
 |---------|----------|
-| Can't access Sanity studio | Make sure you deployed it: `cd studio && npm run deploy` |
+| Can't access Sanity studio | Make sure you deployed it: `npm run studio:deploy` |
 | Environment vars not working | Redeploy Vercel after updating vars |
 | Webhook not triggering rebuild | Check webhook URL and filter in Sanity settings |
 | Port 5173 already in use | `npm run dev -- --port 5174` |

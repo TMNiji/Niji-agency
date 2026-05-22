@@ -7,9 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "studio:dev": "cd studio && sanity dev",
-    "studio:build": "cd studio && sanity build",
-    "studio:deploy": "cd studio && sanity deploy"
+    "studio:dev": "cd studio && npm run dev",
+    "studio:build": "cd studio && npm run build",
+    "studio:deploy": "cd studio && npm run deploy"
   },
   "dependencies": {
     "@sanity/client": "^6.21.0",

@@ -15,17 +15,18 @@ const CELL_R_VH = 0.19; // fraction of innerHeight — mirrors shader `cellR`
 const RING_FACTORS = [1.45, 2.00, 2.45]; // ring radius = factor * cellPx
 
 // Dots: angle in degrees + rFactor (distance from centre as multiple of cellPx).
+// Generated with a golden-angle (~137.5°) spread so dots never cluster,
+// and three radius bands (inner / mid / outer) for visual depth.
 // All rFactor values > 1.0 so every dot is OUTSIDE the cell membrane ring.
-const DOTS_DEF = [
-  { angle: 22,  rFactor: 1.30 },
-  { angle: 100, rFactor: 1.38 },
-  { angle: 195, rFactor: 1.28 },
-  { angle: 272, rFactor: 1.34 },
-  { angle: 52,  rFactor: 1.82 },
-  { angle: 142, rFactor: 1.90 },
-  { angle: 228, rFactor: 1.78 },
-  { angle: 318, rFactor: 1.86 },
-];
+const R_BANDS    = [1.22, 1.60, 1.96]; // inner / mid / outer
+const DOT_COUNT  = 8;
+const DOTS_DEF = Array.from({ length: DOT_COUNT }, (_, i) => {
+  const angle   = (i * 137.508) % 360; // golden angle — no clustering
+  const rBase   = R_BANDS[i % 3];
+  // Deterministic per-dot jitter so the distribution never feels gridded.
+  const jitter  = ((i * 13 + 7) % 17) / 17 * 0.28 - 0.14;
+  return { angle, rFactor: rBase + jitter };
+});
 
 const DOT_LABELS = [
   'Vision\nclear here.',
@@ -55,6 +56,10 @@ export function createOrbital({ stage }) {
   const dotEls = DOTS_DEF.map((d) => {
     const el = document.createElement('div');
     el.className = 'hero-orbital__dot';
+    const label = document.createElement('span');
+    label.className = 'hero-orbital__dot-label';
+    label.textContent = '/placeholder';
+    el.appendChild(label);
     wrap.appendChild(el);
     return { el, def: d, x: 0, y: 0 };
   });
@@ -186,8 +191,14 @@ export function createOrbital({ stage }) {
 
   // show / hide — driven by section enter/leave so the orbital appears exactly
   // when the cell does (cell shader is locked to progress=1 on section enter).
-  function show() { wrap.style.setProperty('--orbital-opacity', '1'); }
-  function hide() { wrap.style.setProperty('--orbital-opacity', '0'); }
+  function show() {
+    wrap.style.setProperty('--orbital-opacity', '1');
+    wrap.style.setProperty('--orbital-scale', '1');
+  }
+  function hide() {
+    wrap.style.setProperty('--orbital-opacity', '0');
+    wrap.style.setProperty('--orbital-scale', '0.88');
+  }
 
   hide(); // start hidden
   return { show, hide, closePopup };

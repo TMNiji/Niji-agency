@@ -7,11 +7,11 @@ const DEFAULT_SERVICES = [
   { tag: 'TECH',     items: ['Frontend Engineering', 'System Design'] },
 ];
 
-// Brand SVG logos — inline so there are no external requests.
+// Brand SVG logos — exact paths from simple-icons (https://simpleicons.org).
 const LOGOS = {
-  claude: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M13.827 3.52h3.603l-7.744 16.96H6.083l7.744-16.96zm-7.258 0h3.603L2.428 20.48H-1.175l7.744-16.96z" transform="translate(3,0)"/></svg>`,
-  gpt:    `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zm-11.717 9.61a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zm-9.662-4.127a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062l-4.84 2.796a4.5 4.5 0 0 1-6.14-1.651zm-1.25-10.225a4.485 4.485 0 0 1 2.366-1.973v5.677a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786a4.504 4.504 0 0 1-.648-6.117zm16.597 3.855l-5.833-3.387 2.02-1.168a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.412-.663zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08-4.778 2.758a.795.795 0 0 0-.393.681v.001zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5-.005-2.999z"/></svg>`,
-  gemini: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C12 7.52 14.48 9.99 20 12c-5.52 2.01-8 4.48-8 10-2.01-5.52-4.48-8-10-8 5.52-2.01 8-4.48 8-10z"/></svg>`,
+  claude: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></svg>`,
+  gpt:    `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>`,
+  gemini: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/></svg>`,
 };
 
 // Map from button label (lowercase) → logo key
@@ -25,6 +25,16 @@ const DEFAULT_AI_LINKS = {
     { label: 'Gemini', url: 'https://gemini.google.com' },
   ],
 };
+
+function safeExternalUrl(url) {
+  if (typeof url !== 'string') return null;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : null;
+  } catch (_) {
+    return null;
+  }
+}
 
 export function mountThinking({ container, orchestrator, webgl, content = null } = {}) {
   const section = container.querySelector('[data-section="thinking"]');
@@ -54,7 +64,7 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
 
     const subEl  = document.createElement('div');
     subEl.className = 'thinking__service-sub';
-    s.items.forEach((text) => {
+    (s.items ?? []).forEach((text) => {
       const span  = document.createElement('span');
       span.className = 'thinking__service-sub-item';
       span.textContent = text;
@@ -80,25 +90,50 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
     return { item, setState };
   });
 
-  stage.appendChild(services);
-
-  // ── AI links — bottom-right of the stage ─────────────────────────────────
+  // ── AI links ──────────────────────────────────────────────────────────────
   const aiLinks = document.createElement('div');
   aiLinks.className = 'thinking__ai-links';
-  const btnHtml = AI_LINKS.buttons
-    .map((b) => {
-      const key = LOGO_MAP[b.label.toLowerCase()] ?? null;
-      const inner = key && LOGOS[key]
-        ? LOGOS[key]
-        : `<span class="thinking__ai-btn-text">${b.label}</span>`;
-      return `<a class="thinking__ai-btn" href="${b.url}" target="_blank" rel="noopener" aria-label="${b.label}">${inner}</a>`;
-    })
-    .join('');
-  aiLinks.innerHTML = `
-    <span class="thinking__ai-links-label">${AI_LINKS.label}</span>
-    <div class="thinking__ai-links-buttons">${btnHtml}</div>
-  `;
-  stage.appendChild(aiLinks);
+  const aiLinksLabel = document.createElement('span');
+  aiLinksLabel.className = 'thinking__ai-links-label';
+  aiLinksLabel.textContent = AI_LINKS.label;
+
+  const aiLinksButtons = document.createElement('div');
+  aiLinksButtons.className = 'thinking__ai-links-buttons';
+
+  AI_LINKS.buttons.forEach((b) => {
+    const href = safeExternalUrl(b?.url);
+    if (!href) return;
+
+    const label = b.label ?? 'AI link';
+    const button = document.createElement('a');
+    button.className = 'thinking__ai-btn';
+    button.href = href;
+    button.target = '_blank';
+    button.rel = 'noopener';
+    button.setAttribute('aria-label', label);
+
+    const key = LOGO_MAP[label.toLowerCase()] ?? null;
+    if (key && LOGOS[key]) {
+      button.innerHTML = LOGOS[key];
+    } else {
+      const text = document.createElement('span');
+      text.className = 'thinking__ai-btn-text';
+      text.textContent = label;
+      button.appendChild(text);
+    }
+
+    aiLinksButtons.appendChild(button);
+  });
+
+  aiLinks.appendChild(aiLinksLabel);
+  aiLinks.appendChild(aiLinksButtons);
+
+  // ── Right panel — services stacked above AI links, bottom-right ──────────
+  const rightPanel = document.createElement('div');
+  rightPanel.className = 'thinking__right-panel';
+  rightPanel.appendChild(services);
+  rightPanel.appendChild(aiLinks);
+  stage.appendChild(rightPanel);
 
   // ── Orchestration ──────────────────────────────────────────────────────────
   const reveal = () => section.classList.add('is-visible');
@@ -143,7 +178,10 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
 
   requestAnimationFrame(() => {
     const rect = section.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) reveal();
+    // Only reveal if the user has already scrolled into the thinking section
+    // (top is at or above the viewport). Positive rect.top means the section
+    // is below the fold — don't show dropdowns while the user is on hero.
+    if (rect.top <= 0 && rect.bottom > 0) reveal();
   });
 
   return { section, orbital };

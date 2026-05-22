@@ -5,13 +5,14 @@
   z-index: 1;
 }
 
-/* Sticky stage — pins while the prism animation plays */
+/* Fixed stage — viewport-pinned, the prism animation is in the fixed WebGL canvas */
 .chaos__stage {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  inset: 0;
   height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  pointer-events: none;
 }

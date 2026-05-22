@@ -103,9 +103,6 @@ export default {
     },
   ],
 
-  // Prevent editors from creating a second instance
-  __experimental_actions: ['update', 'publish'],
-
   preview: {
     select: { title: 'hero.title' },
     prepare({ title }) {

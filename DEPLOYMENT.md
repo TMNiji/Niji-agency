@@ -31,8 +31,7 @@ git push origin main
 **Option A: Deploy Studio to Sanity CDN (Recommended for Login Access)**
 
 ```bash
-cd studio
-npm run deploy
+npm run studio:deploy
 ```
 
 This publishes your studio to a **permanent Sanity-hosted URL** you can access from any device:
@@ -57,9 +56,9 @@ https://<project-id>.sanity.studio
 
 3. **Deploy the studio to Sanity CDN:**
    ```bash
-   cd studio
    npm install
-   npm run deploy
+   npm --prefix studio install
+   npm run studio:deploy
    ```
    - Follow prompts to select your project
    - Studio will be live at: `https://kpguac1f.sanity.studio`
@@ -87,8 +86,8 @@ https://<project-id>.sanity.studio
    - Project Settings → Environment Variables
    - Add these:
      ```
-     SANITY_STUDIO_PROJECT_ID = kpguac1f
-     SANITY_STUDIO_DATASET = production
+     VITE_SANITY_PROJECT_ID = kpguac1f
+     VITE_SANITY_DATASET = production
      ```
    - Redeploy
 
@@ -153,15 +152,11 @@ npm run studio:dev         # studio on localhost:3333
 ## 6. Schema & Content Types
 
 Current schemas in `studio/schemas/`:
-- `siteConfig.js` — Site-wide settings
-- `section.js` — Page sections (hero, thinking, etc.)
-- `teamMember.js` — Team profiles
-- `client.js` — Client case studies
-- `award.js` — Awards/recognition
+- `homePage.js` — Editable homepage title, face pack assets, service tags, and AI links
 
 Add more schemas as needed, then re-deploy:
 ```bash
-npm run deploy
+npm run studio:deploy
 ```
 
 ---
@@ -171,7 +166,7 @@ npm run deploy
 | Issue | Solution |
 |-------|----------|
 | "Project not found" on deploy | Check `SANITY_STUDIO_PROJECT_ID` in `studio/.env` |
-| Studio URL 404 | Run `npm run deploy` from `studio/` folder |
+| Studio URL 404 | Run `npm run studio:deploy` |
 | Vercel rebuild doesn't trigger | Verify webhook URL and filter in Sanity settings |
 | Environment vars not applied | Redeploy Vercel after adding vars |
 
@@ -182,7 +177,7 @@ npm run deploy
 | Task | Command |
 |------|---------|
 | Push code to GitHub | `git push origin main` |
-| Deploy studio to Sanity | `cd studio && npm run deploy` |
+| Deploy studio to Sanity | `npm run studio:deploy` |
 | Local dev (site) | `npm run dev` |
 | Local dev (studio) | `npm run studio:dev` |
 | Build for production | `npm run build` |
@@ -192,7 +187,7 @@ npm run deploy
 ## Next Steps
 
 1. ✅ Push to GitHub (done)
-2. ⏳ Deploy Sanity Studio: `cd studio && npm run deploy`
+2. ⏳ Deploy Sanity Studio: `npm run studio:deploy`
 3. ⏳ Connect GitHub to Vercel: [vercel.com/import](https://vercel.com/import)
 4. ⏳ Create Vercel deploy hook and add to Sanity webhooks
 5. ✅ Access studio from anywhere: `https://kpguac1f.sanity.studio`

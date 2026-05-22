@@ -1,8 +1,8 @@
 import { createClient } from '@sanity/client';
 
 const client = createClient({
-  projectId: 'kpguac1f',
-  dataset: 'production',
+  projectId: import.meta.env.VITE_SANITY_PROJECT_ID ?? 'kpguac1f',
+  dataset: import.meta.env.VITE_SANITY_DATASET ?? 'production',
   apiVersion: '2024-01-01',
   useCdn: true,
 });

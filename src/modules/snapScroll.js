@@ -10,9 +10,12 @@
 //      already at limit: it then silently clamps further wheel events without
 //      emitting a 'scroll', so the listener above never gets to react.
 
-const MOVING_THRESHOLD = 0.5;  // px/frame — above this: still in flight
+const MOVING_THRESHOLD = 2.0;  // px/frame — above this: still in flight
 const AT_POINT_MARGIN  = 2;    // px       — within this of a snap point: done
-const SETTLE_DEBOUNCE  = 220;  // ms       — quiet window after input before forcing a snap check
+const SETTLE_DEBOUNCE  = 120;  // ms       — quiet window after input before forcing a snap check
+// Snap only when within this fraction of viewport height of a target.
+// Outside the window, the user is mid-section consuming content — let them rest.
+const SNAP_WINDOW_VH   = 0.4;
 
 export function initSnapScroll(lenis, getSnapPoints) {
   let isSnapping = false;
@@ -20,11 +23,16 @@ export function initSnapScroll(lenis, getSnapPoints) {
 
   function nearestSnap(y) {
     const pts = getSnapPoints();
-    if (!pts.length) return y;
-    return pts.reduce(
+    if (!pts.length) return null;
+    const nearest = pts.reduce(
       (best, pt) => (Math.abs(pt - y) < Math.abs(best - y) ? pt : best),
       pts[0],
     );
+    // Only return the target if it's within the snap window — otherwise the
+    // user is deep inside a section and snapping back would yank them off the
+    // content they're reading.
+    const snapWindow = window.innerHeight * SNAP_WINDOW_VH;
+    return Math.abs(nearest - y) <= snapWindow ? nearest : null;
   }
 
   function trySnap() {
@@ -36,6 +44,7 @@ export function initSnapScroll(lenis, getSnapPoints) {
 
     const scroll = lenis.animatedScroll;
     const target = nearestSnap(scroll);
+    if (target === null) return;
     if (Math.abs(target - scroll) < AT_POINT_MARGIN) return;
 
     isSnapping = true;

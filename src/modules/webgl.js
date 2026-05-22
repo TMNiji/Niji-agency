@@ -11,6 +11,7 @@ export class ShaderPlane {
     this.uniforms = {
       uTime:       { value: 0 },
       uProgress:   { value: 0 },
+      uFade:       { value: 1 },
       // Physical drawing-buffer size — gl_FragCoord uses physical pixels,
       // so uResolution must match to keep uv in the [0,1]² range.
       uResolution: { value: new THREE.Vector2(
@@ -22,6 +23,7 @@ export class ShaderPlane {
     this.material = null;
     this.mesh = null;
     this.currentShader = null;
+    this._fadeState = null;
     this.setShader(initialShader);
   }
 
@@ -40,6 +42,19 @@ export class ShaderPlane {
     this.currentShader = name;
   }
 
+  // Animated crossfade: fade current shader to black, swap, fade in.
+  setShaderWithTransition(name, duration = 0.55) {
+    if (name === this.currentShader && !this._fadeState) return;
+    const half = duration / 2;
+    this._fadeState = {
+      phase: 'out',
+      start: this.clock.getElapsedTime(),
+      duration: half,
+      fromFade: this.uniforms.uFade.value,
+      pendingShader: name,
+    };
+  }
+
   setProgress(v) { this.uniforms.uProgress.value = Math.max(0, Math.min(1, v)); }
   resize(w, h) {
     // Keep uResolution in physical pixels (matches gl_FragCoord)
@@ -48,7 +63,30 @@ export class ShaderPlane {
   }
 
   render() {
-    this.uniforms.uTime.value = this.clock.getElapsedTime();
+    const t = this.clock.getElapsedTime();
+    this.uniforms.uTime.value = t;
+
+    if (this._fadeState) {
+      const { phase, start, duration, fromFade, pendingShader } = this._fadeState;
+      const raw = Math.min((t - start) / duration, 1);
+      // smoothstep easing
+      const e = raw * raw * (3.0 - 2.0 * raw);
+
+      if (phase === 'out') {
+        this.uniforms.uFade.value = fromFade * (1.0 - e);
+        if (raw >= 1) {
+          this.setShader(pendingShader);
+          this._fadeState = { phase: 'in', start: t, duration, fromFade: 0, pendingShader: null };
+        }
+      } else {
+        this.uniforms.uFade.value = e;
+        if (raw >= 1) {
+          this.uniforms.uFade.value = 1;
+          this._fadeState = null;
+        }
+      }
+    }
+
     this.renderer.render(this.scene, this.camera);
   }
 
