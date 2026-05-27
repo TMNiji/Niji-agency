@@ -10,13 +10,16 @@
 //      already at limit: it then silently clamps further wheel events without
 //      emitting a 'scroll', so the listener above never gets to react.
 
+import { ease, prefersReducedMotion } from '@modules/motion.js';
+
 const MOVING_THRESHOLD = 2.0;  // px/frame — above this: still in flight
 const AT_POINT_MARGIN  = 2;    // px       — within this of a snap point: done
 const SETTLE_DEBOUNCE  = 120;  // ms       — quiet window after input before forcing a snap check
 // Snap window — fraction of viewport height around a target within which the
-// snap will fire. Set high so the user always resolves to the nearest section
-// anchor no matter where on the page they stopped scrolling.
-const SNAP_WINDOW_VH   = 10;
+// snap fires. Wide enough (half a 200vh section) that ANY rest position resolves
+// to the nearest keyframe, so the user never stops on a half-played animation
+// (e.g. a half-exploded face). The scrubbed animation plays during the snap.
+const SNAP_WINDOW_VH   = 1.05;
 
 export function initSnapScroll(lenis, getSnapPoints) {
   let isSnapping = false;
@@ -49,10 +52,15 @@ export function initSnapScroll(lenis, getSnapPoints) {
     if (Math.abs(target - scroll) < AT_POINT_MARGIN) return;
 
     isSnapping = true;
+    if (prefersReducedMotion()) {
+      // No animated travel under reduced motion — jump straight to the keyframe.
+      lenis.scrollTo(target, { immediate: true, onComplete: () => { isSnapping = false; } });
+      return;
+    }
     lenis.scrollTo(target, {
-      duration: 0.45,
-      // ease-in-out cubic — deliberate section-flip, not inertial scroll feel
-      easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+      duration: 1.1,
+      // ease-out cubic — responsive start, gentle deceleration into the keyframe.
+      easing: ease.outCubic,
       onComplete: () => { isSnapping = false; },
     });
   }

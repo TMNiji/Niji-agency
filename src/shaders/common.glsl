@@ -6,16 +6,9 @@ precision highp float;
 
 uniform float uTime;
 uniform float uProgress;
-uniform float uFade;
 uniform vec2  uResolution;
 
 // ── Noise utilities ────────────────────────────────────────────────────────
-float hash(vec2 p) {
-  p = fract(p * vec2(443.8975, 397.2973));
-  p += dot(p, p.yx + 19.19);
-  return fract((p.x + p.y) * p.x);
-}
-
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
@@ -103,9 +96,4 @@ vec3 drawCell(vec2 cUv, float reveal, float energize) {
 float vignette(float dc) {
   float v = 1.0 - smoothstep(0.40, 1.15, dc * 1.7);
   return mix(1.0, v, 0.55);
-}
-
-// ── Animated film grain ───────────────────────────────────────────────────
-float filmGrain(vec2 fragCoord) {
-  return hash(fragCoord + mod(uTime * 60.0, 997.0));
 }

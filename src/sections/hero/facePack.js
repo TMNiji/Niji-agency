@@ -6,6 +6,8 @@
 // move the pack receives a soft, per-fragment parallax that fades as the
 // pack flies away.
 import * as THREE from 'three';
+import { gsap } from 'gsap';
+import { ease, prefersReducedMotion } from '@modules/motion.js';
 
 const PACK_W  = 504;
 const PACK_H  = 561;
@@ -177,17 +179,26 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
 
   function applyTransforms() {
     const p = Math.max(0, Math.min(1, progress));
-    // Ease-out quartic: fast initial blast, gradual deceleration
-    const e = 1 - Math.pow(1 - p, 4);
-    const reach = Math.max(window.innerWidth, window.innerHeight);
-    const forward = camZ * 0.78 * e;
-    // Parallax fades out as the pack explodes away
-    const parallaxFade = 1 - e;
+    const reduced = prefersReducedMotion();
+
+    // Travel/rotation spread across the WHOLE section with a smoothstep curve —
+    // soft anticipation at the top, gentle settle at the bottom. Near-linear in
+    // the middle so the motion tracks the scroll (scrubbed, not front-loaded).
+    // Reduced motion: fragments stay put and only cross-fade into the cell.
+    const move = reduced ? 0 : ease.smoothstep(p);
+    // Opacity drive reaches 1 by p≈0.82 so the fragments have cleared as the
+    // cell finishes revealing (shader reveal completes ~0.9), no visible gap.
+    const fade = ease.smoothstep(Math.min(1, p / 0.82));
+
+    const reach   = Math.max(window.innerWidth, window.innerHeight);
+    const forward = camZ * 0.78 * move;
+    // Parallax fades out as the pack explodes away.
+    const parallaxFade = 1 - move;
 
     meshes.forEach((mesh) => {
       const d = mesh.userData;
-      const tx = d.vx * reach * e * d.speed * 0.62;
-      const ty = d.vy * reach * e * d.speed * 0.44;
+      const tx = d.vx * reach * move * d.speed * 0.62;
+      const ty = d.vy * reach * move * d.speed * 0.44;
 
       const mpx =  d.px * mouse.x * parallaxFade;
       const mpy = -d.py * mouse.y * parallaxFade;
@@ -195,23 +206,32 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       mesh.position.set(d.ox + tx + mpx, d.oy + ty + mpy, d.oz + forward * d.speed);
 
       // Y-axis card-flip proportional to horizontal travel (key 3D feel)
-      const rotY = d.vx * Math.PI * 0.52 * e;
+      const rotY = d.vx * Math.PI * 0.52 * move;
       // X-axis tilt proportional to vertical travel
-      const rotX = d.vy * Math.PI * 0.25 * e;
-      mesh.rotation.set(rotX, rotY, d.initRz + d.vx * 0.32 * e);
+      const rotX = d.vy * Math.PI * 0.25 * move;
+      mesh.rotation.set(rotX, rotY, d.initRz + d.vx * 0.32 * move);
 
-      mesh.material.opacity = Math.max(0, 1 - e * 1.15);
+      mesh.material.opacity = Math.max(0, 1 - fade);
     });
   }
 
-  let rafId = 0;
-  const tick = () => {
+  const frame = () => {
     mouse.x += (mouse.tx - mouse.x) * 0.08;
     mouse.y += (mouse.ty - mouse.y) * 0.08;
     applyTransforms();
-    rafId = requestAnimationFrame(tick);
   };
-  tick();
+
+  // Only run while hero is the active section — main.js toggles this on
+  // hero enter/leave so the pack stops costing frames after it has exploded
+  // off-screen. Starts active because hero is the landing section.
+  let active = false;
+  function setActive(on) {
+    if (on === active) return;
+    active = on;
+    if (on) gsap.ticker.add(frame);
+    else    gsap.ticker.remove(frame);
+  }
+  setActive(true);
 
   function setProgress(p) {
     progress = p;
@@ -219,8 +239,9 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
 
   return {
     setProgress,
+    setActive,
     destroy() {
-      cancelAnimationFrame(rafId);
+      setActive(false);
       window.removeEventListener('pointermove', onPointerMove);
       meshes.forEach((m) => { m.geometry.dispose(); m.material.map?.dispose(); m.material.dispose(); });
       webgl.removeOverlay(scene);

@@ -12,6 +12,9 @@
 // Clicking any visible card opens the centred detail panel with logo +
 // caption.
 
+import { gsap } from 'gsap';
+import { prefersReducedMotion } from '@modules/motion.js';
+
 const DEFAULT_TITLE    = 'Grands noms.';
 const DEFAULT_SUBTITLE = 'Projets à leur hauteur.';
 
@@ -98,7 +101,6 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
   let scrollProgress = 0;
   let targetMouseX = 0, targetMouseY = 0;
   let curMouseX    = 0, curMouseY    = 0;
-  let rafId = 0;
 
   orchestrator?.onProgress('clients', ({ progress }) => {
     scrollProgress = progress;
@@ -115,12 +117,15 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
   section.addEventListener('pointerleave', onPointerLeave);
 
   function update() {
+    // Reduced motion: no mouse-driven parallax tilt (the scroll-driven card
+    // cycling stays — it's user-controlled content, not gratuitous motion).
+    const tiltScale = prefersReducedMotion() ? 0 : 1;
     curMouseX += (targetMouseX - curMouseX) * MOUSE_LERP;
     curMouseY += (targetMouseY - curMouseY) * MOUSE_LERP;
 
     stack.style.transform =
-      `rotateY(${(curMouseX * ROT_Y_MAX).toFixed(2)}deg) ` +
-      `rotateX(${(-curMouseY * ROT_X_MAX).toFixed(2)}deg)`;
+      `rotateY(${(curMouseX * ROT_Y_MAX * tiltScale).toFixed(2)}deg) ` +
+      `rotateX(${(-curMouseY * ROT_X_MAX * tiltScale).toFixed(2)}deg)`;
 
     // Fractional index of the card currently in focus.
     //   progress=0 → focusedIdx=0       (card 0 in focus)
@@ -161,10 +166,17 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
       // Only the card(s) the user can actually see should receive clicks.
       el.style.pointerEvents = opacity > 0.3 ? 'auto' : 'none';
     });
-
-    rafId = requestAnimationFrame(update);
   }
-  rafId = requestAnimationFrame(update);
+
+  // Only animate while the section is on screen — main.js toggles this on
+  // clients enter/leave so the 8-card stack stops costing frames elsewhere.
+  let active = false;
+  function setActive(on) {
+    if (on === active) return;
+    active = on;
+    if (on) gsap.ticker.add(update);
+    else    gsap.ticker.remove(update);
+  }
 
   // ── Detail overlay (unchanged behaviour) ──────────────────────────────────
   const detail = document.createElement('div');
@@ -215,8 +227,9 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
 
   return {
     section,
+    setActive,
     destroy() {
-      cancelAnimationFrame(rafId);
+      setActive(false);
       clearTimeout(closeTimer);
       section.removeEventListener('pointermove', onPointerMove);
       section.removeEventListener('pointerleave', onPointerLeave);

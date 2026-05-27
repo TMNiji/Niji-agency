@@ -14,18 +14,16 @@ void main() {
   vec3 col = vec3(0.0);
 
   // ── Cell — revealed by scroll progress ──────────────────────────────────
-  // Reveal range tightened so the cell is essentially fully present by the
-  // time the face-pack fragments finish fading (opacity hits 0 around
-  // uProgress ≈ 0.40, see facePack.js). Previously this used a 0→0.70 range,
-  // which left the cell at ~60% intensity at the moment the face vanished —
-  // producing a visible gap between "face gone" and "cell here".
-  float reveal = smoothstep(0.0, 0.42, uProgress);
+  // Reveal spans most of the section so the cell emerges across the whole
+  // explosion scrub (not crammed into the first 42%). It is ~full by the time
+  // the face-pack fragments finish fading (opacity hits 0 around uProgress ≈
+  // 0.82, see facePack.js), with a short hold to the section end so snapping to
+  // the boundary always lands on the fully-formed cell.
+  float reveal = smoothstep(0.12, 0.90, uProgress);
   col += drawCell(cUv, reveal, 0.0);
 
-  // ── Cinematic finish ─────────────────────────────────────────────────────
+  // ── Cinematic finish — grain comes from the DOM #noise overlay ───────────
   col *= vignette(dc);
-  col += (filmGrain(gl_FragCoord.xy) - 0.5) * 0.05;
-  col *= uFade;
 
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }

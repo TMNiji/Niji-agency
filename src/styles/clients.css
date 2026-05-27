@@ -66,8 +66,11 @@
   width: 0;
   height: 0;
   transform-style: preserve-3d;
-  will-change: transform;
 }
+
+/* Promote the animated layers only while the section is on screen. */
+.clients.is-visible .clients__stack { will-change: transform; }
+.clients.is-visible .clients__card-pivot { will-change: transform, opacity; }
 
 /* ── Card pivot — receives Z position + opacity in JS ────────────────────── */
 
@@ -81,7 +84,6 @@
   margin-top:  calc(clamp(280px, 38vh, 440px) / -2);
   transform-style: preserve-3d;
   cursor: pointer;
-  will-change: transform, opacity;
 }
 
 /* Card body — sits inside the pivot; the hover lift translates it forward
@@ -92,7 +94,7 @@
   height: 100%;
   transform-style: preserve-3d;
   transform: translateZ(0) translateY(0);
-  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 420ms var(--ease-out-expo);
   filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.55));
 }
 
@@ -184,7 +186,7 @@
   pointer-events: none;
   opacity: 0;
   transform: translateY(6px);
-  transition: opacity 280ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms ease;
+  transition: opacity 280ms ease, transform 320ms var(--ease-out-expo), color 200ms ease;
 }
 
 .clients__card-pivot:hover .clients__card-logo {
@@ -252,7 +254,7 @@
   align-items: center;
   gap: 36px;
   transform: scale(0.9) translateY(20px);
-  transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 480ms var(--ease-out-expo);
 }
 
 .clients.is-detail-open .clients__detail-content {

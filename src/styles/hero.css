@@ -56,8 +56,8 @@
    bright as they approach the cluster. Drag vertically to scrub. */
 .hero-timeline {
   position: fixed;
-  top: 48px;
-  bottom: 48px;
+  top: 30vh;
+  bottom: 30vh;
   left: 48px;
   width: 200px;       /* tick area (≤40px) + gap + label text */
   overflow: clip;
@@ -154,7 +154,7 @@
   height: 0;
   opacity: var(--orbital-opacity, 0);
   transform: scale(var(--orbital-scale, 0.88));
-  transition: opacity 600ms ease, transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 600ms ease, transform 700ms var(--ease-out-expo);
   pointer-events: none;
 }
 
@@ -180,9 +180,10 @@
     0 0  6px  4px rgba(255, 255, 255, 0.55),
     0 0 16px  8px rgba(255, 255, 255, 0.20);
   /* transform managed entirely by JS (mouse-follow lerp + -50% centering) */
+  /* will-change is toggled in orbital.js show()/hide() so the 8 dots aren't
+     permanently promoted to their own layers while off-screen. */
   cursor: pointer;
   pointer-events: auto;
-  will-change: transform;
   transition: box-shadow 400ms ease, width 250ms ease, height 250ms ease;
 }
 
@@ -232,3 +233,22 @@
 }
 
 .hero-popup[hidden] { display: none; }
+
+/* ── Responsive guards ──────────────────────────────────────────────────────
+   Conservative mobile tweaks to prevent overflow/clutter. A bespoke mobile
+   choreography (touch interactions, layout) is a larger design effort. */
+@media (max-width: 768px) {
+  /* Orbital dot labels run off-screen on narrow viewports — hide them.
+     The dots stay tappable; the popup card still opens on tap. */
+  .hero-orbital__dot-label { display: none; }
+
+  .hero-header { top: 24px; left: 24px; }
+  .hero-header__logo-square { width: 52px; height: 52px; }
+}
+
+@media (max-width: 600px) {
+  /* Slim the ruler and drop the section labels so it reads as a thin progress
+     strip rather than overlapping the centred cell. */
+  .hero-timeline { left: 16px; width: 40px; top: 24vh; bottom: 24vh; }
+  .hero-timeline__section-label { display: none; }
+}

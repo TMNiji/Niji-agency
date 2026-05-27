@@ -190,5 +190,12 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
     if (rect.top <= 0 && rect.bottom > 0) reveal();
   });
 
-  return { section, orbital, rightPanel };
+  // Master fade for the prism cross-fade (main.js). Suppresses the transition so
+  // it tracks scroll exactly; the child reveal transitions are unaffected.
+  function setPanelOpacity(v) {
+    rightPanel.style.transition = 'none';
+    rightPanel.style.opacity = String(v.toFixed(3));
+  }
+
+  return { section, orbital, rightPanel, setPanelOpacity };
 }

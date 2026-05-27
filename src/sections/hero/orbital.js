@@ -6,6 +6,8 @@
 // ALL radii are derived from CELL_R_VH which MUST stay in sync with the
 // shader constant `cellR = 0.19` in hero_grain.glsl.
 
+import { gsap } from 'gsap';
+import { prefersReducedMotion } from '@modules/motion.js';
 import { createFolderCard } from '../thinking/folderCard.js';
 
 // ── Constants — all factors are relative to the shader cell radius ────────────
@@ -67,9 +69,15 @@ export function createOrbital({ stage }) {
 
   stage.appendChild(wrap);
 
+  // Cell radius in px — capped by width so the widest ring (2.45×) and outer
+  // dots still fit narrow viewports without overflowing horizontally.
+  function cellRadiusPx() {
+    return Math.min(CELL_R_VH * window.innerHeight, 0.184 * window.innerWidth);
+  }
+
   // ── Compute and apply all viewport-relative positions ─────────────────────
   function updatePositions() {
-    const cellPx = CELL_R_VH * window.innerHeight;
+    const cellPx = cellRadiusPx();
 
     ringEls.forEach((ring, i) => {
       const diameter = RING_FACTORS[i] * cellPx * 2;
@@ -97,7 +105,7 @@ export function createOrbital({ stage }) {
   const followOffsets = dotEls.map(() => ({ x: 0, y: 0 }));
   let mouseStageX = null;
   let mouseStageY = null;
-  let followRafId = null;
+  let following = false;
 
   function applyTransforms() {
     const sw = stage.offsetWidth  || window.innerWidth;
@@ -105,11 +113,13 @@ export function createOrbital({ stage }) {
     const ox = sw / 2;
     const oy = sh / 2;
 
+    const reduced = prefersReducedMotion();
+
     dotEls.forEach((dot, i) => {
       let targetX = 0;
       let targetY = 0;
 
-      if (mouseStageX !== null) {
+      if (!reduced && mouseStageX !== null) {
         const dx   = mouseStageX - (ox + dot.x);
         const dy   = mouseStageY - (oy + dot.y);
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -131,8 +141,6 @@ export function createOrbital({ stage }) {
       dot.el.style.transform =
         `translate(calc(-50% + ${fo.x.toFixed(2)}px), calc(-50% + ${fo.y.toFixed(2)}px))`;
     });
-
-    followRafId = requestAnimationFrame(applyTransforms);
   }
 
   stage.addEventListener('mousemove', (e) => {
@@ -251,17 +259,39 @@ export function createOrbital({ stage }) {
 
   // show / hide — driven by section enter/leave so the orbital appears exactly
   // when the cell does (cell shader is locked to progress=1 on section enter).
-  function show() {
-    wrap.style.setProperty('--orbital-opacity', '1');
-    wrap.style.setProperty('--orbital-scale', '1');
-    if (!followRafId) followRafId = requestAnimationFrame(applyTransforms);
+  function startFollow() {
+    if (following) return;
+    following = true;
+    dotEls.forEach(({ el }) => { el.style.willChange = 'transform'; });
+    gsap.ticker.add(applyTransforms);
   }
-  function hide() {
-    wrap.style.setProperty('--orbital-opacity', '0');
-    wrap.style.setProperty('--orbital-scale', '0.88');
-    if (followRafId) { cancelAnimationFrame(followRafId); followRafId = null; }
+  function stopFollow() {
+    if (!following) return;
+    following = false;
+    gsap.ticker.remove(applyTransforms);
+    dotEls.forEach(({ el }) => { el.style.willChange = ''; });
   }
 
-  hide(); // start hidden — RAF will start on first show()
-  return { show, hide, closePopup };
+  function show() {
+    wrap.style.removeProperty('transition'); // Re-enable CSS transitions after setOpacity suppressed them
+    wrap.style.setProperty('--orbital-opacity', '1');
+    wrap.style.setProperty('--orbital-scale', '1');
+    startFollow();
+  }
+  function hide() {
+    wrap.style.removeProperty('transition'); // Re-enable CSS transitions after setOpacity suppressed them
+    wrap.style.setProperty('--orbital-opacity', '0');
+    wrap.style.setProperty('--orbital-scale', '0.88');
+    stopFollow();
+  }
+
+  // Per-frame opacity override used during the prism cross-fade. Suppresses the
+  // CSS transition so it tracks scroll exactly; show()/hide() re-enable it.
+  function setOpacity(v) {
+    wrap.style.transition = 'none';
+    wrap.style.setProperty('--orbital-opacity', String(v.toFixed(3)));
+  }
+
+  hide(); // start hidden — follow loop starts on first show()
+  return { show, hide, closePopup, setOpacity };
 }

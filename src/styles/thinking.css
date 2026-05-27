@@ -125,12 +125,12 @@
 .thinking__service {
   opacity: 0;
   transform: scale(0.88);
-  transition: opacity 600ms ease, transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 600ms ease, transform 700ms var(--ease-out-expo);
 }
 
 .thinking__right-panel.is-visible .thinking__service                    { opacity: 0.32; transform: scale(1); }
 .thinking__right-panel.is-visible .thinking__service.is-open             { opacity: 1; }
-.thinking__right-panel.is-visible .thinking__service:not(.is-open):hover { opacity: 0.75; transition: opacity 150ms ease-out, transform 700ms cubic-bezier(0.22, 1, 0.36, 1); }
+.thinking__right-panel.is-visible .thinking__service:not(.is-open):hover { opacity: 0.75; transition: opacity 150ms ease-out, transform 700ms var(--ease-out-expo); }
 .thinking__right-panel.is-visible .thinking__service:nth-child(1)  { transition-delay: 100ms; }
 .thinking__right-panel.is-visible .thinking__service:nth-child(2)  { transition-delay: 220ms; }
 .thinking__right-panel.is-visible .thinking__service:nth-child(3)  { transition-delay: 340ms; }
@@ -162,7 +162,7 @@
   gap: 4px;
   max-height: 0;
   overflow: hidden;
-  transition: max-height 320ms cubic-bezier(0.4, 0, 0.2, 1),
+  transition: max-height 320ms var(--ease-in-out),
               opacity     320ms ease;
   opacity: 0;
   padding-right: 2px;
@@ -193,7 +193,7 @@
   opacity: 0;
   transform: scale(0.88);
   transform-origin: right bottom;
-  transition: opacity 500ms ease 500ms, transform 700ms cubic-bezier(0.22, 1, 0.36, 1) 400ms;
+  transition: opacity 500ms ease 500ms, transform 700ms var(--ease-out-expo) 400ms;
 }
 
 .thinking__right-panel.is-visible .thinking__ai-links { opacity: 1; transform: scale(1); }

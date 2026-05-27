@@ -2,10 +2,11 @@ import { createHeader }   from './header.js';
 import { createTimeline } from './timeline.js';
 import { createTitle }    from './title.js';
 import { createFacePack } from './facePack.js';
+import { ease }           from '@modules/motion.js';
 
 const DEFAULT_TITLE = 'We make products for humans and agents';
 
-export function mountHero({ container, orchestrator, webgl, sectionLabels = [], sectionLabelAnchors = [], content = null, onSectionChange = null } = {}) {
+export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null } = {}) {
   const section = container.querySelector('[data-section="hero"]');
   if (!section) return null;
 
@@ -31,7 +32,7 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   );
 
   const header   = createHeader();
-  const timeline = createTimeline({ labels: sectionLabels, labelAnchors: sectionLabelAnchors, startIndex: 0, onChange: onSectionChange });
+  const timeline = createTimeline({ labels: sectionLabels, startIndex: 0 });
   const title    = createTitle({ text: content?.hero?.title ?? DEFAULT_TITLE });
   const facePack = createFacePack({ webgl, imageSrcs });
 
@@ -59,15 +60,12 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     facePack.setProgress(progress);
     webgl?.shaderPlane?.setProgress(progress);
 
-    // Mirror the facepack's ease-out quartic so the title dissolves in exact
-    // lockstep with the exploding fragments. Same formula as facePack.js:
-    //   e = 1 - (1 - p)^4  — fast initial blast, gradual deceleration
-    //   opacity = 1 - e * 1.15  — matches fragment fade-out timing
-    // A small upward drift (up to 28 px) echoes the dominant upward trajectory
-    // of the head fragments without fighting the explosion visually.
-    const e = 1 - Math.pow(1 - progress, 4);
-    title.el.style.opacity   = String(Math.max(0, 1 - e * 1.15).toFixed(3));
-    title.el.style.transform = `scale(${(1 + e * 0.05).toFixed(4)}) translateY(${(-e * 28).toFixed(1)}px)`;
+    // Dissolve the title in lockstep with the fragments (same curves as
+    // facePack.js): opacity tracks `fade` (gone ~0.82), drift tracks `move`.
+    const fade = ease.smoothstep(Math.min(1, progress / 0.82));
+    const move = ease.smoothstep(progress);
+    title.el.style.opacity   = String(Math.max(0, 1 - fade).toFixed(3));
+    title.el.style.transform = `scale(${(1 + move * 0.05).toFixed(4)}) translateY(${(-move * 28).toFixed(1)}px)`;
   });
 
   return { section, header, timeline, title, facePack };

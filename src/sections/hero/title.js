@@ -1,5 +1,7 @@
 // Hero title — glyph-scramble decoding effect on first paint.
 
+import { prefersReducedMotion } from '@modules/motion.js';
+
 const GLYPHS = '!<>-_\\/[]{}—=+*^?#________01∮ABCDEF0123456789';
 
 /**
@@ -21,6 +23,23 @@ export function createTitle({ text, duration = 1200, stagger = 22 } = {}) {
   el.textContent = scrambleString(text);
 
   function play() {
+    // Respect reduced-motion — show the final title immediately, no scramble.
+    if (prefersReducedMotion()) {
+      el.textContent = text;
+      el.dispatchEvent(new CustomEvent('title:decoded'));
+      return;
+    }
+
+    // Lock the box to the final text's measured size for the duration of the
+    // scramble. Glyph widths differ frame-to-frame; without this, each frame
+    // re-wraps and re-lays-out the <h1>. Spaces/newlines stay at the same
+    // indices, so a fixed box keeps wrapping identical — repaint, not reflow.
+    el.textContent = text;
+    const lockW = el.offsetWidth;
+    const lockH = el.offsetHeight;
+    el.style.width  = `${lockW}px`;
+    el.style.height = `${lockH}px`;
+
     const start = performance.now();
     const chars = text.split('');
     // When each character "locks": resolveAt[i] = stagger * i, plus ease window.
@@ -50,6 +69,8 @@ export function createTitle({ text, duration = 1200, stagger = 22 } = {}) {
         requestAnimationFrame(frame);
       } else {
         el.textContent = text;                              // ensure exact final
+        el.style.width = '';                                // release the locked box
+        el.style.height = '';
         el.dispatchEvent(new CustomEvent('title:decoded'));
       }
     }

@@ -43,12 +43,7 @@ const FADE_EDGE = 160;
 const OPACITY_MIN = 0.22;
 const OPACITY_MAX = 0.90;
 
-// labelAnchors: parallel array of 'top' | 'bottom' per label.
-//   'top'    (default) — label centres on cluster when user enters the section.
-//   'bottom' — label centres on cluster when user reaches the section's end
-//              (scrollY = section.bottom - vH). Use this for labels that
-//              represent a state reached only after scrolling through the section.
-export function createTimeline({ labels, labelAnchors = [], startIndex = 0, onChange } = {}) {
+export function createTimeline({ labels, startIndex = 0 } = {}) {
   const el = document.createElement('nav');
   el.className = 'hero-timeline';
   el.setAttribute('aria-label', 'Section navigation');
@@ -88,21 +83,19 @@ export function createTimeline({ labels, labelAnchors = [], startIndex = 0, onCh
   });
 
   function cacheSectionPositions() {
+    stripH = el.offsetHeight;
     const vH = window.innerHeight;
     const sections = document.querySelectorAll('[data-section]');
-    sectionScrollStarts = Array.from(sections).map((sec, i) => {
+    sectionScrollStarts = Array.from(sections).map((sec) => {
       const rect = sec.getBoundingClientRect();
-      if ((labelAnchors[i] ?? 'top') === 'bottom') {
-        // Scroll position when section end reaches viewport bottom.
-        return Math.round(rect.bottom + window.scrollY - vH);
-      }
       return Math.round(rect.top + window.scrollY);
     });
     // Snap targets in main.js land non-hero sections at start+4 (small offset
     // so Lenis's ease-out reliably crosses the ScrollTrigger boundary). Mirror
     // that offset here so each label centres exactly on the cluster when the
     // user is snapped to its section — otherwise labels sit 4 px above centre.
-    sectionPositions = sectionScrollStarts.map((start) => start + vH / 2 + (start === 0 ? 0 : 4));
+    const anchor = stripH > 0 ? stripH / 2 : vH / 2;
+    sectionPositions = sectionScrollStarts.map((start) => start + anchor + (start === 0 ? 0 : 4));
     sectionLabelEls.forEach((lEl, i) => {
       if (sectionPositions[i] !== undefined) {
         lEl.style.top = `${sectionPositions[i]}px`;
@@ -122,6 +115,7 @@ export function createTimeline({ labels, labelAnchors = [], startIndex = 0, onCh
   let currentIndex = Math.max(0, Math.min(labels.length - 1, startIndex));
   let prevClusterTicks = [];
   let scrollHandler = null;
+  let stripH = 0; // cached height of the visible timeline strip
 
   // ── Main update — called on every Lenis scroll event ───────────────────────
   function update(scrollY = window.scrollY) {
@@ -130,12 +124,12 @@ export function createTimeline({ labels, labelAnchors = [], startIndex = 0, onCh
     // 1. Translate track so tick[i] appears at viewport y = i*TICK_PITCH - scrollY.
     track.style.transform = `translateY(${-scrollY}px)`;
 
-    // 2. Cluster centre tracks the exact viewport centre — no snapping to the
-    //    tick grid, so the bright zone glides smoothly with scroll instead of
-    //    jumping in 12 px increments. The center is expressed as a fractional
-    //    tick index; nearby ticks are widened/brightened by their continuous
-    //    distance from it.
-    const centerIdxF = (scrollY + vH / 2) / TICK_PITCH;
+    // 2. Cluster centre tracks the strip's visual centre (stripH/2 from its top),
+    //    not the raw viewport centre, so it stays at the midpoint of the strip
+    //    regardless of how tall the strip is. Falls back to vH/2 before the first
+    //    layout measurement.
+    const clusterOffset = stripH > 0 ? stripH / 2 : vH / 2;
+    const centerIdxF = (scrollY + clusterOffset) / TICK_PITCH;
     const baseIdx = Math.round(centerIdxF);
 
     // 3. Reset previous cluster (max 2*CLUSTER_RADIUS+1 ops).
@@ -156,16 +150,36 @@ export function createTimeline({ labels, labelAnchors = [], startIndex = 0, onCh
       prevClusterTicks.push(t);
     }
 
-    // 5. Fade each section label by its distance from the cluster centre.
-    const viewportCenter = vH / 2;
+    // 5. Fade each section label; pin prev/next labels to strip edges when
+    //    their natural position would be clipped outside the strip bounds.
+    const viewportCenter = stripH > 0 ? stripH / 2 : vH / 2;
+    const EDGE_PAD = 24; // px from strip edge when pinning adjacent labels
     sectionLabelEls.forEach((lEl, i) => {
       const pos = sectionPositions[i];
       if (pos === undefined) return;
-      // Label's current y in viewport space.
-      const labelViewportY = pos - scrollY;
-      const dist = Math.abs(labelViewportY - viewportCenter);
-      const t = Math.min(1, Math.max(0, (dist - FADE_PEAK) / (FADE_EDGE - FADE_PEAK)));
-      const opacity = OPACITY_MAX - (OPACITY_MAX - OPACITY_MIN) * t;
+
+      const naturalStripY = pos - scrollY; // strip-relative position
+      const isAdjacent = stripH > 0 && Math.abs(i - currentIndex) === 1;
+
+      let effectiveY = naturalStripY;
+      let pinned = false;
+      if (isAdjacent) {
+        if (naturalStripY < EDGE_PAD) {
+          effectiveY = EDGE_PAD;
+          pinned = true;
+        } else if (naturalStripY > stripH - EDGE_PAD) {
+          effectiveY = stripH - EDGE_PAD;
+          pinned = true;
+        }
+      }
+
+      // Keep top in sync (track-relative = effectiveY + scrollY).
+      lEl.style.top = `${effectiveY + scrollY}px`;
+
+      const opacity = pinned
+        ? 0.45
+        : OPACITY_MAX - (OPACITY_MAX - OPACITY_MIN) * Math.min(1, Math.max(0,
+            (Math.abs(naturalStripY - viewportCenter) - FADE_PEAK) / (FADE_EDGE - FADE_PEAK)));
       lEl.style.opacity = opacity.toFixed(2);
     });
   }
@@ -212,8 +226,7 @@ export function createTimeline({ labels, labelAnchors = [], startIndex = 0, onCh
     update,
     /** Register the function that physically scrolls the page (e.g. lenis.scrollTo). */
     setScrollHandler(fn) { scrollHandler = fn; },
-    /** Called by main.js orchestrator — tracks currentIndex for getIndex(). */
+    /** Set the active section index — drives adjacent-label edge pinning. */
     setIndex(i) { currentIndex = Math.max(0, Math.min(labels.length - 1, i)); },
-    getIndex()  { return currentIndex; },
   };
 }

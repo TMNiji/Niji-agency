@@ -118,10 +118,8 @@ void main() {
   col += vec3(0.984, 0.373, 0.702) * fPink   * bgProg * 0.62; // #FB5FB3
   col += vec3(1.000, 0.635, 0.000) * fOrange * bgProg * 0.75; // #FFA200
 
-  // ── Cinematic finish ──────────────────────────────────────────────────────
+  // ── Cinematic finish — grain comes from the DOM #noise overlay ───────────
   col *= vignette(dc);
-  col += (filmGrain(gl_FragCoord.xy) - 0.5) * 0.045;
-  col *= uFade;
 
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }

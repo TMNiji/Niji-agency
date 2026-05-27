@@ -2,6 +2,7 @@
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { lenisEasing, prefersReducedMotion } from '@modules/motion.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -10,10 +11,12 @@ let lenisInstance = null;
 export function initScroll() {
   if (lenisInstance) return lenisInstance;
 
+  // Reduced motion: fall back to native scrolling (no smoothing/inertia) — the
+  // smooth-scroll glide is itself a vestibular trigger.
   lenisInstance = new Lenis({
     duration: 1.15,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    smoothWheel: true,
+    easing: lenisEasing,
+    smoothWheel: !prefersReducedMotion(),
     syncTouch: false,
     wheelMultiplier: 1,
     touchMultiplier: 1.5,
