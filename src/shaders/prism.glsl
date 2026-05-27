@@ -121,5 +121,10 @@ void main() {
   // ── Cinematic finish — grain comes from the DOM #noise overlay ───────────
   col *= vignette(dc);
 
+  // Shared dark backdrop beneath the prism — present during build's prism phase,
+  // faded out as the colourful CONCEPTION atmosphere takes over (bgProg → 1) so
+  // chaos's resting state is unchanged.
+  col += awardsBackdrop(uv, aspect) * (1.0 - bgProg);
+
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }

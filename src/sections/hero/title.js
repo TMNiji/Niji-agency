@@ -1,101 +1,105 @@
-// Hero title — glyph-scramble decoding effect on first paint.
+// Hero title — "living" glitch effect. Letters keep their N27 form, but every
+// so often a random letter flickers into a decorative face (Niconne script or
+// Rubik 80s Fade) for a beat, as if the title were being hacked in place.
 
 import { prefersReducedMotion } from '@modules/motion.js';
 
-const GLYPHS = '!<>-_\\/[]{}—=+*^?#________01∮ABCDEF0123456789';
+// Decorative faces a glitched letter can flip to (CSS classes in hero.css).
+const GLITCH_FONTS = ['hero-title__char--niconne', 'hero-title__char--rubik'];
+const GLITCH_LIFE = 460;   // ms a letter stays glitched — matches the CSS blink
+const SPAWN_MIN = 90;      // ms — shortest gap between two glitch spawns
+const SPAWN_MAX = 380;     // ms — longest gap
 
 /**
- * Reveals the title character-by-character using a "decoding" scramble.
- * - Each character cycles through random glyphs before resolving to its target.
- * - Stagger per character + ease-out gives a tech/glitch feel.
+ * Builds the title as per-letter spans and animates an ongoing font-glitch.
  *
  * @param {Object} opts
- * @param {string} opts.text  - target string to resolve to
- * @param {number} [opts.duration=1200] - total animation duration (ms)
- * @param {number} [opts.stagger=22]   - per-character offset (ms)
+ * @param {string} opts.text - the title string
  */
-export function createTitle({ text, duration = 1200, stagger = 22 } = {}) {
+export function createTitle({ text } = {}) {
   const el = document.createElement('h1');
   el.className = 'hero-title';
   el.dataset.text = text;
 
-  // Pre-fill with random glyphs so layout settles before the animation runs.
-  el.textContent = scrambleString(text);
-
-  function play() {
-    // Respect reduced-motion — show the final title immediately, no scramble.
-    if (prefersReducedMotion()) {
-      el.textContent = text;
-      el.dispatchEvent(new CustomEvent('title:decoded'));
-      return;
+  // Letters become inline-block spans (width-locked on play) so a font swap
+  // changes only the glyph, never the layout. Each run of letters is wrapped in
+  // a `nowrap` word span so the line can only break at the whitespace between
+  // words — adjacent inline-block letters would otherwise break apart mid-word.
+  // Whitespace/newlines stay as text nodes so wrapping behaves like plain text.
+  const charSpans = [];
+  let word = null;
+  for (const ch of text) {
+    if (ch === ' ' || ch === '\n') {
+      word = null;
+      el.appendChild(document.createTextNode(ch));
+      continue;
     }
-
-    // Lock the box to the final text's measured size for the duration of the
-    // scramble. Glyph widths differ frame-to-frame; without this, each frame
-    // re-wraps and re-lays-out the <h1>. Spaces/newlines stay at the same
-    // indices, so a fixed box keeps wrapping identical — repaint, not reflow.
-    el.textContent = text;
-    const lockW = el.offsetWidth;
-    const lockH = el.offsetHeight;
-    el.style.width  = `${lockW}px`;
-    el.style.height = `${lockH}px`;
-
-    const start = performance.now();
-    const chars = text.split('');
-    // When each character "locks": resolveAt[i] = stagger * i, plus ease window.
-    const lockTimes = chars.map((_, i) => stagger * i);
-
-    function frame(now) {
-      const t = now - start;
-      let buf = '';
-      for (let i = 0; i < chars.length; i++) {
-        const target = chars[i];
-        if (target === ' ' || target === '\n') {
-          buf += target;
-          continue;
-        }
-        const locked = t >= lockTimes[i] + 220;            // 220ms scramble window
-        if (locked) {
-          buf += target;
-        } else if (t < lockTimes[i]) {
-          // Not yet started — keep the current scrambled glyph stable for a moment.
-          buf += randomGlyph();
-        } else {
-          buf += randomGlyph();
-        }
-      }
-      el.textContent = buf;
-      if (t < duration) {
-        requestAnimationFrame(frame);
-      } else {
-        el.textContent = text;                              // ensure exact final
-        el.style.width = '';                                // release the locked box
-        el.style.height = '';
-        el.dispatchEvent(new CustomEvent('title:decoded'));
-      }
+    if (!word) {
+      word = document.createElement('span');
+      word.className = 'hero-title__word';
+      el.appendChild(word);
     }
-    requestAnimationFrame(frame);
+    const span = document.createElement('span');
+    span.className = 'hero-title__char';
+    span.textContent = ch;
+    word.appendChild(span);
+    charSpans.push(span);
   }
 
-  // Public API
+  let timer = null;
+  let running = false;
+
+  // Pin each letter's box to its N27 advance width so swapping to a wider/
+  // narrower face doesn't shift its neighbours (the glyph overflows centred).
+  function lockWidths() {
+    charSpans.forEach((s) => { s.style.width = ''; });          // measure natural
+    charSpans.forEach((s) => {
+      s.style.width = `${s.getBoundingClientRect().width.toFixed(2)}px`;
+    });
+  }
+
+  function glitchOne() {
+    const idle = charSpans.filter((s) => !s.classList.contains('is-glitch'));
+    if (!idle.length) return;
+    const s = idle[(Math.random() * idle.length) | 0];
+    const font = GLITCH_FONTS[(Math.random() * GLITCH_FONTS.length) | 0];
+    s.classList.add('is-glitch', font);
+    setTimeout(() => s.classList.remove('is-glitch', ...GLITCH_FONTS), GLITCH_LIFE);
+  }
+
+  function spawn() {
+    if (!running) return;
+    glitchOne();
+    timer = setTimeout(spawn, SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN));
+  }
+
+  function play() {
+    // Reduced motion: leave the title static in its base face, no glitching.
+    if (prefersReducedMotion()) return;
+    // Wait for fonts so width measurement reflects N27, not a fallback face.
+    (document.fonts?.ready ?? Promise.resolve()).then(() => {
+      lockWidths();
+      if (running) return;
+      running = true;
+      spawn();
+    });
+  }
+
+  // Re-measure after a resize — the title's font-size is viewport-relative.
+  function relock() {
+    if (!running) return;
+    charSpans.forEach((s) => s.classList.remove('is-glitch', ...GLITCH_FONTS));
+    lockWidths();
+  }
+  window.addEventListener('resize', relock);
+
   return {
     el,
     play,
-    getText() { return el.textContent ?? ''; },
-    setText(next) {
-      el.dataset.text = next;
-      el.textContent = next;
+    destroy() {
+      running = false;
+      clearTimeout(timer);
+      window.removeEventListener('resize', relock);
     },
   };
-}
-
-function randomGlyph() {
-  return GLYPHS[(Math.random() * GLYPHS.length) | 0];
-}
-
-function scrambleString(s) {
-  return s
-    .split('')
-    .map((c) => (c === ' ' || c === '\n' ? c : randomGlyph()))
-    .join('');
 }

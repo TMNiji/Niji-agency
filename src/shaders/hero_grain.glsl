@@ -9,8 +9,8 @@ void main() {
   cUv.x *= aspect;
   float dc = length(cUv);
 
-  // Pure black background — no halo or atmosphere. The cell emerges directly
-  // out of darkness as the face pack explodes.
+  // Cell emerges over the shared dark backdrop (added below, after the cell is
+  // vignetted) so hero / clients / video share one textured base field.
   vec3 col = vec3(0.0);
 
   // ── Cell — revealed by scroll progress ──────────────────────────────────
@@ -24,6 +24,10 @@ void main() {
 
   // ── Cinematic finish — grain comes from the DOM #noise overlay ───────────
   col *= vignette(dc);
+
+  // Shared dark backdrop beneath the (vignetted) cell — un-vignetted so it reads
+  // the same as the standalone awards section.
+  col += awardsBackdrop(uv, aspect);
 
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }

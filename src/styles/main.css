@@ -4,6 +4,7 @@
 @import './chaos.css';
 @import './video.css';
 @import './clients.css';
+@import './awards.css';
 
 :root {
   --bg:   #0a0a0a;

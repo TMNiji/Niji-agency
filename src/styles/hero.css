@@ -35,25 +35,64 @@
 .hero-title {
   font-family: var(--font);
   font-weight: 400;
-  font-size: clamp(36px, 4.2vw, 60px);
+  font-size: clamp(36px, 4.2vw, 72px);
   line-height: 0.95;
   letter-spacing: -0.025em;
   color: #fff;
   max-width: 520px;
   pointer-events: auto;
   outline: none;
-  caret-color: #8147F5;
-  word-break: break-word;
+  /* Letters are wrapped per-word in nowrap spans, so lines break only at the
+     whitespace between words — never mid-word. */
+  word-break: normal;
+  overflow-wrap: normal;
   white-space: pre-wrap;
 }
 
+/* Keeps a word's inline-block letters from breaking apart across lines. */
+.hero-title__word { white-space: nowrap; }
+
 .hero-title:focus { outline: 1px dashed rgba(255,255,255,0.2); outline-offset: 8px; }
 
+/* Each letter is a width-locked box (width set from JS = its N27 advance). A
+   glitch swaps the font face only; the wider/narrower glyph overflows centred
+   so neighbouring letters never shift. */
+.hero-title__char {
+  display: inline-block;
+  /* Align by box top, not baseline — the box height is already constant
+     (line-height driven), so top-aligning means a font swap can't nudge the
+     letter up/down or reflow the line. Width is locked from JS; together they
+     pin the box so only the glyph inside morphs. */
+  vertical-align: top;
+  text-align: center;
+  overflow: visible;
+}
+
+/* Decorative faces a glitched letter flips to. Keep the box height steady. */
+.hero-title__char--niconne { font-family: 'Niconne', cursive; }
+.hero-title__char--rubik   { font-family: 'Rubik80sFade', var(--font); }
+
+/* Blink while glitched — a quick flicker that reads as a hacked redraw. */
+.hero-title__char.is-glitch {
+  animation: hero-title-glitch 460ms steps(1, end);
+}
+
+@keyframes hero-title-glitch {
+  0%   { opacity: 0.25; }
+  12%  { opacity: 1; }
+  28%  { opacity: 0.4; }
+  44%  { opacity: 1; }
+  60%  { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
 /* ── Timeline — scroll-driven ruler strip ───────────────────────────────────
-   800 tick marks fill the full-height fixed strip. A 5-tick cluster at
-   widths [14, 24, 40, 24, 14]px highlights the viewport centre. Section
-   names live inside the track at their scroll-relative positions and fade
-   bright as they approach the cluster. Drag vertically to scrub. */
+   800 tick marks fill the fixed strip. A 5-tick cluster at widths
+   [14, 24, 40, 24, 14]px highlights the strip centre. Section names live
+   inside the track at their scroll-relative positions and fade bright as they
+   approach the cluster. Only the section labels are interactive (click to
+   navigate); the strip itself is pass-through so it never blocks the content
+   behind it. */
 .hero-timeline {
   position: fixed;
   top: 30vh;
@@ -61,10 +100,8 @@
   left: 48px;
   width: 200px;       /* tick area (≤40px) + gap + label text */
   overflow: clip;
-  pointer-events: auto;
-  cursor: ns-resize;
+  pointer-events: none;
   user-select: none;
-  touch-action: none;
   z-index: 9;
 }
 
@@ -77,18 +114,14 @@
   will-change: transform;
 }
 
-/* Base tick — 1 px tall, dim */
+/* Base tick — 1 px tall, dim. Width is set from JS (TICK_W_BASE) so the cluster
+   animation has a single source of truth; the dim background here is the value
+   the per-frame cluster reset falls back to. */
 .hero-timeline__tick {
   position: absolute;
   left: 0;
   height: 1px;
-  width: 16px;
   background: rgba(255, 255, 255, 0.16);
-}
-
-/* Cluster ticks — solid white */
-.hero-timeline__tick.is-active {
-  background: rgba(255, 255, 255, 0.88);
 }
 
 /* Per-section name labels — live inside the track at scroll-relative y.
@@ -100,6 +133,7 @@
   border: none;
   padding: 0;
   cursor: pointer;
+  pointer-events: auto;  /* labels are clickable even though the strip is pass-through */
 
   position: absolute;
   left: 52px;

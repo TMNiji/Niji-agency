@@ -4,7 +4,7 @@ import { createTitle }    from './title.js';
 import { createFacePack } from './facePack.js';
 import { ease }           from '@modules/motion.js';
 
-const DEFAULT_TITLE = 'We make products for humans and agents';
+const DEFAULT_TITLE = 'We make products for humans & AGENTS';
 
 export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null } = {}) {
   const section = container.querySelector('[data-section="hero"]');
@@ -32,7 +32,7 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   );
 
   const header   = createHeader();
-  const timeline = createTimeline({ labels: sectionLabels, startIndex: 0 });
+  const timeline = createTimeline({ labels: sectionLabels });
   const title    = createTitle({ text: content?.hero?.title ?? DEFAULT_TITLE });
   const facePack = createFacePack({ webgl, imageSrcs });
 

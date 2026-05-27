@@ -13,3 +13,20 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* Decorative faces used only by the hero title's glitch effect (title.js). */
+@font-face {
+  font-family: 'Niconne';
+  src: url('/fonts/Niconne-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rubik80sFade';
+  src: url('/fonts/Rubik80sFade-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

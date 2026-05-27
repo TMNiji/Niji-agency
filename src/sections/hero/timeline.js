@@ -1,49 +1,52 @@
 // Scroll-driven ruler timeline — a fixed strip of tick marks on the left edge.
 //
-// 800 ticks pre-rendered at y = i × TICK_PITCH. On every Lenis scroll event
-// (fed via update(scrollY)) the inner track translates by -scrollY so ticks
-// shadow page scroll. A 5-tick cluster at the viewport centre is highlighted
-// with widths [14, 24, 40, 24, 14]px.
+// Ticks are pre-rendered at y = i × TICK_PITCH — enough to cover the whole
+// scrollable page (count derived from document height, topped up on resize).
+// On every Lenis scroll event (fed via update(scrollY)) the inner track
+// translates by -scrollY so ticks shadow page scroll. Ticks near the strip's
+// vertical centre swell in width + brightness following a smooth raised-cosine
+// dome (see clusterFalloff) — a soft magnifier the ruler glides through.
 //
-// Section names are placed inside the track at y = sectionScrollStart + vH/2
-// so each label is centred on the cluster exactly when the user first enters
-// that section. Per-frame opacity based on distance from centre creates a
-// smooth fade-in / fade-out as labels pass the cluster.
+// Section labels occupy three fixed slots — prev (top), current (centre, on the
+// cluster), next (bottom). sectionFloat(scrollY) is the continuous current-
+// section position; as the user scrolls one full section the whole list slides
+// up exactly one slot and cross-fades. Because slot position and opacity are
+// smooth functions of scrollY, there are no discrete index flips and no labels
+// snapping into view.
 //
-// Drag: pointerdown on the strip lets users scrub the page. Dragging DOWN
-// pulls the ruler down → lower-numbered ticks into view → scrollY decreases
-// (map-drag model). Register a scroll handler with setScrollHandler(fn).
+// Each section label is a button: clicking it jumps the page to that section
+// via the handler registered with setScrollHandler(fn).
 
-const TICK_PITCH = 12;   // px between adjacent ticks
-const TICK_W_BASE = 16;  // default tick width (px)
-const N_TICKS = 800;     // covers ~9 600 px total — enough for all viewports
+const TICK_PITCH = 20;   // px between adjacent ticks (wider = fewer, calmer bars)
+const TICK_W_BASE = 16;  // base tick width (px) — set on every tick from JS (sole source of truth)
+const TICK_W_PEAK = 40;  // width of the centre tick at the heart of the cluster
+const TICK_BUFFER = 16;  // extra ticks created beyond the last reachable scroll position
 
-// Cluster radius (in ticks) — touch this many on either side of viewport centre.
-const CLUSTER_RADIUS = 3;
+// Cluster — a soft magnifier centred on the strip. Ticks within CLUSTER_RADIUS
+// of the centre swell in width + brightness by a raised-cosine falloff: 1 at the
+// centre, easing to 0 at the edge. Being a rounded dome (not linear ramps) the
+// width changes gently and never dips below base, so there's no triangular
+// chevron strobing when the ruler flows through fast.
+const CLUSTER_RADIUS = 3;  // ticks each side of centre the dome reaches
+const TICK_A_BASE = 0.16;  // base brightness (matches the CSS dim value)
+const TICK_A_PEAK = 0.90;  // brightness of the centre tick
 
-// Cluster control points: at integer distances d=0,1,2,3 from the exact
-// viewport-centre, tick width matches the original [14,24,40,24,14] cluster
-// shape. Between integers we lerp linearly so widths shift continuously
-// with sub-pixel scroll — no 12-px snap that produced the visual jump.
-const CLUSTER_W_AT = [40, 24, 14, TICK_W_BASE];
-// Same idea for brightness so the bright zone tracks viewport centre smoothly.
-const CLUSTER_A_AT = [0.88, 0.88, 0.55, 0.16];
-
-function clusterAt(d, table) {
-  if (d >= CLUSTER_RADIUS) return table[table.length - 1];
-  const i = Math.floor(d);
-  const f = d - i;
-  return table[i] + (table[i + 1] - table[i]) * f;
+function clusterFalloff(d) {
+  if (d >= CLUSTER_RADIUS) return 0;
+  return 0.5 * (1 + Math.cos((d / CLUSTER_RADIUS) * Math.PI));
 }
 
-// Fade range: label is fully opaque when ≤ FADE_PEAK px from centre,
-// fully dim when ≥ FADE_EDGE px away.
-const FADE_PEAK = 20;
-const FADE_EDGE = 160;
-const OPACITY_MIN = 0.22;
-const OPACITY_MAX = 0.90;
+// Label slots. A label at its centre slot (slotPos 0) is brightest; the prev/
+// next labels rest at the edge slots (slotPos ±1) dimmer; beyond ±1 they fade
+// to nothing. SLOT_EDGE_PAD is the gap from the strip edge to the edge slots.
+const LABEL_CENTER_OPACITY = 0.90;
+const LABEL_EDGE_OPACITY = 0.45;
+const SLOT_EDGE_PAD = 24;
+// Labels dimmer than this are treated as hidden → pulled out of the tab order
+// and made non-interactive so keyboard users can't focus an unseen anchor.
+const VISIBLE_OPACITY = 0.30;
 
-export function createTimeline({ labels, startIndex = 0 } = {}) {
+export function createTimeline({ labels } = {}) {
   const el = document.createElement('nav');
   el.className = 'hero-timeline';
   el.setAttribute('aria-label', 'Section navigation');
@@ -53,27 +56,36 @@ export function createTimeline({ labels, startIndex = 0 } = {}) {
   track.className = 'hero-timeline__track';
   el.appendChild(track);
 
-  // Pre-render all ticks once; only 5 are touched per frame after mount.
-  const ticks = Array.from({ length: N_TICKS }, (_, i) => {
-    const t = document.createElement('div');
-    t.className = 'hero-timeline__tick';
-    t.style.top = `${i * TICK_PITCH}px`;
-    track.appendChild(t);
-    return t;
-  });
+  // Ticks are created lazily up to the page's reachable scroll range — see
+  // ensureTicks(), topped up from cacheSectionPositions() once the page height
+  // is known. Only the cluster's ~7 ticks are restyled per frame after mount.
+  const ticks = [];
+  function ensureTicks(count) {
+    for (let i = ticks.length; i < count; i++) {
+      const t = document.createElement('div');
+      t.className = 'hero-timeline__tick';
+      t.style.top = `${i * TICK_PITCH}px`;
+      t.style.width = `${TICK_W_BASE}px`;
+      track.appendChild(t);
+      ticks.push(t);
+    }
+  }
+  // Seed enough ticks to fill the strip on first paint; cacheSectionPositions
+  // grows this to span the whole page once the sections are measured.
+  ensureTicks(Math.ceil((window.innerHeight * 2) / TICK_PITCH));
 
   // ── Section name labels — inside the track at scroll-relative y ─────────────
   // Positions are computed once the DOM has settled (double rAF).
   // Each label is a button so it acts as a real anchor: clicking it jumps the
   // page to that section's top via the registered scrollHandler.
-  let sectionPositions   = [];  // y (track space) per label — centre offset for visual fade
+  let sectionCentres     = []; // scrollY at which each label rests on the centre slot
   let sectionScrollStarts = []; // raw scroll-top of each section — used for click navigation
 
   const sectionLabelEls = labels.map((text, i) => {
     const s = document.createElement('button');
     s.className = 'hero-timeline__section-label';
     s.textContent = text;
-    s.style.opacity = String(OPACITY_MIN);
+    s.style.opacity = '0'; // real value set by update() once positions are measured
     s.addEventListener('click', () => {
       const start = sectionScrollStarts[i];
       if (start !== undefined) scrollHandler?.(start === 0 ? 0 : start + 4);
@@ -85,25 +97,24 @@ export function createTimeline({ labels, startIndex = 0 } = {}) {
   function cacheSectionPositions() {
     stripH = el.offsetHeight;
     const vH = window.innerHeight;
+    // Grow the ruler so it covers every reachable scroll position — the cluster
+    // sits stripH/2 ahead of scrollY, so cover maxScroll + stripH/2 (+ buffer).
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - vH);
+    ensureTicks(Math.ceil((maxScroll + stripH / 2) / TICK_PITCH) + CLUSTER_RADIUS + TICK_BUFFER);
     const sections = document.querySelectorAll('[data-section]');
     sectionScrollStarts = Array.from(sections).map((sec) => {
       const rect = sec.getBoundingClientRect();
       return Math.round(rect.top + window.scrollY);
     });
-    // Snap targets in main.js land non-hero sections at start+4 (small offset
-    // so Lenis's ease-out reliably crosses the ScrollTrigger boundary). Mirror
-    // that offset here so each label centres exactly on the cluster when the
-    // user is snapped to its section — otherwise labels sit 4 px above centre.
-    const anchor = stripH > 0 ? stripH / 2 : vH / 2;
-    sectionPositions = sectionScrollStarts.map((start) => start + anchor + (start === 0 ? 0 : 4));
-    sectionLabelEls.forEach((lEl, i) => {
-      if (sectionPositions[i] !== undefined) {
-        lEl.style.top = `${sectionPositions[i]}px`;
-      }
-    });
-    // Refresh opacities now that positions are known — without this, labels
-    // would stay at OPACITY_MIN (grey) until the user scrolls and triggers
-    // update() through the Lenis 'scroll' listener.
+    // Scroll position at which each section's label rests dead-centre on the
+    // cluster. Non-hero sections get +4 px to match the click-nav landing offset
+    // (the timeline button scrolls to start+4 so Lenis's ease-out reliably
+    // crosses the ScrollTrigger start boundary that drives the shader swaps), so
+    // a label centres exactly when the page rests on its section.
+    sectionCentres = sectionScrollStarts.map((start) => start + (start === 0 ? 0 : 4));
+    // Place + fade the labels now that positions are known — without this they
+    // stay hidden (opacity 0) until the user scrolls and triggers update()
+    // through the Lenis 'scroll' listener.
     update();
   }
 
@@ -112,10 +123,24 @@ export function createTimeline({ labels, startIndex = 0 } = {}) {
   window.addEventListener('resize', cacheSectionPositions);
 
   // ── State ───────────────────────────────────────────────────────────────────
-  let currentIndex = Math.max(0, Math.min(labels.length - 1, startIndex));
   let prevClusterTicks = [];
   let scrollHandler = null;
   let stripH = 0; // cached height of the visible timeline strip
+
+  // Continuous current-section position: integer i when scrollY rests on
+  // section i's centre, interpolating linearly toward i+1 as the user scrolls
+  // to the next. Drives the label slot animation in update().
+  function sectionFloat(scrollY) {
+    const c = sectionCentres;
+    if (c.length === 0 || scrollY <= c[0]) return 0;
+    for (let i = 0; i < c.length - 1; i++) {
+      if (scrollY < c[i + 1]) {
+        const span = c[i + 1] - c[i] || 1;
+        return i + (scrollY - c[i]) / span;
+      }
+    }
+    return c.length - 1;
+  }
 
   // ── Main update — called on every Lenis scroll event ───────────────────────
   function update(scrollY = window.scrollY) {
@@ -132,89 +157,53 @@ export function createTimeline({ labels, startIndex = 0 } = {}) {
     const centerIdxF = (scrollY + clusterOffset) / TICK_PITCH;
     const baseIdx = Math.round(centerIdxF);
 
-    // 3. Reset previous cluster (max 2*CLUSTER_RADIUS+1 ops).
+    // 3. Reset previous cluster back to base width + dim colour (max
+    //    2*CLUSTER_RADIUS+1 ops). Background clears to the CSS dim value.
     prevClusterTicks.forEach((t) => {
-      t.style.width = '';
+      t.style.width = `${TICK_W_BASE}px`;
       t.style.background = '';
     });
     prevClusterTicks = [];
 
-    // 4. Apply continuous width + brightness for each tick in the cluster window.
+    // 4. Swell width + brightness for each tick in the cluster window, easing
+    //    smoothly from the centre out so the dome glides instead of strobing.
     for (let off = -CLUSTER_RADIUS; off <= CLUSTER_RADIUS; off++) {
       const idx = baseIdx + off;
       const t = ticks[idx];
       if (!t) continue;
-      const d = Math.abs(idx - centerIdxF);
-      t.style.width = `${clusterAt(d, CLUSTER_W_AT).toFixed(2)}px`;
-      t.style.background = `rgba(255,255,255,${clusterAt(d, CLUSTER_A_AT).toFixed(3)})`;
+      const f = clusterFalloff(Math.abs(idx - centerIdxF));
+      t.style.width = `${(TICK_W_BASE + (TICK_W_PEAK - TICK_W_BASE) * f).toFixed(2)}px`;
+      t.style.background = `rgba(255,255,255,${(TICK_A_BASE + (TICK_A_PEAK - TICK_A_BASE) * f).toFixed(3)})`;
       prevClusterTicks.push(t);
     }
 
-    // 5. Fade each section label; pin prev/next labels to strip edges when
-    //    their natural position would be clipped outside the strip bounds.
-    const viewportCenter = stripH > 0 ? stripH / 2 : vH / 2;
-    const EDGE_PAD = 24; // px from strip edge when pinning adjacent labels
+    // 5. Section labels in three fixed slots — prev (top), current (centre),
+    //    next (bottom). slotPos is each label's signed distance from the centre
+    //    slot in slot units; as secFloat advances by 1 the whole list slides up
+    //    one slot, so position and opacity move smoothly with scroll.
+    if (stripH <= 0) return; // positions not measured yet — labels stay hidden
+    const secFloat = sectionFloat(scrollY);
+    const slotGap = stripH / 2 - SLOT_EDGE_PAD; // centre→edge slot spacing
     sectionLabelEls.forEach((lEl, i) => {
-      const pos = sectionPositions[i];
-      if (pos === undefined) return;
+      const slotPos = i - secFloat;             // 0 centre, −1 top, +1 bottom
+      const stripY = stripH / 2 + slotPos * slotGap;
+      lEl.style.top = `${stripY + scrollY}px`;  // track-relative = stripY + scrollY
 
-      const naturalStripY = pos - scrollY; // strip-relative position
-      const isAdjacent = stripH > 0 && Math.abs(i - currentIndex) === 1;
-
-      let effectiveY = naturalStripY;
-      let pinned = false;
-      if (isAdjacent) {
-        if (naturalStripY < EDGE_PAD) {
-          effectiveY = EDGE_PAD;
-          pinned = true;
-        } else if (naturalStripY > stripH - EDGE_PAD) {
-          effectiveY = stripH - EDGE_PAD;
-          pinned = true;
-        }
-      }
-
-      // Keep top in sync (track-relative = effectiveY + scrollY).
-      lEl.style.top = `${effectiveY + scrollY}px`;
-
-      const opacity = pinned
-        ? 0.45
-        : OPACITY_MAX - (OPACITY_MAX - OPACITY_MIN) * Math.min(1, Math.max(0,
-            (Math.abs(naturalStripY - viewportCenter) - FADE_PEAK) / (FADE_EDGE - FADE_PEAK)));
+      const d = Math.abs(slotPos);
+      let opacity;
+      if (d <= 1) opacity = LABEL_CENTER_OPACITY + (LABEL_EDGE_OPACITY - LABEL_CENTER_OPACITY) * d;
+      else if (d < 2) opacity = LABEL_EDGE_OPACITY * (2 - d); // fade out past the edge slot
+      else opacity = 0;
       lEl.style.opacity = opacity.toFixed(2);
+
+      // Keep faded/clipped labels out of the tab order and non-interactive so
+      // keyboard users can't focus (or click) an anchor they can't see.
+      const visible = opacity >= VISIBLE_OPACITY;
+      lEl.tabIndex = visible ? 0 : -1;
+      lEl.style.pointerEvents = visible ? 'auto' : 'none';
+      lEl.setAttribute('aria-hidden', visible ? 'false' : 'true');
     });
   }
-
-  // ── Drag to scrub ───────────────────────────────────────────────────────────
-  // Map-drag model: drag DOWN → ruler moves down → smaller scrollY (scroll up).
-  let dragging = false;
-  let dragStartY = 0;
-  let dragStartScroll = 0;
-
-  el.addEventListener('pointerdown', (e) => {
-    dragging = true;
-    dragStartY = e.clientY;
-    dragStartScroll = window.scrollY;
-    el.style.cursor = 'grabbing';
-    try { el.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
-  });
-
-  el.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    const delta = e.clientY - dragStartY;
-    // Drag DOWN (delta > 0) → scroll UP (lower scrollY).
-    const target = Math.max(0, dragStartScroll - delta);
-    scrollHandler?.(target);
-  });
-
-  const endDrag = (e) => {
-    if (!dragging) return;
-    dragging = false;
-    el.style.cursor = '';
-    try { el.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
-  };
-  el.addEventListener('pointerup',          endDrag);
-  el.addEventListener('pointercancel',      endDrag);
-  el.addEventListener('lostpointercapture', endDrag);
 
   // ── Initial render ──────────────────────────────────────────────────────────
   update();
@@ -226,7 +215,7 @@ export function createTimeline({ labels, startIndex = 0 } = {}) {
     update,
     /** Register the function that physically scrolls the page (e.g. lenis.scrollTo). */
     setScrollHandler(fn) { scrollHandler = fn; },
-    /** Set the active section index — drives adjacent-label edge pinning. */
-    setIndex(i) { currentIndex = Math.max(0, Math.min(labels.length - 1, i)); },
+    /** Remove listeners — call if the timeline is ever torn down. */
+    destroy() { window.removeEventListener('resize', cacheSectionPositions); },
   };
 }

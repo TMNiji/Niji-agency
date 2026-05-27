@@ -1,20 +1,20 @@
+import { gsap }              from 'gsap';
 import { initScroll }        from '@modules/scroll.js';
 import { initWebGL }         from '@modules/webgl.js';
 import { createOrchestrator } from '@modules/orchestrator.js';
-import { initSnapScroll }     from '@modules/snapScroll.js';
 import { mountHero }          from './sections/hero/index.js';
 import { mountThinking }      from './sections/thinking/index.js';
 import { mountChaos }         from './sections/chaos/index.js';
 import { mountVideo }         from './sections/video/index.js';
 import { mountClients }       from './sections/clients/index.js';
+import { mountAwards }        from './sections/awards/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
 
-// All sections share the same 200vh height so every snap-to-snap hop takes
-// the same scroll distance (one full section). The rainbow → colorful-bg
-// transition is driven by thinking's last quarter (see onProgress below), so
-// by the time CONCEPTION snaps in at chaos.top the colorful background is
-// already at full strength.
+// All sections share the same 200vh height so each occupies one full section of
+// scroll. The rainbow → colorful-bg transition is driven by thinking's last
+// quarter (see onProgress below), so by the time the user reaches chaos.top the
+// colorful background is already at full strength.
 const SECTION_HEIGHT = '200vh';
 
 const SECTIONS = [
@@ -51,9 +51,21 @@ const SECTIONS = [
     label: 'CLIENTS',
     triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
-    // 'bottom bottom' so progress 0→1 maps cleanly onto scroll 0→maxScroll
-    // (would otherwise require scrolling past maxScroll to reach progress=1).
+    // 'bottom bottom' so progress 0→1 maps cleanly over the section's first
+    // viewport of scroll (awards then takes over the trailing 100vh).
     triggerEnd: 'bottom bottom',
+  },
+  {
+    id: 'awards',
+    label: 'AWARDS',
+    triggerHeight: SECTION_HEIGHT,
+    triggerStart: 'top top',
+    // 'bottom top' (not 'bottom bottom') so the trigger's end sits past the
+    // document bottom — awards stays revealed while the user rests at the very
+    // bottom. It's a hover list with no scroll-scrubbed progress, so only the
+    // enter/leave edges matter. awards.css pulls this section up 100vh to sit
+    // over clients' trailing tail (no dark gap between the two).
+    triggerEnd: 'bottom top',
   },
 ];
 
@@ -105,9 +117,12 @@ async function boot() {
   const chaos    = mountChaos({ container: root });
   const video    = mountVideo({ container: root, orchestrator });
   const clients  = mountClients({ container: root, orchestrator });
+  const awards   = mountAwards({ container: root });
 
-  // Wire drag-to-scrub: timeline calls this when the user drags the ruler strip.
-  hero?.timeline?.setScrollHandler((y) => lenis.scrollTo(y, { duration: 0.15 }));
+  // Section-label clicks navigate the page. Use a smooth, eased scroll (not an
+  // instant jump) so the user sees the sections animate on the way there.
+  hero?.timeline?.setScrollHandler((y) =>
+    lenis.scrollTo(y, { duration: 1.1, easing: (t) => 1 - Math.pow(1 - t, 3) }));
 
   // The timeline's active index is derived from scroll position below (single
   // source of truth) rather than from bouncy ScrollTrigger enter/leave edges.
@@ -175,6 +190,33 @@ async function boot() {
   orchestrator.onEnter('clients', () => { setActive('clients', true); clients?.setActive(true); });
   orchestrator.onLeave('clients', () => { setActive('clients', false); clients?.setActive(false); });
 
+  // Awards — reveal the DOM stage, run its cursor-follow loop, and crossfade the
+  // WebGL backdrop (the dark radial + grain lives in the `awards` shader). Tweening
+  // uProgress turns the clients→awards hand-off into a smooth background morph out
+  // of black rather than a hard shader swap.
+  const awardsBg = { v: 0 };
+  const tweenAwardsBg = (to, onComplete) =>
+    gsap.to(awardsBg, {
+      v: to,
+      duration: to > 0 ? 0.9 : 0.55,
+      ease: to > 0 ? 'power2.out' : 'power2.in',
+      overwrite: true,
+      onUpdate: () => webgl.shaderPlane.setProgress(awardsBg.v),
+      onComplete,
+    });
+
+  orchestrator.onEnter('awards', () => {
+    setActive('awards', true);
+    awards?.setActive(true);
+    webgl.shaderPlane.setShader('awards');
+    tweenAwardsBg(1);
+  });
+  orchestrator.onLeave('awards', () => {
+    setActive('awards', false);
+    awards?.setActive(false);
+    tweenAwardsBg(0, () => webgl.shaderPlane.setShader('hero_grain'));
+  });
+
   // ── Pause offscreen per-frame work ───────────────────────────────────────
   // The face pack only matters while hero is on screen; stop ticking it once
   // it has exploded away (re-arms when scrolling back up into hero).
@@ -187,57 +229,14 @@ async function boot() {
   // callback above has updated its meshes for this frame.
   webgl.startRenderLoop();
 
-  // ── Snap-scroll — keyframes the user always comes to rest on ────────────
-  // Every section start is a keyframe; the snap window (snapScroll.js) is wide
-  // enough that any rest position resolves to the nearest one, so the user
-  // never stops on a half-played animation. Clients adds one keyframe per card
-  // so its 3D queue snaps card-to-card instead of skipping the middle.
-  // Section starts get +4 px so Lenis's ease-out reliably crosses the
-  // ScrollTrigger start boundary (which drives the shader swaps).
-  initSnapScroll(lenis, () => {
-    const docBottom = document.documentElement.scrollHeight - window.innerHeight;
-    const topOf = (id) => {
-      const el = document.querySelector(`[data-section="${id}"]`);
-      if (!el) return null;
-      return Math.round(el.getBoundingClientRect().top + window.scrollY);
-    };
-    const points = ['hero', 'thinking', 'chaos', 'video', 'clients']
-      .map(topOf)
-      .filter((t) => t !== null)
-      .map((t) => (t === 0 ? 0 : t + 4));
-    const clientsTop = topOf('clients');
-    const cardCount  = document.querySelectorAll('.clients__card-pivot').length;
-    if (clientsTop !== null && cardCount > 1) {
-      const range = docBottom - clientsTop; // clients uses a 'bottom bottom' trigger
-      for (let i = 1; i < cardCount - 1; i++) {
-        points.push(Math.round(clientsTop + (i / (cardCount - 1)) * range));
-      }
-    }
-    points.push(docBottom); // last card / document end
-    return points;
-  });
-
-  // Drive the timeline ruler with Lenis's smoothed scroll position, and derive
-  // the active section index from that same position — the section occupying the
-  // viewport centre. Position-based (not edge-event based) so it never flashes
-  // on fast scroll-through and needs no debounce.
-  let lastIndex = -1;
-  const updateActiveIndex = (scroll) => {
-    const sectionH = window.innerHeight * 2; // every section is 200vh
-    const idx = Math.max(0, Math.min(SECTIONS.length - 1,
-      Math.floor((scroll + window.innerHeight / 2) / sectionH)));
-    if (idx !== lastIndex) {
-      lastIndex = idx;
-      hero?.timeline?.setIndex(idx);
-    }
-  };
+  // Drive the timeline ruler with Lenis's smoothed scroll position. The ruler
+  // derives its own current/prev/next labels from this scroll value, so no
+  // separate active-index tracking is needed here.
   lenis.on('scroll', ({ scroll }) => {
     hero?.timeline?.update(scroll);
-    updateActiveIndex(scroll);
   });
-  updateActiveIndex(0);
 
-  window.__niji = { lenis, webgl, orchestrator, hero, thinking, chaos, video, clients };
+  window.__niji = { lenis, webgl, orchestrator, hero, thinking, chaos, video, clients, awards };
 }
 
 boot();

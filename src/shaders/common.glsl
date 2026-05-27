@@ -37,6 +37,37 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
+// Cheap per-pixel hash for fine film grain.
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 345.45));
+  p += dot(p, p + 34.345);
+  return fract(p.x * p.y);
+}
+
+// ── Shared dark backdrop ─────────────────────────────────────────────────────
+// A dark radial gradient + slow drift + film grain, reproducing the awards
+// section's former CSS backdrop:
+//   radial-gradient(72% 90% at 78% 0%, #1d1d1d 0%, #0b0b0b 58%)
+// Used as the base field across hero / build (cell + prism layer over it) and
+// the awards + clients sections, so every dark section shares one textured base.
+// uv is screen-space [0,1]²; CSS 0% (top) maps to uv.y = 1.0 (gl is bottom-up).
+vec3 awardsBackdrop(vec2 uv, float aspect) {
+  vec2  gd = (uv - vec2(0.78, 1.0)) / vec2(0.72, 0.90);
+  float t  = clamp(length(gd) / 0.58, 0.0, 1.0);
+  vec3  col = mix(vec3(0.1137), vec3(0.0431), t);   // #1d1d1d → #0b0b0b
+
+  // Slow low-frequency drift so the dark field breathes instead of banding.
+  float field = snoise(uv * vec2(aspect, 1.0) * 2.2
+                       + vec2(uTime * 0.02, -uTime * 0.015));
+  col += field * 0.010;
+
+  // Fine film grain — animated per pixel.
+  float g = hash21(gl_FragCoord.xy + fract(uTime) * 137.0);
+  col += (g - 0.5) * 0.020;
+
+  return col;
+}
+
 // ── Cell geometry constants ────────────────────────────────────────────────
 // Radii in the aspect-corrected space cUv = (uv - 0.5) * vec2(aspect, 1).
 // The cell is a layered system of concentric soft disks — outer atmosphere

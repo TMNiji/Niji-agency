@@ -1,0 +1,179 @@
+/* ── Awards section — compact editorial list pinned to the right ─────────── */
+
+/* Negative margin so awards takes over the 100vh tail that clients (the
+   previous last section) leaves as scroll spacer — no dark gap between them. */
+.awards {
+  position: relative;
+  z-index: 2;
+  margin-top: -100vh;
+}
+
+.awards__stage {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 350ms ease;
+}
+
+.awards.is-visible .awards__stage {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Two columns: heading on the left, list on the right. The asymmetric left
+   padding clears the fixed timeline ruler. */
+.awards__inner {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  column-gap: clamp(40px, 6vw, 120px);
+  padding: 0 clamp(40px, 7vw, 160px) 0 clamp(96px, 20vw, 380px);
+}
+
+/* ── Heading (left) ─────────────────────────────────────────────────────── */
+
+.awards__heading {
+  font-family: var(--font);
+  font-size: clamp(38px, 5vw, 72px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+
+.awards__heading-muted,
+.awards__heading-strong {
+  display: block;
+  transform: translateY(26px);
+  transition: transform 720ms var(--ease-out-expo);
+}
+.awards__heading-muted  { color: rgba(255, 255, 255, 0.32); }
+.awards__heading-strong { color: #fff; font-weight: 700; }
+
+/* ── Entrance — heading + rows rise as the section reveals, reinforcing the
+   clients→awards hand-off alongside the WebGL backdrop crossfade ─────────── */
+.awards.is-visible .awards__heading-muted,
+.awards.is-visible .awards__heading-strong,
+.awards.is-visible .awards__row { transform: translateY(0); }
+
+.awards.is-visible .awards__heading-strong  { transition-delay: 70ms; }
+.awards.is-visible .awards__row:nth-child(1) { transition-delay: 120ms; }
+.awards.is-visible .awards__row:nth-child(2) { transition-delay: 170ms; }
+.awards.is-visible .awards__row:nth-child(3) { transition-delay: 220ms; }
+.awards.is-visible .awards__row:nth-child(4) { transition-delay: 270ms; }
+.awards.is-visible .awards__row:nth-child(5) { transition-delay: 320ms; }
+.awards.is-visible .awards__row:nth-child(6) { transition-delay: 370ms; }
+
+/* ── List (right) ───────────────────────────────────────────────────────── */
+
+.awards__list {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.awards__row {
+  display: grid;
+  grid-template-columns: clamp(46px, 4vw, 68px) 1fr;
+  align-items: start;
+  column-gap: clamp(16px, 2vw, 32px);
+  padding: clamp(15px, 2.2vh, 26px) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: default;
+  transform: translateY(26px);
+  transition: opacity 320ms ease, transform 720ms var(--ease-out-expo);
+}
+
+/* Dim every row except the active (hovered) one. */
+.awards__list.is-hovering .awards__row { opacity: 0.3; }
+.awards__row.is-active { opacity: 1; }
+
+.awards__year {
+  font-family: var(--font);
+  font-size: clamp(12px, 0.95vw, 15px);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+  transition: color 300ms ease;
+}
+
+.awards__row.is-active .awards__year { color: rgba(255, 255, 255, 0.7); }
+
+.awards__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.awards__title {
+  font-family: var(--font);
+  font-size: clamp(14px, 1.05vw, 17px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  transition: color 300ms ease;
+}
+
+.awards__row.is-active .awards__title { color: #fff; }
+
+.awards__cat {
+  font-family: var(--font);
+  font-size: clamp(12px, 0.95vw, 15px);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Hover preview — two placeholder images, fanned in the gap beside the list */
+
+.awards__preview {
+  position: fixed;
+  top: 50%;
+  left: 56%;
+  width: clamp(130px, 11vw, 178px);
+  aspect-ratio: 3 / 4;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.awards__preview-img {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 26px 55px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 420ms ease, transform 560ms var(--ease-out-expo);
+}
+
+/* Resting (hidden) pose — gently stacked toward centre. */
+.awards__preview-img--1 { transform: translate(-8%, 6%)  rotate(-6deg) scale(0.9); }
+.awards__preview-img--2 { transform: translate(8%, -6%)  rotate(6deg)  scale(0.9); z-index: 1; }
+
+/* Revealed pose — fan apart slightly. */
+.awards__preview.is-visible .awards__preview-img--1 {
+  opacity: 1;
+  transform: translate(-16%, 8%) rotate(-9deg) scale(1);
+}
+.awards__preview.is-visible .awards__preview-img--2 {
+  opacity: 1;
+  transform: translate(16%, -8%) rotate(8deg) scale(1);
+}
+
+/* ── Narrow screens — stack heading above the list, drop the cursor preview ─ */
+@media (max-width: 860px) {
+  .awards__inner {
+    grid-template-columns: 1fr;
+    row-gap: clamp(28px, 5vh, 48px);
+    padding: 0 clamp(24px, 6vw, 64px);
+  }
+  .awards__heading { font-size: clamp(34px, 8vw, 52px); }
+  .awards__preview { display: none; }
+}
