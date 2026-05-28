@@ -1,44 +1,30 @@
 // Scroll-driven ruler timeline — a fixed strip of tick marks on the left edge.
 //
-// Ticks are pre-rendered at y = i × TICK_PITCH — enough to cover the whole
-// scrollable page (count derived from document height, topped up on resize).
-// On every Lenis scroll event (fed via update(scrollY)) the inner track
-// translates by -scrollY so ticks shadow page scroll. Ticks near the strip's
-// vertical centre swell in width + brightness following a smooth raised-cosine
-// dome (see clusterFalloff) — a soft magnifier the ruler glides through.
+// One uniform array of tick marks is laid out at y = k × TICK_PITCH. Every
+// MINOR_PER_SECTION-th tick is rendered as an ANCHOR (longer, brighter bar)
+// at a section's vScroll position; the rest are MINOR ticks that texture the
+// space between anchors. Same gap between every adjacent pair of bars.
 //
-// Section labels occupy three fixed slots — prev (top), current (centre, on the
-// cluster), next (bottom). sectionFloat(scrollY) is the continuous current-
-// section position; as the user scrolls one full section the whole list slides
-// up exactly one slot and cross-fades. Because slot position and opacity are
-// smooth functions of scrollY, there are no discrete index flips and no labels
-// snapping into view.
+// On every Lenis scroll event (fed via update(scrollY)) the inner track
+// translates by (stripH/2 − vScroll) so the anchor for the current section
+// sits dead-centre on the strip, and the section label at slotPos 0 aligns
+// vertically with it. As secFloat advances by 1, both labels and ticks slide
+// up by exactly one slotGap, keeping the anchor-label alignment locked.
 //
 // Each section label is a button: clicking it jumps the page to that section
 // via the handler registered with setScrollHandler(fn).
 
-const TICK_PITCH = 44;   // px between adjacent ticks (wider = fewer, calmer bars)
-const TICK_W_BASE = 16;  // base tick width (px) — set on every tick from JS (sole source of truth)
-const TICK_W_PEAK = 40;  // width of the centre tick at the heart of the cluster
-const TICK_BUFFER = 16;  // extra ticks created beyond the last reachable scroll position
+const TICK_PITCH         = 22;  // px between adjacent ticks (anchor or minor — uniform)
+const MINOR_PER_SECTION  = 3;   // count of TICK_PITCH steps between two anchors (3 → 2 minors then 1 anchor)
+const TICK_BUFFER        = 16;  // extra ticks created past the last reachable scroll position
+// slotGap MUST equal MINOR_PER_SECTION × TICK_PITCH so anchors land on
+// multiples of TICK_PITCH and line up cleanly with the minor-tick grid.
+const SLOT_GAP           = TICK_PITCH * MINOR_PER_SECTION;
 
-// Cluster — a soft magnifier centred on the strip. Ticks within CLUSTER_RADIUS
-// of the centre swell in width + brightness, easing from 1 at the centre to 0 at
-// the edge. The falloff is the average of a linear ramp (triangular, sharp peak)
-// and a raised cosine (round, flat dome) — halfway between the two so the peak
-// keeps some definition without the chevron strobing a pure triangle gives, and
-// without the over-soft mushiness of a pure dome.
-const CLUSTER_RADIUS = 3;  // ticks each side of centre the dome reaches
-const TICK_A_BASE = 0.16;  // base brightness (matches the CSS dim value)
-const TICK_A_PEAK = 0.90;  // brightness of the centre tick
-
-function clusterFalloff(d) {
-  if (d >= CLUSTER_RADIUS) return 0;
-  const x = d / CLUSTER_RADIUS;                    // 0 at centre → 1 at edge
-  const triangular = 1 - x;                        // linear ramp — sharp peak
-  const round = 0.5 * (1 + Math.cos(x * Math.PI)); // raised cosine — flat dome
-  return 0.5 * (triangular + round);               // halfway between the two
-}
+const TICK_W_MINOR       = 8;
+const TICK_W_ANCHOR      = 32;
+const TICK_A_MINOR       = 0.16;
+const TICK_A_ANCHOR      = 0.55;
 
 // Small right-pointing arrow revealed beside a label on hover — signals the
 // label is clickable. Inherits text colour via currentColor; sized in em so it
@@ -50,14 +36,11 @@ const ARROW_SVG =
 
 // Label slots. A label at its centre slot (slotPos 0) is brightest; the prev/
 // next labels rest at the edge slots (slotPos ±1) dimmer; beyond ±1 they fade
-// to nothing. SLOT_EDGE_PAD is the gap from the strip edge to the edge slots.
+// to nothing.
 const LABEL_CENTER_OPACITY = 0.90;
 const LABEL_EDGE_OPACITY = 0.45;
-const SLOT_EDGE_PAD = 24;
 // Labels dimmer than this are treated as hidden → pulled out of the tab order
 // and made non-interactive so keyboard users can't focus an unseen anchor.
-// Kept low so the prev/next labels stay clickable across their entire fade,
-// not just while they're at full slot opacity.
 const VISIBLE_OPACITY = 0.05;
 
 // A label that hints at the page's seamless loop — appended after the real
@@ -74,16 +57,20 @@ export function createTimeline({ labels, loopLabel = null } = {}) {
   track.className = 'hero-timeline__track';
   el.appendChild(track);
 
-  // Ticks are created lazily up to the page's reachable scroll range — see
-  // ensureTicks(), topped up from cacheSectionPositions() once the page height
-  // is known. Only the cluster's ~7 ticks are restyled per frame after mount.
+  // Tick marks — one uniform array. Index k yields an anchor when
+  // k % MINOR_PER_SECTION === 0, a minor tick otherwise. Same TICK_PITCH gap
+  // between every adjacent pair, so anchors and minors share the same grid.
   const ticks = [];
   function ensureTicks(count) {
     for (let i = ticks.length; i < count; i++) {
       const t = document.createElement('div');
-      t.className = 'hero-timeline__tick';
-      t.style.top = `${i * TICK_PITCH}px`;
-      t.style.width = `${TICK_W_BASE}px`;
+      const isAnchor = i % MINOR_PER_SECTION === 0;
+      t.className = isAnchor
+        ? 'hero-timeline__tick hero-timeline__tick--anchor'
+        : 'hero-timeline__tick';
+      t.style.top   = `${i * TICK_PITCH}px`;
+      t.style.width = `${isAnchor ? TICK_W_ANCHOR : TICK_W_MINOR}px`;
+      t.style.background = `rgba(255, 255, 255, ${isAnchor ? TICK_A_ANCHOR : TICK_A_MINOR})`;
       track.appendChild(t);
       ticks.push(t);
     }
@@ -121,25 +108,26 @@ export function createTimeline({ labels, loopLabel = null } = {}) {
   function cacheSectionPositions() {
     stripH = el.offsetHeight;
     const vH = window.innerHeight;
-    // Grow the ruler so it covers every reachable scroll position — the cluster
-    // sits stripH/2 ahead of scrollY, so cover maxScroll + stripH/2 (+ buffer).
-    const maxScroll = Math.max(0, document.documentElement.scrollHeight - vH);
-    ensureTicks(Math.ceil((maxScroll + stripH / 2) / TICK_PITCH) + CLUSTER_RADIUS + TICK_BUFFER);
     const sections = document.querySelectorAll('[data-section]');
     sectionScrollStarts = Array.from(sections).map((sec) => {
       const rect = sec.getBoundingClientRect();
       return Math.round(rect.top + window.scrollY);
     });
     // Scroll position at which each section's label rests dead-centre on the
-    // cluster. Non-hero sections get +4 px to match the click-nav landing offset
-    // (the timeline button scrolls to start+4 so Lenis's ease-out reliably
-    // crosses the ScrollTrigger start boundary that drives the shader swaps), so
-    // a label centres exactly when the page rests on its section.
+    // cluster. Non-hero sections get +4 px to match the click-nav landing
+    // offset so a label centres exactly when the page rests on its section.
     sectionCentres = sectionScrollStarts.map((start) => start + (start === 0 ? 0 : 4));
     // Loop anchor — placed at the end of the document so it slides into the
-    // bottom slot as the user scrolls through the final section, signalling the
-    // page is about to wrap back to the top.
+    // bottom slot as the user scrolls through the final section, signalling
+    // the page is about to wrap back to the top.
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - vH);
     if (loopLabel) sectionCentres.push(maxScroll);
+    // Grow the tick array so it covers every reachable VIRTUAL scroll position
+    // plus the visible window on the strip. vScroll = secFloat * SLOT_GAP, so
+    // max vScroll is (N − 1) × SLOT_GAP, and the strip extends ±stripH/2 from
+    // there at the extremes.
+    const maxVScroll = Math.max(0, sectionCentres.length - 1) * SLOT_GAP;
+    ensureTicks(Math.ceil((maxVScroll + stripH / 2) / TICK_PITCH) + TICK_BUFFER);
     // Place + fade the labels now that positions are known — without this they
     // stay hidden (opacity 0) until the user scrolls and triggers update()
     // through the Lenis 'scroll' listener.
@@ -151,7 +139,6 @@ export function createTimeline({ labels, loopLabel = null } = {}) {
   window.addEventListener('resize', cacheSectionPositions);
 
   // ── State ───────────────────────────────────────────────────────────────────
-  let prevClusterTicks = [];
   let scrollHandler = null;
   let stripH = 0; // cached height of the visible timeline strip
 
@@ -172,50 +159,24 @@ export function createTimeline({ labels, loopLabel = null } = {}) {
 
   // ── Main update — called on every Lenis scroll event ───────────────────────
   function update(scrollY = window.scrollY) {
-    const vH = window.innerHeight;
-
-    // 1. Translate track so tick[i] appears at viewport y = i*TICK_PITCH - scrollY.
-    track.style.transform = `translateY(${-scrollY}px)`;
-
-    // 2. Cluster centre tracks the strip's visual centre (stripH/2 from its top),
-    //    not the raw viewport centre, so it stays at the midpoint of the strip
-    //    regardless of how tall the strip is. Falls back to vH/2 before the first
-    //    layout measurement.
-    const clusterOffset = stripH > 0 ? stripH / 2 : vH / 2;
-    const centerIdxF = (scrollY + clusterOffset) / TICK_PITCH;
-    const baseIdx = Math.round(centerIdxF);
-
-    // 3. Reset previous cluster back to base width + dim colour (max
-    //    2*CLUSTER_RADIUS+1 ops). Background clears to the CSS dim value.
-    prevClusterTicks.forEach((t) => {
-      t.style.width = `${TICK_W_BASE}px`;
-      t.style.background = '';
-    });
-    prevClusterTicks = [];
-
-    // 4. Swell width + brightness for each tick in the cluster window, easing
-    //    smoothly from the centre out so the dome glides instead of strobing.
-    for (let off = -CLUSTER_RADIUS; off <= CLUSTER_RADIUS; off++) {
-      const idx = baseIdx + off;
-      const t = ticks[idx];
-      if (!t) continue;
-      const f = clusterFalloff(Math.abs(idx - centerIdxF));
-      t.style.width = `${(TICK_W_BASE + (TICK_W_PEAK - TICK_W_BASE) * f).toFixed(2)}px`;
-      t.style.background = `rgba(255,255,255,${(TICK_A_BASE + (TICK_A_PEAK - TICK_A_BASE) * f).toFixed(3)})`;
-      prevClusterTicks.push(t);
-    }
-
-    // 5. Section labels in three fixed slots — prev (top), current (centre),
-    //    next (bottom). slotPos is each label's signed distance from the centre
-    //    slot in slot units; as secFloat advances by 1 the whole list slides up
-    //    one slot, so position and opacity move smoothly with scroll.
-    if (stripH <= 0) return; // positions not measured yet — labels stay hidden
     const secFloat = sectionFloat(scrollY);
-    const slotGap = stripH / 2 - SLOT_EDGE_PAD; // centre→edge slot spacing
+    const vScroll  = secFloat * SLOT_GAP;
+
+    // Translate track so the anchor for section i lands at strip CENTRE when
+    // secFloat = i (anchor track-top = i × SLOT_GAP, with the +stripH/2 shift
+    // putting it at strip mid when vScroll = i × SLOT_GAP).
+    track.style.transform = `translateY(${(stripH / 2 - vScroll).toFixed(1)}px)`;
+
+    // Section labels — slotPos is each label's signed distance from the centre
+    // slot in slot units. As secFloat advances by 1 the whole list slides up
+    // one slot. Track-coord top = slotPos × SLOT_GAP + vScroll so that, after
+    // the track's transform, label viewport y = stripH/2 + slotPos × SLOT_GAP
+    // (anchors share the same arithmetic — they sit at SLOT_GAP × i, which
+    // becomes stripH/2 + SLOT_GAP × (i − secFloat) once translated).
+    if (stripH <= 0) return; // positions not measured yet — labels stay hidden
     sectionLabelEls.forEach((lEl, i) => {
-      const slotPos = i - secFloat;             // 0 centre, −1 top, +1 bottom
-      const stripY = stripH / 2 + slotPos * slotGap;
-      lEl.style.top = `${stripY + scrollY}px`;  // track-relative = stripY + scrollY
+      const slotPos = i - secFloat;
+      lEl.style.top = `${(slotPos * SLOT_GAP + vScroll).toFixed(1)}px`;
 
       const d = Math.abs(slotPos);
       let opacity;

@@ -80,9 +80,11 @@ section {
   transition: opacity 350ms ease;
 }
 
-/* Awards section features the gold trophy cloud and a backdrop shader that
-   already carries its own subtle grain — suppress the global film-grain
-   overlay here so it doesn't crosshatch the 3D models. */
+/* Awards section — hide the body-level grain so the 3D trophies stay crisp
+   (the overlay's mix-blend-mode:overlay textures everything in front of the
+   webgl canvas, trophies included). The awards backdrop shader (awards.glsl)
+   adds its own grain pass on the background so the section still reads
+   textured — just under the trophies, not over them. */
 body.is-awards #noise { opacity: 0; }
 
 /* Lenis */

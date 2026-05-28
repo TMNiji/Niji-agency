@@ -58,10 +58,8 @@ const FRAGS = [
 
   { id: 'mouth-left',       src: '/hero/mouth-left.webp',
     srcW: 322, srcH: 243,
-    // Shifted left (was left=609) and vy flipped to negative so the fragment
-    // sits + drifts to the lower-left, clearing the cell instead of sweeping
-    // through it as it balloons forward.
-    left: 380, top: 585, w: 322, h: 243,
+    // Nudged right again (520 → 580) so it sits flush against the centre face.
+    left: 580, top: 585, w: 322, h: 243,
     vx: -0.45, vy: -0.89, speed: 1.20, px: 20, py: 26, z: 50 },
 
   { id: 'mouth-right',      src: '/hero/mouth-right.webp',
@@ -127,12 +125,58 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
   const camera = new THREE.PerspectiveCamera(FOV, window.innerWidth / H, 1, camZ * 20);
   camera.position.z = camZ;
 
+  // Shadow material — samples the texture's alpha at a coarse mipmap LOD so
+  // the silhouette reads softly blurred against the backdrop. One per face;
+  // the same plane geometry is reused (just slightly scaled up) and a small
+  // (dx, -dy) offset is applied each frame so the shadow looks cast down-
+  // right from the face. Requires the texture to have mipmaps generated
+  // (default for TextureLoader-loaded images at power-of-two-ish sizes).
+  // Three.js auto-prepends `in vec3 position; in vec2 uv; uniform mat4
+  // modelViewMatrix; uniform mat4 projectionMatrix;` for GLSL3 ShaderMaterials
+  // — declaring them again would error with "redefinition". Just reference
+  // them here.
+  const SHADOW_VERT = `
+    out vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+  const SHADOW_FRAG = `
+    precision highp float;
+    uniform sampler2D map;
+    uniform vec2 uMapOffset;
+    uniform vec2 uMapRepeat;
+    uniform float uLod;
+    uniform float uOpacity;
+    in vec2 vUv;
+    out vec4 outColor;
+    void main() {
+      vec2 mappedUv = vUv * uMapRepeat + uMapOffset;
+      // textureLod with a high LOD samples a heavily downscaled mip → blur.
+      float a = textureLod(map, mappedUv, uLod).a;
+      outColor = vec4(0.0, 0.0, 0.0, a * uOpacity);
+    }
+  `;
+
+  // Drop-shadow geometry tuning — applied as a screen-space (px) offset to
+  // each shadow mesh in applyTransforms(). Kept small so the shadow reads as
+  // a soft cast under the face rather than a separate layer.
+  const SHADOW_OFFSET_X =  10;
+  const SHADOW_OFFSET_Y = -14;
+  const SHADOW_SCALE    = 1.10;
+
   const meshes = FRAGS.map((f) => {
     const w = f.w * SCALE;
     const h = f.h * SCALE;
     const geo = new THREE.PlaneGeometry(w, h);
     const tex = loader.load(imageSrcs[f.id] ?? f.src);
     tex.colorSpace = THREE.SRGBColorSpace;
+    // Ensure mipmap chain exists so the shadow shader's textureLod() has a
+    // pyramid to sample from. These are the TextureLoader defaults, but we
+    // pin them explicitly because the shadow blur breaks without mipmaps.
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
     applyObjectCover(tex, f.srcW, f.srcH, w, h);
 
     const mat = new THREE.MeshBasicMaterial({
@@ -154,9 +198,38 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
 
     const initRz = ((f.rz ?? 0) * Math.PI) / 180;
     mesh.position.set(ox, oy, oz);
-    mesh.renderOrder = f.z;
+    // Reserve renderOrder bands of 2 per fragment so the shadow can sit just
+    // BEFORE its main mesh (lower renderOrder = drawn first behind).
+    mesh.renderOrder = f.z * 2;
     if (f.flipX) mesh.scale.x = -1;
     mesh.rotation.z = initRz;
+
+    // Shadow plane — mirrors the face's geometry; the shader produces a soft
+    // dark silhouette from the texture's alpha (sampled at high mip LOD).
+    const shadowMat = new THREE.ShaderMaterial({
+      glslVersion: THREE.GLSL3,
+      uniforms: {
+        map:        { value: tex },
+        uMapOffset: { value: new THREE.Vector2(tex.offset.x, tex.offset.y) },
+        uMapRepeat: { value: new THREE.Vector2(tex.repeat.x, tex.repeat.y) },
+        uLod:       { value: 3.0 },
+        uOpacity:   { value: 0.55 },
+      },
+      vertexShader:   SHADOW_VERT,
+      fragmentShader: SHADOW_FRAG,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const shadowMesh = new THREE.Mesh(geo, shadowMat);
+    shadowMesh.renderOrder = f.z * 2 - 1; // drawn just before its face
+    shadowMesh.scale.set(
+      SHADOW_SCALE * (f.flipX ? -1 : 1),
+      SHADOW_SCALE,
+      1,
+    );
+    shadowMesh.rotation.z = initRz;
 
     mesh.userData = {
       ox, oy, oz,
@@ -164,13 +237,20 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       vx: f.vx, vy: f.vy, speed: f.speed,
       px: f.px, py: f.py,
       depth: maxZ ? f.z / maxZ : 0,
+      shadow: shadowMesh,
+      flipX: !!f.flipX,
     };
     return mesh;
   });
 
   // Sort back-to-front so alpha blending follows the Figma layer stack.
-  meshes.sort((a, b) => a.renderOrder - b.renderOrder);
-  meshes.forEach((m) => { scene.add(m); });
+  // Shadows interleave because their renderOrder is `face.z * 2 - 1` (the
+  // face is at `face.z * 2`), so each shadow draws immediately before its
+  // own face and never bleeds onto a different face's silhouette.
+  const drawables = [];
+  meshes.forEach((m) => { drawables.push(m.userData.shadow, m); });
+  drawables.sort((a, b) => a.renderOrder - b.renderOrder);
+  drawables.forEach((d) => { scene.add(d); });
 
   const onResize = (w, h) => {
     H = h;
@@ -235,11 +315,6 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     // the middle so the motion tracks the scroll (scrubbed, not front-loaded).
     // Reduced motion: fragments stay put and only cross-fade into the cell.
     const move = reduced ? 0 : ease.smoothstep(p);
-    // Fragments hold full opacity through the early/mid dive, then dissolve
-    // late (clear by p≈0.95) so the "punch through" reads while they balloon
-    // past the camera — the resolving cell shows through the fading planes.
-    // The shader cell finishes revealing ~0.90, so they overlap briefly by design.
-    const fade = ease.smoothstep(Math.max(0, Math.min(1, (p - 0.40) / 0.55)));
 
     const reach   = Math.max(window.innerWidth, window.innerHeight);
     // Distance the stack travels toward the camera (which sits at z=camZ).
@@ -256,10 +331,13 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       const mpx =  d.px * mouse.x * parallaxFade;
       const mpy = -d.py * mouse.y * parallaxFade;
 
-      // Depth-staggered rush toward the camera: front planes (depth→1) reach
-      // ~0.9·camZ and balloon past the viewer first, back planes lag at ~0.45,
-      // selling the "navigating through layers" dive.
-      const forward = dive * (0.45 + 0.45 * d.depth);
+      // Depth-staggered rush toward and PAST the camera. Front planes (depth→1)
+      // reach ~1.45·camZ and exit the frustum first, back planes lag at ~1.05.
+      // Coefficients were tuned to a 0.45-0.9 range when the opacity fade still
+      // erased the lingering meshes; with the fade removed (planes stay fully
+      // opaque), the dive has to actually push them past the camera so they
+      // self-cull instead of frozen-in-frame after the user scrolls out.
+      const forward = dive * (1.05 + 0.40 * d.depth);
       const px = d.ox + tx + mpx;
       const py = d.oy + ty + mpy;
       const pz = d.oz + forward;
@@ -272,8 +350,14 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       const rotZ = d.initRz + d.vx * 0.10 * move;
       mesh.rotation.set(rotX, rotY, rotZ);
 
-      const opacity = Math.max(0, 1 - fade);
-      mesh.material.opacity = opacity;
+      // Shadow mirrors the face's position + rotation with a small
+      // down-right offset so it reads as a soft drop shadow cast behind the
+      // plane. Scale is locked at SHADOW_SCALE (set at creation) so the
+      // shadow stays uniformly larger than its face regardless of any
+      // flutter from the rotation/dive transforms.
+      const s = d.shadow;
+      s.position.set(px + SHADOW_OFFSET_X, py + SHADOW_OFFSET_Y, pz - 1);
+      s.rotation.set(rotX, rotY, rotZ);
     });
   }
 
@@ -293,8 +377,19 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     if (on === active) return;
     active = on;
     cellTopMesh.visible = on;
-    if (on) gsap.ticker.add(frame);
-    else    gsap.ticker.remove(frame);
+    if (on) {
+      gsap.ticker.add(frame);
+    } else {
+      // Snap the pack to its post-dive position before freezing the ticker.
+      // The opacity-fade exit was removed (planes stay fully opaque while they
+      // dive forward), so we need the meshes to actually be past the camera
+      // before deactivation — otherwise a direct jump past hero (no scrubbed
+      // progress between 0 and 1) leaves them frozen at the initial pose,
+      // covering whatever section the user landed on.
+      progress = 1;
+      applyTransforms();
+      gsap.ticker.remove(frame);
+    }
   }
   setActive(true);
 
@@ -333,6 +428,9 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       document.removeEventListener('mouseout', onDocMouseOut);
       window.removeEventListener('blur', recenter);
       meshes.forEach((m) => {
+        // Shadow shares the same geometry instance as its face, so dispose it
+        // first and skip the duplicate face dispose to avoid double-frees.
+        m.userData.shadow?.material.dispose();
         m.geometry.dispose();
         m.material.map?.dispose();
         m.material.dispose();

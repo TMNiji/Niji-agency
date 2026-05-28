@@ -13,6 +13,7 @@
 
 import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@modules/motion.js';
+import { createTitle } from '../hero/title.js';
 
 const DEFAULT_TITLE    = 'Grands noms.';
 const DEFAULT_SUBTITLE = 'Projets à leur hauteur.';
@@ -65,14 +66,23 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
   stage.className = 'clients__stage';
   document.body.appendChild(stage);
 
-  // ── Title ─────────────────────────────────────────────────────────────────
-  const titleEl = document.createElement('div');
-  titleEl.className = 'clients__title';
-  titleEl.innerHTML = `
-    <div class="clients__title-line clients__title-line--small">${title}</div>
-    <div class="clients__title-line clients__title-line--large">${subtitle}</div>
-  `;
-  stage.appendChild(titleEl);
+  // ── Title — uses the shared createTitle so the section enter/leave can
+  //          glitch it in/out exactly like the hero title's shatter, instead
+  //          of the previous plain opacity fade.
+  const titleHandle = createTitle({
+    baseClass: 'clients-title',
+    tag: 'div',
+    lines: [
+      { text: title,    cls: 'clients-title__line--small' },
+      { text: subtitle, cls: 'clients-title__line--large' },
+    ],
+    // No glyph swap — clean RGB-split flicker only (the burst spawn pulses the
+    // is-glitch class so the CSS chromatic-aberration keyframe fires).
+    glitchFontClasses: [],
+    glitchDuration: 0,
+  });
+  titleHandle.el.classList.add('clients__title');
+  stage.appendChild(titleHandle.el);
 
   // ── Stack — 3D container ──────────────────────────────────────────────────
   const stack = document.createElement('div');
@@ -160,11 +170,11 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
     pivot.appendChild(card);
     stack.appendChild(pivot);
 
-    // Toggle the flip on click. Pivot-level pointer-events are gated to the
-    // focused card by the per-frame update loop below, so only the centred
-    // card responds — passed/queued cards stay inert. stopPropagation so the
-    // click doesn't bubble to document handlers that could close popups or
-    // scroll-anchor the page.
+    // Toggle the 3D rotateY flip on click. Pivot-level pointer-events are
+    // gated to the focused card by the per-frame update loop below, so only
+    // the centred card responds — passed/queued cards stay inert.
+    // stopPropagation so the click doesn't bubble to document handlers that
+    // could close popups or scroll-anchor the page.
     pivot.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault();
@@ -206,13 +216,15 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
       `rotateY(${(curMouseX * ROT_Y_MAX * tiltScale).toFixed(2)}deg) ` +
       `rotateX(${(-curMouseY * ROT_X_MAX * tiltScale).toFixed(2)}deg)`;
 
-    // Fractional index of the card currently in focus — fully linear, so
-    // scrolling tracks the river 1:1 without each card pausing as it crosses
-    // the focus position.
-    //   progress=0     → focusedIdx=-1     (first card waiting upper-right)
-    //   progress=1/N   → focusedIdx=0      (first card in focus)
-    //   progress=1     → focusedIdx=N-1    (last card in focus)
-    const focusedIdx = scrollProgress * N - 1;
+    // Fractional index of the card currently in focus — linear so scrolling
+    // tracks the river 1:1. Spans N + 1 so by progress=1 the LAST card has
+    // also passed the focus point and slid into the exit (rel < 0), clearing
+    // the stage before awards takes over.
+    //   progress=0           → focusedIdx=-1   (first card waiting upper-right)
+    //   progress=1/(N+1)     → focusedIdx=0    (first card in focus)
+    //   progress=N/(N+1)     → focusedIdx=N-1  (last card in focus)
+    //   progress=1           → focusedIdx=N    (last card passed)
+    const focusedIdx = scrollProgress * (N + 1) - 1;
 
     cards.forEach(({ el, logo, index }) => {
       // rel < 0 → already passed; rel = 0 → in focus; rel > 0 → upcoming.
@@ -244,6 +256,13 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
       // Only the visible card receives the pointer (for the hover lift).
       el.style.pointerEvents = opacity > 0.5 ? 'auto' : 'none';
 
+      // Depth-of-field blur — upcoming cards (rel > 0) read blurry until
+      // they approach focus (rel → 0). Passed cards (rel < 0) stay sharp:
+      // they're already opacity-fading off the bottom-left exit, so layering
+      // blur on top would muddy the read-out.
+      const blurPx = rel > 0 ? Math.min(rel * 2.6, 12) : 0;
+      el.style.setProperty('--card-blur', `${blurPx.toFixed(2)}px`);
+
       // Label reads in only as the card settles into focus.
       logo.style.opacity = (focusAmt * focusAmt).toFixed(3);
     });
@@ -256,8 +275,19 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
     if (on === active) return;
     active = on;
     stage.classList.toggle('is-visible', on);
-    if (on) gsap.ticker.add(update);
-    else    gsap.ticker.remove(update);
+    if (on) {
+      gsap.ticker.add(update);
+      titleHandle.glitchIn(0.7);
+    } else {
+      gsap.ticker.remove(update);
+      titleHandle.glitchOut(0.4);
+      // The per-frame loop sets `el.style.pointerEvents = 'auto'` on whichever
+      // card is currently focused, and the loop stops here without a final
+      // pass to clear it. Without this reset the focused-card pivot keeps
+      // pointer-events:auto and (sitting at body level, z 9995) keeps
+      // capturing clicks over the contact section's AI bar.
+      cards.forEach(({ el }) => { el.style.pointerEvents = 'none'; });
+    }
   }
 
   return {

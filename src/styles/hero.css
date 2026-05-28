@@ -93,6 +93,34 @@
   vertical-align: top;
   text-align: center;
   overflow: visible;
+  /* Scroll-out glitch: each letter carries a deterministic --exit-t in [0,1]
+     (set from JS). As --exit climbs 0 → 1 the per-letter (exit-t − exit)
+     window passes through zero and the multiplier (×14) snaps opacity off
+     hard — letters pop out in their threshold order instead of fading. */
+  opacity: clamp(0, calc((var(--exit-t, 1) - var(--exit, 0)) * 14), 1);
+}
+
+/* While exiting, every letter jitters in lockstep with a stepped keyframe.
+   animation-delay is biased by each letter's --exit-t so the jitter phases
+   per letter — reads as broken, not synchronised. */
+.hero-title.is-exiting .hero-title__char {
+  animation: hero-title-shatter 220ms steps(3) infinite;
+  animation-delay: calc(var(--exit-t, 0) * -1s);
+}
+
+@keyframes hero-title-shatter {
+  0%   { transform: translate(0, 0);
+         text-shadow: -1px 0 0 rgba(0, 224, 255, 0.55),
+                       1px 0 0 rgba(255, 40, 140, 0.55); }
+  33%  { transform: translate(1px, -1px);
+         text-shadow:  2px 0 0 rgba(0, 224, 255, 0.65),
+                      -2px 0 0 rgba(255, 40, 140, 0.65); }
+  66%  { transform: translate(-1px, 1px);
+         text-shadow: -2px 0 0 rgba(0, 224, 255, 0.45),
+                       2px 0 0 rgba(255, 40, 140, 0.45); }
+  100% { transform: translate(0, 0);
+         text-shadow: -1px 0 0 rgba(0, 224, 255, 0.70),
+                       1px 0 0 rgba(255, 40, 140, 0.70); }
 }
 
 /* Decorative faces a glitched letter flips to. Keep the box height steady. */
@@ -188,7 +216,13 @@
   overflow: clip;
   pointer-events: none;
   user-select: none;
-  z-index: 9;
+  /* Hoisted to <body> in hero/index.js so it escapes #app's stacking context
+     and can sit ABOVE the body-level section stages (clients / awards stages
+     are z 9995 — without this the timeline labels would be unclickable while
+     those stages are visible). Below the header (9999) and the noise overlay
+     (9990) is intentional: pointer-events:auto only fires on the labels, not
+     on the strip itself, so the noise still textures the strip cleanly. */
+  z-index: 9998;
 }
 
 /* Inner track — translated by -scrollY so ticks shadow page scroll */
@@ -200,14 +234,13 @@
   will-change: transform;
 }
 
-/* Base tick — 1 px tall, dim. Width is set from JS (TICK_W_BASE) so the cluster
-   animation has a single source of truth; the dim background here is the value
-   the per-frame cluster reset falls back to. */
+/* Tick — 1 px tall. Width + background are set from JS; the modifier
+   `.hero-timeline__tick--anchor` reads as a longer/brighter bar so anchors
+   stand out as landmarks while minor ticks texture the space between them. */
 .hero-timeline__tick {
   position: absolute;
   left: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.16);
 }
 
 /* Per-section name labels — live inside the track at scroll-relative y.

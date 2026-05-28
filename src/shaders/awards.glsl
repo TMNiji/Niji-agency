@@ -20,10 +20,18 @@ void main() {
 
   // Two stacked exponential falloffs — a tight warm core and a wide diffuse
   // bleed — additive so the gold lives on top of the charcoal backdrop without
-  // washing it out where the cursor isn't.
-  float halo = exp(-dM * 2.4) * 0.45 + exp(-dM * 5.2) * 0.20;
+  // washing it out where the cursor isn't. Toned down from 0.45/0.20: at the
+  // peak the gold was washing the trophy cloud and the noise underneath.
+  float halo = exp(-dM * 2.4) * 0.20 + exp(-dM * 5.2) * 0.09;
   vec3 gold  = vec3(0.85, 0.62, 0.24);
   col += gold * halo;
+
+  // Extra film grain — added on top of the shared backdrop's subtle base grain
+  // so the awards background reads textured even with the body-level #noise
+  // overlay hidden during this section (it would otherwise crosshatch the
+  // gold trophies, which the user wants kept clean).
+  float gExtra = hash21(gl_FragCoord.xy + fract(uTime) * 213.7);
+  col += (gExtra - 0.5) * 0.060;
 
   // uProgress fades the whole field in from black on section enter.
   col *= uProgress;

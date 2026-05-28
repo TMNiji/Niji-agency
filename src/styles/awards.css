@@ -1,11 +1,8 @@
 /* ── Awards section — centred title above a 3D cloud of trophies ─────────── */
 
-/* Negative margin so awards takes over the 100vh tail that clients leaves as
-   scroll spacer — no dark gap between them. */
 .awards {
   position: relative;
   z-index: 2;
-  margin-top: -100vh;
 }
 
 /* Hoisted to <body> in JS (z-index 9995) so the heading + tooltip sit above
@@ -30,40 +27,66 @@
   pointer-events: auto;
 }
 
-/* ── Heading — centred at the top of the viewport ───────────────────────── */
+/* Contact-section override — the awards ScrollTrigger end fires ~1500px after
+   contact's start, so without this the body-level awards stage (z-index 9995,
+   pointer-events:auto when visible) keeps sitting on top of contact and
+   swallows clicks on the AI bar. Forcing the stage flat + pass-through for
+   the entire contact range closes that gap. */
+body.is-contact .awards__stage {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Heading — built by createTitle so it glitches in/out on enter/leave.
+   Sizing mirrors the clients title for typographic consistency across the
+   two adjacent sections. */
 
 .awards__head {
   position: absolute;
-  top: clamp(56px, 12vh, 128px);
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
+  top: clamp(110px, 12vh, 160px);
+  left: 50%;
+  transform: translateX(-50%);
   text-align: center;
   pointer-events: none;
 }
 
-.awards__heading {
+.awards-title__line {
+  display: block;
   font-family: var(--font);
-  font-size: clamp(38px, 5vw, 72px);
   font-weight: 400;
   letter-spacing: -0.02em;
-  line-height: 1.02;
-  max-width: 18ch;
+  line-height: 1;
+  white-space: nowrap;
+}
+.awards-title__line + .awards-title__line { margin-top: 6px; }
+
+.awards-title__line--small {
+  font-size: clamp(20px, 1.7vw, 26px);
+  color: rgba(255, 255, 255, 0.55);
 }
 
-.awards__heading-muted,
-.awards__heading-strong {
-  display: block;
-  transform: translateY(26px);
-  transition: transform 720ms var(--ease-out-expo);
+.awards-title__line--large {
+  font-size: clamp(36px, 4vw, 60px);
+  font-weight: 700;
+  color: #fff;
 }
-.awards__heading-muted  { color: rgba(255, 255, 255, 0.32); }
-.awards__heading-strong { color: #fff; font-weight: 700; }
 
-.awards__stage.is-visible .awards__heading-muted,
-.awards__stage.is-visible .awards__heading-strong { transform: translateY(0); }
-.awards__stage.is-visible .awards__heading-strong { transition-delay: 70ms; }
+.awards-title__char {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  overflow: visible;
+  opacity: clamp(0, calc((var(--exit-t, 1) - var(--exit, 0)) * 14), 1);
+}
+
+.awards-title.is-exiting .awards-title__char {
+  animation: hero-title-shatter 220ms steps(3) infinite;
+  animation-delay: calc(var(--exit-t, 0) * -1s);
+}
+
+.awards-title__char.is-glitch {
+  animation: hero-title-glitch 560ms steps(1, end);
+}
 
 /* ── Hover tooltip — floating label over the focused trophy ──────────────── */
 
@@ -102,8 +125,38 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Gold-dust mouse trail — bokeh particles that follow the cursor ─────── */
+.awards__dust {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.awards__dust-particle {
+  position: absolute;
+  border-radius: 50%;
+  /* Soft-glow blob — radial gradient so the particle has no hard edge.
+     Toned down from 0.95 → 0.55 peak so the dust feels like atmosphere
+     rather than confetti. */
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 220, 130, 0.55) 0%,
+    rgba(255, 195, 90, 0.28) 35%,
+    rgba(255, 195, 90, 0)    70%
+  );
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: awards-dust-rise 1800ms linear forwards;
+}
+
+@keyframes awards-dust-rise {
+  0%   { transform: translate(0, 0) scale(0.35); opacity: 0; }
+  18%  { opacity: 0.55; }
+  100% { transform: translate(var(--dx, 0), var(--dy, -60px)) scale(1.15); opacity: 0; }
+}
+
 /* ── Narrow screens ─────────────────────────────────────────────────────── */
 @media (max-width: 860px) {
-  .awards__head { top: clamp(40px, 8vh, 88px); }
-  .awards__heading { font-size: clamp(30px, 8vw, 48px); }
+  .awards__head { top: clamp(80px, 10vh, 140px); }
 }

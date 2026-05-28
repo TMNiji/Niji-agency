@@ -35,31 +35,56 @@
   top: clamp(110px, 12vh, 160px);
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
   text-align: center;
   pointer-events: none;
   z-index: 1;
-  transition: opacity 300ms ease;
 }
 
-.clients__title-line {
+/* Title is built via createTitle so each letter is a width-locked span (so a
+   font swap during the glitch never reflows the line). Layout the lines as a
+   stacked flex column to mirror the previous title structure. */
+.clients-title__line {
+  display: block;
   font-family: var(--font);
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1;
+  white-space: nowrap;
 }
+.clients-title__line + .clients-title__line { margin-top: 6px; }
 
-.clients__title-line--small {
+.clients-title__line--small {
   font-size: clamp(20px, 1.7vw, 26px);
   color: rgba(255, 255, 255, 0.55);
 }
 
-.clients__title-line--large {
+.clients-title__line--large {
   font-size: clamp(36px, 4vw, 60px);
+  font-weight: 700;
   color: #fff;
+}
+
+/* Per-letter chrome — width is locked from JS so a font swap morphs the glyph
+   without reflowing neighbours. exit-t/exit drives the glitch-in/out pop. */
+.clients-title__char {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  overflow: visible;
+  opacity: clamp(0, calc((var(--exit-t, 1) - var(--exit, 0)) * 14), 1);
+}
+
+/* While glitching in/out, every letter chromatically jitters in lockstep with
+   a stepped keyframe (same shatter rhythm as the hero title). */
+.clients-title.is-exiting .clients-title__char {
+  animation: hero-title-shatter 220ms steps(3) infinite;
+  animation-delay: calc(var(--exit-t, 0) * -1s);
+}
+
+/* Per-letter blink while is-glitch — reuses the hero title keyframe so the
+   chromatic flicker reads identically across sections. */
+.clients-title__char.is-glitch {
+  animation: hero-title-glitch 560ms steps(1, end);
 }
 
 /* ── Stack — 3D container (receives mouse-driven rotation in JS) ─────────── */
@@ -113,7 +138,7 @@
   transform: translateZ(70px) translateY(-14px);
 }
 
-/* ── Flipper — preserves 3D so the back face can rotate into view ─────── */
+/* ── Flipper — preserves 3D so the back face rotates into view on click. */
 
 .clients__card-flipper {
   position: relative;
@@ -127,11 +152,21 @@
   transform: rotateY(180deg);
 }
 
-.clients__card-face {
+/* Both faces also carry `clients__card-inner` (the glass chrome) which sets
+   `position: relative`. That rule appears later in the file so it would win on
+   tie, dropping the back face into normal flow. Compound selector here lifts
+   specificity to (0,2,0) so absolute positioning + backface-hidden sticks. */
+.clients__card-face.clients__card-inner {
   position: absolute;
   inset: 0;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  /* Depth-of-field blur — driven by --card-blur set per-frame on the pivot
+     in clients/index.js. Filter is applied here on the face (a leaf in the
+     3D chain — no preserve-3d below) so it doesn't collapse the flipper's
+     preserve-3d the way a filter on `.clients__card` would. */
+  filter: blur(var(--card-blur, 0px));
+  will-change: filter;
 }
 
 .clients__card-face--back {

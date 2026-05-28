@@ -6,6 +6,7 @@
 // switched at that instant keep their decorative face, the flicker just stops.
 // A page reload replays it from the start.
 
+import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@modules/motion.js';
 
 const GLITCH_LIFE = 560;       // ms a letter stays glitched — matches the CSS blink
@@ -61,6 +62,16 @@ export function createTitle({
       span.className = `${baseClass}__char`;
       if (ch === '&') span.classList.add(`${baseClass}__char--amp`);
       span.textContent = ch;
+      // Per-letter exit threshold — scrolling out of the section ramps
+      // `--exit` 0 → 1 on the root; each letter pops off when --exit crosses
+      // its own --exit-t. Deterministic hash with a +374761393 constant so
+      // index 0 doesn't collapse to 0 (the first "W" was disappearing at rest
+      // because exit-t=0 made `(exit-t − exit) × 14` clamp to 0 even with
+      // exit=0). Range biased to [0.1, 0.95] so every letter starts fully
+      // visible — the multiplier ×14 makes 0.1 already clamp to opacity 1.
+      const h = ((charSpans.length * 2654435761 + 374761393) >>> 0) % 1000;
+      const exitT = 0.1 + (h / 1000) * 0.85;
+      span.style.setProperty('--exit-t', exitT.toFixed(3));
       line.appendChild(span);
       charSpans.push(span);
     }
@@ -71,6 +82,7 @@ export function createTitle({
   let stopTimer = null;
   let running = false;
   let locked = false;
+  let exitTimer = null;
   const revertTimers = new Map();   // span → pending revert timeout
 
   // Pin each letter's box to its N27 advance width so swapping to a wider/
@@ -179,15 +191,79 @@ export function createTitle({
     });
   }
 
+  // Scroll-out glitch — driven by the section's scroll progress. CSS uses --exit
+  // + per-letter --exit-t to pop letters off in a randomized order; this side
+  // pumps an aggressive glitch loop so the title visibly shatters apart
+  // (faster spawn, multiple letters at once) while it disappears.
+  function setExit(amount) {
+    const a = Math.max(0, Math.min(1, amount));
+    el.style.setProperty('--exit', a.toFixed(3));
+    el.classList.toggle('is-exiting', a > 0.02);
+    if (a > 0.02) {
+      if (!exitTimer) {
+        clearTimeout(stopTimer);
+        running = true;
+        if (!locked) lockWidths();
+        const tick = () => {
+          // Burst — more letters glitch per tick as exit advances.
+          const burst = 1 + Math.floor(a * 4);
+          for (let i = 0; i < burst; i++) glitchOne();
+          exitTimer = setTimeout(tick, 50);
+        };
+        tick();
+      }
+    } else if (exitTimer) {
+      clearTimeout(exitTimer);
+      exitTimer = null;
+    }
+  }
+
+  // Tweened glitch in/out — used by clients, awards, contact to glitch their
+  // titles into/out of view on section enter/leave. Internally drives setExit
+  // (which already wires the per-letter pop + spawn-burst loop) so the visual
+  // matches the hero title's scroll-out shatter, just on a fixed duration
+  // instead of being scrubbed by section progress.
+  const exitVal = { v: 0 };
+  function glitchIn(duration = 0.7) {
+    if (!locked) lockWidths();
+    gsap.killTweensOf(exitVal);
+    if (prefersReducedMotion()) { setExit(0); return; }
+    exitVal.v = 1;
+    setExit(1);
+    gsap.to(exitVal, {
+      v: 0,
+      duration,
+      ease: 'power2.out',
+      overwrite: true,
+      onUpdate: () => setExit(exitVal.v),
+    });
+  }
+  function glitchOut(duration = 0.5) {
+    gsap.killTweensOf(exitVal);
+    if (prefersReducedMotion()) { setExit(1); return; }
+    gsap.to(exitVal, {
+      v: 1,
+      duration,
+      ease: 'power2.in',
+      overwrite: true,
+      onUpdate: () => setExit(exitVal.v),
+    });
+  }
+
   return {
     el,
     play,
     replay,
     glitchBurst,
+    setExit,
+    glitchIn,
+    glitchOut,
     destroy() {
       running = false;
+      gsap.killTweensOf(exitVal);
       clearTimeout(timer);
       clearTimeout(stopTimer);
+      clearTimeout(exitTimer);
       revertTimers.forEach((id) => clearTimeout(id));
       revertTimers.clear();
       window.removeEventListener('resize', relock);

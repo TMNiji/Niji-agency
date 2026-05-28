@@ -42,14 +42,15 @@ const SECTIONS = [
   {
     id: 'clients',
     // Taller than the rest so the 8-card river isn't a one-flick blur.
-    // Progress 0→1 maps over (height - 100vh) of scroll, so 400vh = 300vh of
-    // card cycling (≈37vh per card) instead of the previous 100vh.
     triggerHeight: '400vh',
     label: 'CLIENTS',
     triggerStart: 'top top',
-    // 'bottom bottom' so progress 0→1 maps cleanly over the section's first
-    // (height - viewport) of scroll; awards then takes over the trailing 100vh.
-    triggerEnd: 'bottom bottom',
+    // 'bottom top' — progress 0→1 maps over the full clients height so the
+    // card cycling has scroll budget to fully sweep every card past the camera
+    // (and the trailing exit slot) BEFORE awards starts. Awards previously
+    // overlapped via margin-top:-100vh; that's gone now, so the two sections
+    // are sequential and the clients→awards handoff is a clean cut.
+    triggerEnd: 'bottom top',
   },
   {
     id: 'awards',
@@ -217,44 +218,28 @@ async function boot() {
   });
   orchestrator.onLeave('clients', () => clients?.setActive(false));
 
-  // Awards — reveal the DOM stage, run its cursor-follow loop, and crossfade the
-  // WebGL backdrop (the dark radial + grain lives in the `awards` shader). Tweening
-  // uProgress turns the clients→awards hand-off into a smooth background morph out
-  // of black rather than a hard shader swap.
-  const awardsBg = { v: 0 };
-  const tweenAwardsBg = (to, onComplete) =>
-    gsap.to(awardsBg, {
-      v: to,
-      duration: to > 0 ? 0.9 : 0.55,
-      ease: to > 0 ? 'power2.out' : 'power2.in',
-      overwrite: true,
-      onUpdate: () => webgl.shaderPlane.setProgress(awardsBg.v),
-      onComplete,
-    });
-
+  // Awards — share the clients backdrop exactly (hero_grain shader with cell
+  // hidden) so the two sections read as one continuous dark stage; the
+  // previous bespoke `awards` shader carried a gold mouse-halo + a black
+  // crossfade tween that the user wanted dropped.
   orchestrator.onEnter('awards', () => {
     awards?.setActive(true);
-    webgl.shaderPlane.setShader('awards');
-    tweenAwardsBg(1);
-    // Hide the global film-grain overlay so it doesn't muddy the gold trophies
-    // (the awards shader carries its own subtle grain).
+    // Reset scroll-driven depth so the cloud always enters from FAR_Z and
+    // zooms in across the section's first half. Without this, an onEnter
+    // before the first onProgress would leave the cloud at the previous
+    // scroll's depth value.
+    awards?.setScrollProgress(0);
+    webgl.shaderPlane.setShader('hero_grain');
+    webgl.shaderPlane.setProgress(0);
+    webgl.shaderPlane.setCellGrow(0);
     document.body.classList.add('is-awards');
   });
-  orchestrator.onLeave('awards', ({ direction }) => {
+  orchestrator.onProgress('awards', ({ progress }) => {
+    awards?.setScrollProgress(progress);
+  });
+  orchestrator.onLeave('awards', () => {
     awards?.setActive(false);
     document.body.classList.remove('is-awards');
-    if (direction === 'up') {
-      // Going back to clients — clients.onEnter has just swapped the shader to
-      // hero_grain. If the awards tween kept ticking, its onUpdate would pump
-      // uProgress (1 → 0) into hero_grain and flash the cell during the
-      // crossfade. Kill the tween and snap to a clean clients backdrop.
-      gsap.killTweensOf(awardsBg);
-      awardsBg.v = 0;
-      webgl.shaderPlane.setShader('hero_grain');
-      webgl.shaderPlane.setProgress(0);
-    } else {
-      tweenAwardsBg(0, () => webgl.shaderPlane.setShader('hero_grain'));
-    }
   });
 
   // Contact — terminal section. Reveal the stage and run the title's font-glitch
@@ -262,12 +247,27 @@ async function boot() {
   // settles on the dark hero_grain), so the white email reads over the kept bg.
   // Clearing `is-leaving` on enter resets any exit transform left over from the
   // seamless loop (see scroll handler below) so the email/AI bar fade back in.
+  //
+  // `body.is-contact` neutralises the awards stage for the whole contact
+  // section: awards's `top top → bottom top` trigger ends ~1500px AFTER contact
+  // begins, so its body-level stage (z 9995, pointer-events:auto when visible)
+  // would stay on top through the overlap and swallow clicks on the contact
+  // AI bar. The CSS rule pins awards opacity 0 / pointer-events none across
+  // the entire contact range — including the awkward upward path where
+  // awards.onEnterBack would otherwise re-activate it while contact is still
+  // the visible section. Cleared on leave.
   orchestrator.onEnter('contact', () => {
     document.querySelector('.footer__stage')?.classList.remove('is-leaving');
     setActive('contact', true);
     footer?.setActive(true);
+    document.body.classList.add('is-contact');
+    document.body.classList.remove('is-awards');
   });
-  orchestrator.onLeave('contact', () => setActive('contact', false));
+  orchestrator.onLeave('contact', () => {
+    setActive('contact', false);
+    footer?.setActive(false);
+    document.body.classList.remove('is-contact');
+  });
 
   // ── Pause offscreen per-frame work ───────────────────────────────────────
   // The face pack only matters while hero is on screen; stop ticking it once
@@ -313,7 +313,9 @@ async function boot() {
       loopGuard = true;
       const stage = document.querySelector('.footer__stage');
       stage?.classList.add('is-leaving');
-      footer?.title?.glitchBurst?.();
+      // Same exit-glitch as the section's leave path so the loop wrap reads
+      // as "title shatters → page resets" instead of a one-frame burst.
+      footer?.title?.glitchOut?.(0.45);
       setTimeout(() => {
         lenis.scrollTo(0, { immediate: true, force: true, lock: false });
         // Reform the facepack from a mid-explosion state and re-fire the hero

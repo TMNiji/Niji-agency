@@ -33,9 +33,16 @@ const QUERY = /* groq */ `*[_type == "homePage"][0]{
   }
 }`;
 
+// Tight ceiling — boot awaits this fetch so anything slower than ~400ms shows
+// the user a black page during the wait. If Sanity hasn't responded by then,
+// fall back to the hardcoded defaults and let the page paint. (The previous
+// 5s ceiling produced a ~3-4s black screen on every reload.)
 export async function fetchHomePage() {
   try {
-    return await client.fetch(QUERY);
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Sanity fetch timeout')), 400)
+    );
+    return await Promise.race([client.fetch(QUERY), timeout]);
   } catch (err) {
     console.warn('[sanity] fetch failed, using defaults:', err.message);
     return null;

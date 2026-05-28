@@ -65,10 +65,12 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   overlay.appendChild(title.el);
   section.appendChild(overlay);
 
-  stage.appendChild(timeline.el);
-  // Hoist header outside #app's stacking context (z-index:1) so its z-index:9999
-  // wins against the body-level #noise overlay (z-index:9998). Otherwise #app's
-  // local context caps the header below the grain.
+  // Hoist the timeline AND the header outside #app's stacking context (z-index:1)
+  // so their z-index can beat the body-level section stages (clients/awards
+  // hoist their full-viewport stages to <body> with z-index 9995 — without
+  // this hoist they sit on top of the timeline and swallow label clicks on
+  // AWARDS / CONTACT / BACK TO START).
+  document.body.appendChild(timeline.el);
   document.body.appendChild(header.el);
 
   requestAnimationFrame(() => requestAnimationFrame(() => title.play()));
@@ -80,13 +82,15 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     // of hero. Thinking continues to push uCellGrow past 1 (walk-through).
     webgl?.shaderPlane?.setCellGrow(progress);
 
-    // Dissolve the title in lockstep with the fragments (same curves as
-    // facePack.js): opacity holds, then tracks `fade` (gone ~0.95), drift `move`.
+    // Title glitches out instead of fading — title.setExit drives a per-letter
+    // pop-off (driven by CSS --exit + --exit-t) and pumps an aggressive glitch
+    // burst so the title visibly shatters apart on scroll exit. Same curve as
+    // the previous fade so the timing relative to the facepack dive is unchanged.
     const fade = ease.smoothstep(Math.max(0, Math.min(1, (progress - 0.40) / 0.55)));
     const move = ease.smoothstep(progress);
-    title.el.style.opacity   = String(Math.max(0, 1 - fade).toFixed(3));
+    title.setExit(fade);
     title.el.style.transform = `scale(${(1 + move * 0.05).toFixed(4)}) translateY(${(-move * 28).toFixed(1)}px)`;
-    // Once faded out the title is invisible but, with pointer-events:auto, it
+    // Once shattered the title is invisible but, with pointer-events:auto, it
     // still sits above the thinking section (hero z-index:2 > thinking:1) and
     // would swallow clicks meant for the orbital dots behind it.
     title.el.style.pointerEvents = (1 - fade) > 0.02 ? 'auto' : 'none';
