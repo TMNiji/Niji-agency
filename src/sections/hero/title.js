@@ -26,18 +26,22 @@ const GLITCH_DURATION = 5000;  // ms — default time after which switching stop
  * @param {string} [opts.tag] - element tag for the root (default 'h1').
  * @param {number} [opts.glitchDuration] - ms before switching freezes. Pass
  *   `Infinity` to keep it running forever (the footer never freezes).
+ * @param {string[]|null} [opts.glitchFontClasses] - decorative face classes a
+ *   glitched letter can flip to. Pass `null` to keep the flicker but skip the
+ *   font swap (footer uses this — flicker only, no glyph morph).
  */
 export function createTitle({
   lines = [],
   baseClass = 'hero-title',
   tag = 'h1',
   glitchDuration = GLITCH_DURATION,
+  glitchFontClasses,
 } = {}) {
   const el = document.createElement(tag);
   el.className = baseClass;
 
   // Decorative faces a glitched letter can flip to (CSS classes, e.g. hero.css).
-  const glitchFonts = [`${baseClass}__char--niconne`, `${baseClass}__char--rubik`];
+  const glitchFonts = glitchFontClasses ?? [`${baseClass}__char--niconne`, `${baseClass}__char--rubik`];
 
   // Each line is a block span; letters within are width-locked inline-block
   // spans (set on play) so a font swap changes only the glyph, never the
@@ -91,9 +95,11 @@ export function createTitle({
     const idle = charSpans.filter((s) => !s.classList.contains('is-glitch'));
     if (!idle.length) return;
     const s = idle[(Math.random() * idle.length) | 0];
-    const font = glitchFonts[(Math.random() * glitchFonts.length) | 0];
-    s.classList.remove(...glitchFonts);   // clear any face left frozen from a prior run
-    s.classList.add('is-glitch', font);
+    if (glitchFonts.length) s.classList.remove(...glitchFonts);
+    s.classList.add('is-glitch');
+    if (glitchFonts.length) {
+      s.classList.add(glitchFonts[(Math.random() * glitchFonts.length) | 0]);
+    }
     const id = setTimeout(() => {
       s.classList.remove('is-glitch', ...glitchFonts);
       revertTimers.delete(s);
@@ -141,9 +147,43 @@ export function createTitle({
   }
   window.addEventListener('resize', relock);
 
+  // Replay the intro from scratch — used by the seamless loop in main.js after
+  // wrapping the page. Cancels any in-flight run, clears every frozen
+  // decorative face so all letters start clean, then plays again. play() alone
+  // is a no-op while running is true, hence this dedicated entry point.
+  function replay() {
+    clearTimeout(stopTimer);
+    stopTimer = null;
+    if (running) stop();
+    charSpans.forEach((s) => s.classList.remove(...glitchFonts));
+    play();
+  }
+
+  // Burst: flicker every letter at once for one CSS blink cycle. Used by the
+  // loop exit so the contact email reads as "glitching out" rather than just
+  // fading away. Stops the regular spawn so the burst is the only thing on
+  // screen for that beat; play()/replay() resumes the running glitch after.
+  function glitchBurst() {
+    running = false;
+    clearTimeout(timer);
+    revertTimers.forEach((id) => clearTimeout(id));
+    revertTimers.clear();
+    charSpans.forEach((s) => {
+      s.classList.remove('is-glitch');
+      // Force a reflow so re-adding the class restarts the CSS animation.
+      void s.offsetWidth;
+      s.classList.add('is-glitch');
+      if (glitchFonts.length) {
+        s.classList.add(glitchFonts[(Math.random() * glitchFonts.length) | 0]);
+      }
+    });
+  }
+
   return {
     el,
     play,
+    replay,
+    glitchBurst,
     destroy() {
       running = false;
       clearTimeout(timer);

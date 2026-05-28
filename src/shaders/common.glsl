@@ -6,6 +6,9 @@ precision highp float;
 
 uniform float uTime;
 uniform float uProgress;
+// Cell growth — 0 = invisible point, 1 = default size, >1 = balloons past full
+// (walk-through). Drives drawCell's uniform scale from centre.
+uniform float uCellGrow;
 uniform vec2  uResolution;
 // Smoothed pointer in [-1,1]² (centre = 0). Drives a subtle background parallax.
 uniform vec2  uMouse;
@@ -56,16 +59,19 @@ float hash21(vec2 p) {
 vec3 awardsBackdrop(vec2 uv, float aspect) {
   vec2  gd = (uv - vec2(0.78, 1.0)) / vec2(0.72, 0.90);
   float t  = clamp(length(gd) / 0.58, 0.0, 1.0);
-  vec3  col = mix(vec3(0.1137), vec3(0.0431), t);   // #1d1d1d → #0b0b0b
+  // Lifted from the original near-black gradient (#1d1d1d → #0b0b0b) to a
+  // softer charcoal so the dark sections (hero / build / clients) read with
+  // more depth instead of swallowing the cell, cards, and titles.
+  vec3  col = mix(vec3(0.215), vec3(0.085), t);
 
   // Slow low-frequency drift so the dark field breathes instead of banding.
   float field = snoise(uv * vec2(aspect, 1.0) * 2.2
                        + vec2(uTime * 0.02, -uTime * 0.015));
-  col += field * 0.010;
+  col += field * 0.018;
 
   // Fine film grain — animated per pixel.
   float g = hash21(gl_FragCoord.xy + fract(uTime) * 137.0);
-  col += (g - 0.5) * 0.020;
+  col += (g - 0.5) * 0.024;
 
   return col;
 }
@@ -87,18 +93,24 @@ float softDisk(float d, float inner, float outer) {
 // ── Cell rendering ─────────────────────────────────────────────────────────
 // Pure concentric circles, monochrome white — celestial/atomic feel.
 //
+// All features grow together by scaling the input coords inversely with
+// `growth`: at growth=0 the cell collapses to an invisible point, at growth=1
+// it sits at default size, and beyond that it balloons past full size for the
+// "walk-through" effect. A soft fade-in on growth keeps the rings from
+// painting themselves before there's anything in the centre to anchor them.
+//
 // cUv:      aspect-corrected coords centred on screen (centre = vec2(0,0))
-// reveal:   [0,1] — 0 hides the cell entirely, 1 shows it fully
+// growth:   [0,∞) — 0 hides the cell, 1 = default size, >1 over-grown
 // energize: [0,1] — extra glow + bright pulse when bolt impacts the cell
-vec3 drawCell(vec2 cUv, float reveal, float energize) {
-  if (reveal <= 0.0) return vec3(0.0);
+vec3 drawCell(vec2 cUv, float growth, float energize) {
+  if (growth <= 0.0) return vec3(0.0);
 
+  // Inverse scale — coords compressed as growth rises, so the same CELL_R etc.
+  // map to a larger on-screen radius. All features (rings, body, nucleolus)
+  // scale together, so nothing reads as floating in space ahead of the rest.
+  float scale = 1.0 / max(growth, 0.001);
+  cUv *= scale;
   float dc = length(cUv);
-
-  // Reveal shaping — the bloom/halo ignites first and the crisp body resolves
-  // last, so the cell lights up like a point source rather than fading in flat.
-  float rGlow = smoothstep(0.0,  0.85, reveal);
-  float rBody = smoothstep(0.40, 1.0,  reveal);
 
   // Outer faint field — large dim disk that reads as cell territory.
   float outerField = softDisk(dc, 0.0, CELL_FIELD_R) * 0.06;
@@ -127,10 +139,13 @@ vec3 drawCell(vec2 cUv, float reveal, float energize) {
   // Nucleolus — tiny bright core dot at centre.
   float nucleolus  = softDisk(dc, NUCLEOLUS_R * 0.6, NUCLEOLUS_R * 1.15) * 1.00;
 
-  // Halo/light terms ignite on rGlow; crisp body terms resolve on rBody.
-  float glowI = bloom + outerField + outerRing + glow + glowRing + rings + bodySoft;
-  float bodyI = body + nucleolus;
-  float intensity = glowI * rGlow + bodyI * rBody;
+  // Hold the cell dim while it's still a sub-point so the outer ring doesn't
+  // paint a line on a black field; once growth crosses ~0.5 the cell reads
+  // fully as a luminous object.
+  float fadeIn = smoothstep(0.05, 0.55, growth);
+
+  float intensity = (bloom + outerField + outerRing + glow + glowRing
+                   + rings + bodySoft + body + nucleolus) * fadeIn;
 
   vec3 col = vec3(intensity);
 

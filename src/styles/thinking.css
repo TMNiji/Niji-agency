@@ -25,65 +25,6 @@
 .thinking__stage .hero-orbital__dot,
 .thinking__stage .hero-popup { pointer-events: auto; }
 
-/* ── Folder card component ─────────────────────────────────────────────────── */
-
-.folder-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  filter: drop-shadow(0 8px 40px rgba(0, 0, 0, 0.60));
-}
-
-.folder-card__tab {
-  width: 78px;
-  height: 12px;
-  background: #fff;
-  border-radius: 12px 0 0 0;
-  flex-shrink: 0;
-}
-
-.folder-card__body {
-  width: 187px;
-  background: #fff;
-  border-radius: 12px 0 12px 12px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  min-height: 170px;
-}
-
-.folder-card__text {
-  font-family: var(--font);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.35;
-  color: #000;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.folder-card__spacer { flex: 1; min-height: 60px; }
-
-.folder-card__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.folder-card__close {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  line-height: 1;
-  color: #000;
-  cursor: pointer;
-  user-select: none;
-}
-
-
 /* ── Right panel — services + AI links stacked, bottom-right ───────────────
    Appended to <body> in JS so it escapes the .thinking (z-index:1) stacking
    context. position:fixed + z-index:9999 puts it above the noise overlay
@@ -286,6 +227,77 @@
   cursor: pointer;
 }
 
+/* ── /Stratégie — radar chart that draws itself on open ─────────────────── */
+
+.st { position: relative; }
+
+.st__svg {
+  display: block;
+  width: 100%;
+  height: 200px;
+  overflow: visible;
+}
+
+.st__ring {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.14);
+  stroke-width: 1;
+}
+.st__ring--m { stroke: rgba(0, 0, 0, 0.10); }
+.st__ring--s { stroke: rgba(0, 0, 0, 0.07); }
+
+.st__axis {
+  stroke: rgba(0, 0, 0, 0.10);
+  stroke-width: 1;
+}
+
+.st__data-fill {
+  fill: rgba(0, 101, 255, 0.18);
+  opacity: 0;
+  transition: opacity 700ms ease 500ms;
+}
+
+.st__data-line {
+  fill: none;
+  stroke: #0065FF;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.st__dot {
+  fill: #0065FF;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0);
+  transition: opacity 280ms ease, transform 360ms var(--ease-out-expo);
+  transition-delay: calc(900ms + var(--i) * 80ms);
+}
+
+.st__label {
+  font-family: 'DotGothic16', monospace;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 380ms ease;
+  transition-delay: calc(160ms + var(--li) * 70ms);
+}
+
+.st.is-playing .st__data-fill,
+.st.is-done    .st__data-fill { opacity: 1; }
+
+.st.is-playing .st__dot,
+.st.is-done    .st__dot { opacity: 1; transform: scale(1); }
+
+.st.is-playing .st__label,
+.st.is-done    .st__label { opacity: 1; }
+
+.st.is-done .st__data-line { stroke-dashoffset: 0 !important; }
+
 /* ── /Business Value — self-drawing line graph ───────────────────────────── */
 
 .bv { position: relative; }
@@ -397,14 +409,51 @@
   transition: width 280ms var(--ease-out-expo);
 }
 
+.ds__status {
+  position: relative;
+  margin-top: 7px;
+  min-height: 14px;
+}
+
 .ds__count {
   display: block;
-  margin-top: 7px;
   font-family: 'DotGothic16', monospace;
   font-size: 11px;
   letter-spacing: 0.06em;
   color: rgba(0, 0, 0, 0.50);
+  transition: opacity 180ms ease;
 }
+
+/* Revealed by .bcard--ds.is-ready (set when every checkbox is checked). The
+   badge sits on top of the count, so they cross-fade in place. */
+.ds__ready {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DotGothic16', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #0065FF;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 220ms ease, transform 320ms var(--ease-out-expo);
+  pointer-events: none;
+}
+
+.ds__ready::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0065FF;
+  box-shadow: 0 0 0 4px rgba(0, 101, 255, 0.18);
+}
+
+.bcard--ds.is-ready .ds__count { opacity: 0; }
+.bcard--ds.is-ready .ds__ready { opacity: 1; transform: none; }
 
 /* ── /Brainstorming — auto-playing chat ──────────────────────────────────── */
 

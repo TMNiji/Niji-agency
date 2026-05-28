@@ -185,10 +185,15 @@ export function createOrbital({ stage }) {
   // ── Per-dot cards ──────────────────────────────────────────────────────────
   // Dots 0-3 share one floating popup whose content swaps per dot. Dot 4
   // (Benchmark) opens a cascading window stack handled separately.
+  // Body-level so the popup (build cards with chat bubbles, checklists, etc.)
+  // escapes the .thinking stacking context (z:1) and sits above the #noise
+  // overlay (z:9990) — keeps the white card chrome clean of grain. The stage
+  // is position:fixed inset:0, so the existing viewport-pixel coords used by
+  // openSingleCard() apply unchanged.
   const popup = document.createElement('div');
   popup.className = 'hero-popup';
   popup.hidden = true;
-  stage.appendChild(popup);
+  document.body.appendChild(popup);
 
   const benchmark = createBenchmarkStack({ stage });
 
@@ -321,7 +326,9 @@ export function createOrbital({ stage }) {
   function hide() {
     wrap.style.removeProperty('transition'); // Re-enable CSS transitions after setOpacity suppressed them
     wrap.style.setProperty('--orbital-opacity', '0');
-    wrap.style.setProperty('--orbital-scale', '0.88');
+    // Collapse to a point so the rings + dots grow outward from the cell's
+    // centre on show(), instead of just fading in at their final size.
+    wrap.style.setProperty('--orbital-scale', '0');
     stopFollow();
   }
 

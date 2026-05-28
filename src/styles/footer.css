@@ -15,8 +15,10 @@
   inset: 0;
   height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: clamp(32px, 6vh, 64px);
   padding: 12vh clamp(24px, 6vw, 120px);
   overflow: hidden;
   pointer-events: none;
@@ -27,6 +29,30 @@
 .footer.is-visible .footer__stage {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Loop exit — the seamless loop in main.js adds `is-leaving` to drive the
+   email up + AI bar down before instantly resetting scroll to the top. The
+   class is removed when the user scrolls back into contact so the next visit
+   starts clean. */
+.footer__stage.is-leaving .footer__email {
+  opacity: 0;
+  transform: translateY(-40px);
+  transition: opacity 480ms ease, transform 680ms cubic-bezier(0.7, 0, 0.84, 0);
+}
+.footer__stage.is-leaving .footer__ai-links {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 460ms ease 80ms,
+              transform 660ms cubic-bezier(0.7, 0, 0.84, 0) 80ms;
+}
+
+/* The email and AI bar have implicit transitions on entry too, so a brief
+   fade-in plays when the user lands on contact (whether by scrolling down the
+   first time or coming back around through the loop). */
+.footer__email,
+.footer__ai-links {
+  transition: opacity 480ms ease, transform 680ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .footer__email {
@@ -43,7 +69,7 @@
   left: 0;
   right: 0;
   bottom: -0.06em;
-  height: 0.05em;
+  height: 6px;
   background: #fff;
   transform: scaleX(0);
   transform-origin: left center;
@@ -58,7 +84,7 @@
   max-width: 94vw;
   font-family: var(--font);
   font-weight: 700;
-  font-size: clamp(1.6rem, 9.5vw, 11rem);
+  font-size: clamp(1.2rem, 6.2vw, 7rem);
   line-height: 1;
   letter-spacing: -0.02em;
   color: #fff;
@@ -75,11 +101,34 @@
   overflow: visible;
 }
 
-/* Decorative faces a glitched letter flips to (shared with the hero title). */
-.footer-email__char--niconne { font-family: 'Niconne', cursive; }
-.footer-email__char--rubik   { font-family: 'Rubik80sFade', var(--font); }
-
-/* Reuse the hero title's blink keyframe (defined in hero.css) for the flicker. */
+/* Reuse the hero title's blink keyframe (defined in hero.css) for the flicker.
+   The footer keeps the per-letter blink only — no font swap. */
 .footer-email__char.is-glitch {
   animation: hero-title-glitch 560ms steps(1, end);
+}
+
+/* ── "Explore with AI" bar — centred inside the contact stage ───────────────
+   Shares the icon button chrome (`.thinking__ai-btn`) with the right-panel
+   version; only the container layout differs. */
+.footer__ai-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.footer__ai-links-label {
+  font-family: 'DotGothic16', monospace;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+}
+
+.footer__ai-links-buttons {
+  display: flex;
+  gap: 10px;
 }

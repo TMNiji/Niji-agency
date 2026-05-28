@@ -1,23 +1,20 @@
-/* ── Awards section — compact editorial list pinned to the right ─────────── */
+/* ── Awards section — centred title above a 3D cloud of trophies ─────────── */
 
-/* Negative margin so awards takes over the 100vh tail that clients (the
-   previous last section) leaves as scroll spacer — no dark gap between them. */
+/* Negative margin so awards takes over the 100vh tail that clients leaves as
+   scroll spacer — no dark gap between them. */
 .awards {
   position: relative;
   z-index: 2;
   margin-top: -100vh;
 }
 
-/* Hoisted to <body> in JS (z-index 9995) so the heading + list sit above the
-   #noise overlay (z-index 9990) and the grain never textures the text. The dark
-   radial backdrop lives on the WebGL canvas (below the noise), so it stays
-   grained while the text reads crisp — matching the hero header pattern. */
+/* Hoisted to <body> in JS (z-index 9995) so the heading + tooltip sit above
+   the #noise overlay (z-index 9990). The 3D cloud + the goldish-noise backdrop
+   are rendered into the shared #webgl-canvas underneath. */
 .awards__stage {
   position: fixed;
   inset: 0;
   height: 100vh;
-  display: flex;
-  align-items: center;
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
@@ -27,21 +24,24 @@
 
 .awards__stage.is-visible {
   opacity: 1;
+  /* The stage captures pointer events so the 3D-overlay raycaster can read
+     mouse coords — the cloud itself lives in the WebGL canvas, which is
+     pointer-events:none. */
   pointer-events: auto;
 }
 
-/* Two columns: heading on the left, list on the right. The asymmetric left
-   padding clears the fixed timeline ruler. */
-.awards__inner {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  column-gap: clamp(40px, 6vw, 120px);
-  padding: 0 clamp(40px, 7vw, 160px) 0 clamp(96px, 20vw, 380px);
-}
+/* ── Heading — centred at the top of the viewport ───────────────────────── */
 
-/* ── Heading (left) ─────────────────────────────────────────────────────── */
+.awards__head {
+  position: absolute;
+  top: clamp(56px, 12vh, 128px);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
 
 .awards__heading {
   font-family: var(--font);
@@ -49,6 +49,7 @@
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.02;
+  max-width: 18ch;
 }
 
 .awards__heading-muted,
@@ -60,82 +61,49 @@
 .awards__heading-muted  { color: rgba(255, 255, 255, 0.32); }
 .awards__heading-strong { color: #fff; font-weight: 700; }
 
-/* ── Entrance — heading + rows rise as the section reveals, reinforcing the
-   clients→awards hand-off alongside the WebGL backdrop crossfade ─────────── */
 .awards__stage.is-visible .awards__heading-muted,
-.awards__stage.is-visible .awards__heading-strong,
-.awards__stage.is-visible .awards__row { transform: translateY(0); }
+.awards__stage.is-visible .awards__heading-strong { transform: translateY(0); }
+.awards__stage.is-visible .awards__heading-strong { transition-delay: 70ms; }
 
-.awards__stage.is-visible .awards__heading-strong  { transition-delay: 70ms; }
-.awards__stage.is-visible .awards__row:nth-child(1) { transition-delay: 120ms; }
-.awards__stage.is-visible .awards__row:nth-child(2) { transition-delay: 170ms; }
-.awards__stage.is-visible .awards__row:nth-child(3) { transition-delay: 220ms; }
-.awards__stage.is-visible .awards__row:nth-child(4) { transition-delay: 270ms; }
-.awards__stage.is-visible .awards__row:nth-child(5) { transition-delay: 320ms; }
-.awards__stage.is-visible .awards__row:nth-child(6) { transition-delay: 370ms; }
+/* ── Hover tooltip — floating label over the focused trophy ──────────────── */
 
-/* ── List (right) ───────────────────────────────────────────────────────── */
-
-.awards__list {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.awards__row {
-  display: grid;
-  grid-template-columns: clamp(46px, 4vw, 68px) 1fr;
-  align-items: start;
-  column-gap: clamp(16px, 2vw, 32px);
-  padding: clamp(15px, 2.2vh, 26px) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  cursor: default;
-  transform: translateY(26px);
-  transition: transform 720ms var(--ease-out-expo);
-}
-
-.awards__year {
-  font-family: var(--font);
-  font-size: clamp(12px, 0.95vw, 15px);
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
-  padding-top: 2px;
-  transition: color 300ms ease;
-}
-
-.awards__row:hover .awards__year { color: rgba(255, 255, 255, 0.7); }
-
-.awards__body {
+.awards__tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* JS sets transform: translate(sx, sy) translate(-50%, -120%) per frame,
+     so the tooltip anchors centre-bottom over the projected mesh position. */
+  pointer-events: none;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  will-change: transform, opacity;
 }
+.awards__tooltip.is-visible { opacity: 1; }
 
-.awards__title {
+.awards__tooltip-title {
   font-family: var(--font);
-  font-size: clamp(14px, 1.05vw, 17px);
+  font-size: clamp(12px, 0.95vw, 15px);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.82);
-  transition: color 300ms ease;
+  color: #fff;
 }
-
-.awards__row:hover .awards__title { color: #fff; }
-
-.awards__cat {
+.awards__tooltip-count {
   font-family: var(--font);
-  font-size: clamp(12px, 0.95vw, 15px);
+  font-size: clamp(11px, 0.8vw, 13px);
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── Narrow screens — stack heading above the list ──────────────────────────── */
+/* ── Narrow screens ─────────────────────────────────────────────────────── */
 @media (max-width: 860px) {
-  .awards__inner {
-    grid-template-columns: 1fr;
-    row-gap: clamp(28px, 5vh, 48px);
-    padding: 0 clamp(24px, 6vw, 64px);
-  }
-  .awards__heading { font-size: clamp(34px, 8vw, 52px); }
+  .awards__head { top: clamp(40px, 8vh, 88px); }
+  .awards__heading { font-size: clamp(30px, 8vw, 48px); }
 }

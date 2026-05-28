@@ -23,15 +23,18 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   // Build Sanity image URL map (frag-id → CDN URL), falls back to static paths.
   const fp = content?.hero?.facePack ?? {};
   const FRAG_KEY_MAP = {
-    'neck':           fp.neck,
-    'center-head':    fp.centerHead,
-    'cheek-left':     fp.cheekLeft,
-    'cheek-right':    fp.cheekRight,
-    'eye-left':       fp.eyeLeft,
-    'eye-right':      fp.eyeRight,
-    'mouth':          fp.mouth,
-    'forehead-left':  fp.foreheadLeft,
-    'forehead-right': fp.foreheadRight,
+    'bg-bottom-right':   fp.bgBottomRight,
+    'bg-top':            fp.bgTop,
+    'forehead-left-bg':  fp.foreheadLeftBg,
+    'forehead-bg-right': fp.foreheadBgRight,
+    'bg-bottom':         fp.bgBottom,
+    'mouth-left':        fp.mouthLeft,
+    'mouth-right':       fp.mouthRight,
+    'eye-left':          fp.eyeLeft,
+    'ear-right':         fp.earRight,
+    'bottom-ear-right':  fp.bottomEarRight,
+    'ear-left':          fp.earLeft,
+    'eye-right':         fp.eyeRight,
   };
   const imageSrcs = Object.fromEntries(
     Object.entries(FRAG_KEY_MAP)
@@ -40,7 +43,9 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   );
 
   const header   = createHeader();
-  const timeline = createTimeline({ labels: sectionLabels });
+  // A "back to start" loop anchor past CONTACT hints at the seamless wrap-around
+  // to the top (see main.js loop handler).
+  const timeline = createTimeline({ labels: sectionLabels, loopLabel: 'BACK TO START' });
   const cmsTitle = content?.hero?.title;
   const lines    = cmsTitle?.includes('\n')
     ? cmsTitle.split('\n').map((text) => ({ text }))
@@ -71,6 +76,9 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   orchestrator?.onProgress('hero', ({ progress }) => {
     facePack.setProgress(progress);
     webgl?.shaderPlane?.setProgress(progress);
+    // Cell growth — emerges from a point and reaches default size by the end
+    // of hero. Thinking continues to push uCellGrow past 1 (walk-through).
+    webgl?.shaderPlane?.setCellGrow(progress);
 
     // Dissolve the title in lockstep with the fragments (same curves as
     // facePack.js): opacity holds, then tracks `fade` (gone ~0.95), drift `move`.

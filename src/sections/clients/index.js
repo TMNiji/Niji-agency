@@ -17,21 +17,30 @@ import { prefersReducedMotion } from '@modules/motion.js';
 const DEFAULT_TITLE    = 'Grands noms.';
 const DEFAULT_SUBTITLE = 'Projets à leur hauteur.';
 
+// Each client has a `type` (project category — shown on the front in place of
+// the legacy name) and a `back` describing what flips into view on click:
+//   - 'qr':   render a QR pointing to `url` (case-study link)
+//   - 'text': render `blurb` as a short project description
+// QR codes are generated via the QR-Server API (no extra dependency).
+// Each client carries an `accent` hex sampled from its logo's dominant colour
+// (or, when no real logo exists yet, a sector-appropriate stand-in). The card
+// chrome reads it via the --card-accent CSS variable so the glow + tint matches
+// the brand instead of every card sharing the same purple/blue.
 const DEFAULT_CLIENTS = [
-  { name: 'Grand Frais', caption: 'Retail · Brand refresh 2024', logo: '/logo/grand_frais_grey.svg' },
-  { name: 'Northwind', caption: 'Banking · Digital platform 2023' },
-  { name: 'Helios',    caption: 'Energy · Service design 2023' },
-  { name: 'Vector',    caption: 'Logistics · Product overhaul 2022' },
-  { name: 'Polaris',   caption: 'Telco · Brand system 2024' },
-  { name: 'Meridian',  caption: 'Insurance · Customer experience 2023' },
-  { name: 'Cobalt',    caption: 'Industry · Design system 2022' },
-  { name: 'Solstice',  caption: 'Retail · Omnichannel 2024' },
+  { type: 'SaaS',           back: 'qr',   url: 'https://niji.fr/case/grand-frais', logo: '/logo/grand_frais_grey.svg', accent: '#2EA84A' },
+  { type: 'Mobile App',     back: 'text', blurb: 'Native iOS / Android · 2023 launch · 1.2M users',           accent: '#3DA9FC' },
+  { type: 'B2B Platform',   back: 'qr',   url: 'https://niji.fr/case/northwind',                              accent: '#5B6CFF' },
+  { type: 'E-commerce',     back: 'text', blurb: 'Headless commerce · Composable stack · +38% AOV',           accent: '#FF7A45' },
+  { type: 'Brand System',   back: 'qr',   url: 'https://niji.fr/case/polaris',                                accent: '#F4C95D' },
+  { type: 'Service Design', back: 'text', blurb: 'Journey re-mapping · 12 personas · NPS +27',                accent: '#FF5FA2' },
+  { type: 'Data Platform',  back: 'qr',   url: 'https://niji.fr/case/cobalt',                                 accent: '#22B5C1' },
+  { type: 'Internal Tool',  back: 'text', blurb: 'Ops dashboard · 8 teams · 4× faster onboarding',            accent: '#A86BFF' },
 ];
 
 // Diagonal river geometry. Each unit of `rel` (distance from the focused card)
 // steps the card along the diagonal: right + up + into the screen.
-const DIAG_X     = 150;   // px to the right per card receding into the queue
-const DIAG_Y     = 96;    // px upward per card receding (applied as -y)
+const DIAG_X     = 190;   // px to the right per card receding into the queue
+const DIAG_Y     = 150;   // px upward per card receding (applied as -y)
 const Z_GAP      = 150;   // px into the screen per card receding
 const Z_FRONT    = 300;   // px toward the camera per card once it has passed
 const Z_RANGE    = 950;   // depth over which upcoming cards fade in
@@ -77,35 +86,90 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
 
     const card = document.createElement('div');
     card.className = 'clients__card';
+    // Per-client accent — read by .clients__card-glow / .clients__card-inner
+    // in clients.css so each card's tint and glow match its logo's brand color.
+    if (client.accent) card.style.setProperty('--card-accent', client.accent);
 
-    const inner = document.createElement('div');
-    inner.className = 'clients__card-inner';
+    // Flipper — preserve-3d wrapper that rotateY()s 180deg on .is-flipped so
+    // the back face swings into view on click. Front + back share the same
+    // glass chrome (.clients__card-inner) so the card stays consistent through
+    // the flip, only the content payload swaps.
+    const flipper = document.createElement('div');
+    flipper.className = 'clients__card-flipper';
+
+    // ── Front face ────────────────────────────────────────────────────────
+    const front = document.createElement('div');
+    front.className = 'clients__card-inner clients__card-face clients__card-face--front';
 
     const sheen = document.createElement('div');
     sheen.className = 'clients__card-sheen';
-    inner.appendChild(sheen);
+    front.appendChild(sheen);
 
     const glow = document.createElement('div');
     glow.className = 'clients__card-glow';
-    inner.appendChild(glow);
+    front.appendChild(glow);
 
     if (client.logo) {
       const img = document.createElement('img');
       img.className = 'clients__card-image';
       img.src = client.logo;
-      img.alt = client.name;
+      img.alt = client.type;
       img.loading = 'lazy';
-      inner.appendChild(img);
+      front.appendChild(img);
     }
 
     const logo = document.createElement('div');
     logo.className = 'clients__card-logo';
-    logo.textContent = client.name;
-    inner.appendChild(logo);
+    logo.textContent = client.type;
+    front.appendChild(logo);
 
-    card.appendChild(inner);
+    // ── Back face ────────────────────────────────────────────────────────
+    const back = document.createElement('div');
+    back.className = `clients__card-inner clients__card-face clients__card-face--back clients__card-face--${client.back}`;
+
+    if (client.back === 'qr' && client.url) {
+      const qr = document.createElement('img');
+      qr.className = 'clients__card-qr';
+      // QR-Server is a stable, public QR endpoint — swap for a bundled
+      // generator later if offline rendering becomes a requirement.
+      const encoded = encodeURIComponent(client.url);
+      qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encoded}`;
+      qr.alt = `QR · ${client.type}`;
+      qr.loading = 'lazy';
+      back.appendChild(qr);
+
+      const qrLabel = document.createElement('div');
+      qrLabel.className = 'clients__card-back-label';
+      qrLabel.textContent = 'Scan for case study';
+      back.appendChild(qrLabel);
+    } else {
+      const blurb = document.createElement('p');
+      blurb.className = 'clients__card-blurb';
+      blurb.textContent = client.blurb ?? '';
+      back.appendChild(blurb);
+
+      const tag = document.createElement('div');
+      tag.className = 'clients__card-back-label';
+      tag.textContent = client.type;
+      back.appendChild(tag);
+    }
+
+    flipper.appendChild(front);
+    flipper.appendChild(back);
+    card.appendChild(flipper);
     pivot.appendChild(card);
     stack.appendChild(pivot);
+
+    // Toggle the flip on click. Pivot-level pointer-events are gated to the
+    // focused card by the per-frame update loop below, so only the centred
+    // card responds — passed/queued cards stay inert. stopPropagation so the
+    // click doesn't bubble to document handlers that could close popups or
+    // scroll-anchor the page.
+    pivot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      card.classList.toggle('is-flipped');
+    });
 
     return { el: pivot, logo, index: i };
   });
@@ -142,18 +206,13 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
       `rotateY(${(curMouseX * ROT_Y_MAX * tiltScale).toFixed(2)}deg) ` +
       `rotateX(${(-curMouseY * ROT_X_MAX * tiltScale).toFixed(2)}deg)`;
 
-    // Fractional index of the card currently in focus.
-    //   progress=0 → focusedIdx=0       (card 0 in focus)
-    //   progress=1 → focusedIdx=N-1     (last card in focus)
-    // Smootherstep within each step makes the focus "linger" near the integer
-    // positions, so each card has a clear "in focus" beat before the next one
-    // takes its place — rather than the index sliding linearly through.
-    const totalSteps = N - 1;
-    const stepProg   = scrollProgress * totalSteps;
-    const stepIdx    = Math.floor(stepProg);
-    const stepFrac   = Math.min(1, Math.max(0, stepProg - stepIdx));
-    const ease       = stepFrac * stepFrac * stepFrac * (stepFrac * (stepFrac * 6 - 15) + 10);
-    const focusedIdx = Math.min(totalSteps, stepIdx + ease);
+    // Fractional index of the card currently in focus — fully linear, so
+    // scrolling tracks the river 1:1 without each card pausing as it crosses
+    // the focus position.
+    //   progress=0     → focusedIdx=-1     (first card waiting upper-right)
+    //   progress=1/N   → focusedIdx=0      (first card in focus)
+    //   progress=1     → focusedIdx=N-1    (last card in focus)
+    const focusedIdx = scrollProgress * N - 1;
 
     cards.forEach(({ el, logo, index }) => {
       // rel < 0 → already passed; rel = 0 → in focus; rel > 0 → upcoming.

@@ -44,13 +44,29 @@
   color: #fff;
   width: max-content;
   max-width: 94vw;
+  padding-right: 12px;
   pointer-events: auto;
   outline: none;
 }
 
 /* Each described line is one visual line — never wraps. Default right-aligned
-   within the block; individual lines override below. */
-.hero-title__line { display: block; white-space: nowrap; text-align: right; }
+   within the block; individual lines override below.
+
+   A periodic RGB-split jitter (hero-title-rgbglitch) runs on the line, not on
+   the .hero-title itself: the title's transform is JS-controlled for the scroll
+   dissolve, so animating it here would lose that battle. Lines are stagger-
+   delayed so the glitch doesn't fire as one rigid block. */
+.hero-title__line {
+  display: block;
+  white-space: nowrap;
+  text-align: right;
+  animation: hero-title-rgbglitch 2.6s infinite steps(1, end);
+  will-change: transform;
+}
+.hero-title__line:nth-child(1) { animation-delay: 0s;    }
+.hero-title__line:nth-child(2) { animation-delay: 0.18s; }
+.hero-title__line:nth-child(3) { animation-delay: 0.42s; }
+.hero-title__line:nth-child(4) { animation-delay: 0.30s; }
 
 .hero-title__line--we     { font-size: 0.62em; text-align: center; }
 .hero-title__line--make   { font-size: 1em; }
@@ -97,6 +113,65 @@
   100% { opacity: 1; }
 }
 
+/* Periodic RGB-split jitter on the title lines. Two glitch bursts per cycle
+   (around 35% and 88%) so the title flickers more often without ever feeling
+   continuous — most of the timeline still rests in the identity state. Driven
+   by `steps(1, end)` so each frame holds, every frame reads as a hard broken
+   redraw rather than a smooth interpolation. */
+@keyframes hero-title-rgbglitch {
+  0%, 32%, 42%, 86%, 100% {
+    transform: none;
+    text-shadow: none;
+    clip-path: none;
+  }
+  /* First burst — mid-cycle. */
+  34% {
+    transform: translate(2px, -1px);
+    text-shadow: -2px 0 0 rgba(0, 224, 255, 0.80),
+                  2px 0 0 rgba(255, 40, 140, 0.80);
+    clip-path: polygon(0 22%, 100% 22%, 100% 48%, 0 48%);
+  }
+  37% {
+    transform: translate(-3px, 1px);
+    text-shadow:  3px 0 0 rgba(0, 224, 255, 0.65),
+                 -3px 0 0 rgba(255, 40, 140, 0.65);
+    clip-path: polygon(0 0, 100% 0, 100% 55%, 0 55%);
+  }
+  40% {
+    transform: translate(1px, 0);
+    text-shadow:  1px 0 0 rgba(0, 224, 255, 0.90),
+                 -1px 0 0 rgba(255, 40, 140, 0.90);
+  }
+  /* Second burst — late-cycle, deeper slices. */
+  88% {
+    transform: translate(-2px, 1px);
+    text-shadow:  2px 0 0 rgba(0, 224, 255, 0.85),
+                 -2px 0 0 rgba(255, 40, 140, 0.85);
+  }
+  91% {
+    transform: translate(3px, -2px);
+    text-shadow: -3px 0 0 rgba(0, 224, 255, 0.70),
+                  3px 0 0 rgba(255, 40, 140, 0.70);
+    clip-path: polygon(0 18%, 100% 18%, 100% 62%, 0 62%);
+  }
+  93% {
+    transform: translate(-1px, 2px);
+    text-shadow:  4px 0 0 rgba(0, 224, 255, 0.55),
+                 -4px 0 0 rgba(255, 40, 140, 0.55);
+    clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%, 0 70%, 100% 70%, 100% 100%, 0 100%);
+  }
+  95% {
+    transform: translate(2px, 0);
+    text-shadow:  1px 0 0 rgba(0, 224, 255, 0.90),
+                 -1px 0 0 rgba(255, 40, 140, 0.90);
+  }
+}
+
+/* Reduced-motion users get a still title — no jitter, no font flips. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-title__line { animation: none; }
+}
+
 /* ── Timeline — scroll-driven ruler strip ───────────────────────────────────
    800 tick marks fill the fixed strip. A 5-tick cluster at widths
    [14, 24, 40, 24, 14]px highlights the strip centre. Section names live
@@ -106,8 +181,8 @@
    behind it. */
 .hero-timeline {
   position: fixed;
-  top: 30vh;
-  bottom: 30vh;
+  top: 40vh;
+  bottom: 40vh;
   left: 48px;
   width: 200px;       /* tick area (≤40px) + gap + label text */
   overflow: clip;
@@ -300,10 +375,11 @@
   z-index: 4;
 }
 
-/* Folder card popup triggered by dot click */
+/* Folder card popup triggered by dot click. Body-level (see orbital.js) so the
+   white build cards + chat bubbles sit above the #noise overlay (z:9990). */
 .hero-popup {
-  position: absolute;
-  z-index: 5;
+  position: fixed;
+  z-index: 9995;
   pointer-events: auto;
 }
 
@@ -324,6 +400,6 @@
 @media (max-width: 600px) {
   /* Slim the ruler and drop the section labels so it reads as a thin progress
      strip rather than overlapping the centred cell. */
-  .hero-timeline { left: 16px; width: 40px; top: 24vh; bottom: 24vh; }
+  .hero-timeline { left: 16px; width: 40px; top: 34vh; bottom: 34vh; }
   .hero-timeline__section-label { display: none; }
 }

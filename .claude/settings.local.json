@@ -83,7 +83,20 @@
       "Bash(curl -s \"https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/perplexity.svg\")",
       "Bash(cd \"/Users/titouan.mazurier/Documents/Niji/Niji Agency V3\" && cp \"/Users/titouan.mazurier/Documents/Niji/assets niji v3/grand_frais_grey.svg\" public/logo/grand_frais_grey.svg && ls -la public/logo/)",
       "mcp__Sanity__patch_document_from_json",
-      "mcp__Sanity__list_workspace_schemas"
+      "mcp__Sanity__list_workspace_schemas",
+      "mcp__figma__get_metadata",
+      "Bash(mkdir -p \"/Users/titouan.mazurier/Documents/Niji/Niji Agency V3/public/awards\" && cp \"/Users/titouan.mazurier/Downloads/untitled_Tripo H3.1_2026-05-28_11-27-23.glb\" \"/Users/titouan.mazurier/Documents/Niji/Niji Agency V3/public/awards/trophy-01.glb\" && ls -la \"/Users/titouan.mazurier/Documents/Niji/Niji Agency V3/public/awards/\")",
+      "Bash(sips --help)",
+      "Bash(sips -s format webp bg-top.png --out bg-top.webp)",
+      "Bash(sips --formats)",
+      "Bash(sips -s format webp -s formatOptions 80 bg-top.png --out bg-top.webp)",
+      "Bash(node -e \"console.log\\(require\\('sharp/package.json'\\).version\\)\")",
+      "Bash(python3 -c \"from PIL import Image; print\\(Image.__version__\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(lsof -nP -iTCP -sTCP:LISTEN)",
+      "Bash(ps -p 57678 -o pid,ppid,command)",
+      "Bash(ps -p 80694 -o pid,ppid,command)",
+      "Bash(kill 57678 80694)"
     ]
   }
 }

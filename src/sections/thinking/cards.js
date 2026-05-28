@@ -7,7 +7,6 @@
 // where play() starts the card's animation on open and stop() tears it down on
 // close. orbital.js draws the connector to the card's bottom-centre.
 
-import { createFolderCard } from './folderCard.js';
 import { prefersReducedMotion } from '@modules/motion.js';
 
 // ── Shared free-form card chrome (dots 2-4) ──────────────────────────────────
@@ -24,14 +23,89 @@ function baseCard({ title, modifier }) {
   return el;
 }
 
-// ── Dot 1 — /Stratégie — the existing white "file" folder card ───────────────
+// ── Dot 1 — /Stratégie — a radar chart that draws itself on open ─────────────
 export function createStrategyCard() {
-  const card = createFolderCard({ text: 'On pose la stratégie\navant de construire.' });
+  const el = baseCard({ title: '/Stratégie', modifier: 'st' });
+
+  const AXES = [
+    { label: 'Vision',      value: 0.86 },
+    { label: 'Insight',     value: 0.72 },
+    { label: 'Audience',    value: 0.92 },
+    { label: 'Différence',  value: 0.78 },
+    { label: 'Objectif',    value: 0.88 },
+  ];
+  const N  = AXES.length;
+  const cx = 110, cy = 100, r = 58;
+  const angle  = (i) => -Math.PI / 2 + (i / N) * Math.PI * 2;
+  const vertex = (i, scale) => {
+    const a = angle(i);
+    return [cx + scale * r * Math.cos(a), cy + scale * r * Math.sin(a)];
+  };
+  const pentaPts = (scale) => AXES.map((_, i) => {
+    const [x, y] = vertex(i, scale);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const dataPts = AXES.map((a, i) => vertex(i, a.value));
+  const dataPolyPts = dataPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  // Polyline closes by repeating the first vertex so stroke-dasharray draws the
+  // full outline including the final edge back to the top.
+  const dataLinePts = dataPolyPts + ' ' + `${dataPts[0][0].toFixed(1)},${dataPts[0][1].toFixed(1)}`;
+
+  const axisLines = AXES.map((_, i) => {
+    const [x, y] = vertex(i, 1);
+    return `<line class="st__axis" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+  }).join('');
+
+  const dots = dataPts.map(([x, y], i) =>
+    `<circle class="st__dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" style="--i:${i}"/>`,
+  ).join('');
+
+  const labels = AXES.map((a, i) => {
+    const [lx, ly] = vertex(i, 1.32);
+    // Anchor text per side of the pentagon so labels don't clip the geometry.
+    const anchor = i === 0 ? 'middle' : (lx > cx ? 'start' : 'end');
+    return `<text class="st__label" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" style="--li:${i}">${a.label}</text>`;
+  }).join('');
+
+  el.querySelector('.bcard__body').innerHTML = `
+    <div class="st">
+      <svg class="st__svg" viewBox="0 0 220 200" aria-hidden="true">
+        <polygon class="st__ring"            points="${pentaPts(1)}"/>
+        <polygon class="st__ring st__ring--m" points="${pentaPts(0.66)}"/>
+        <polygon class="st__ring st__ring--s" points="${pentaPts(0.33)}"/>
+        ${axisLines}
+        <polygon  class="st__data-fill" points="${dataPolyPts}"/>
+        <polyline class="st__data-line" points="${dataLinePts}"/>
+        ${dots}
+        ${labels}
+      </svg>
+    </div>
+  `;
+
+  const root = el.querySelector('.st');
+  const line = el.querySelector('.st__data-line');
+
   return {
-    el: card.el,
-    closeSelector: '.folder-card__close',
-    play() {},
-    stop() {},
+    el,
+    closeSelector: '.bcard__close',
+    play() {
+      if (prefersReducedMotion()) { root.classList.add('is-done'); return; }
+      const len = line.getTotalLength();
+      line.style.transition = 'none';
+      line.style.strokeDasharray  = `${len}`;
+      line.style.strokeDashoffset = `${len}`;
+      line.getBoundingClientRect(); // force reflow so the reset takes
+      root.classList.remove('is-playing', 'is-done');
+      requestAnimationFrame(() => {
+        line.style.transition = 'stroke-dashoffset 1200ms var(--ease-out-expo)';
+        line.style.strokeDashoffset = '0';
+        root.classList.add('is-playing');
+      });
+    },
+    stop() {
+      root.classList.remove('is-playing', 'is-done');
+    },
   };
 }
 
@@ -95,7 +169,10 @@ export function createDesignSprintCard() {
         </li>`).join('')}
     </ul>
     <div class="ds__bar"><span class="ds__fill"></span></div>
-    <span class="ds__count"></span>
+    <div class="ds__status">
+      <span class="ds__count"></span>
+      <span class="ds__ready">SPRINT READY</span>
+    </div>
   `;
   const list  = el.querySelector('.ds');
   const items = [...el.querySelectorAll('.ds__item')];
@@ -106,6 +183,7 @@ export function createDesignSprintCard() {
     const done = items.filter((it) => it.classList.contains('is-done')).length;
     fill.style.width = `${(done / items.length) * 100}%`;
     count.textContent = `${done}/${items.length} terminé${done > 1 ? 's' : ''}`;
+    el.classList.toggle('is-ready', done === items.length);
   };
   items.forEach((it) => it.addEventListener('click', () => {
     it.classList.toggle('is-done');
@@ -133,11 +211,11 @@ export function createBrainstormCard() {
   const feed = el.querySelector('.bs');
 
   const MSGS = [
-    { side: 'in',  text: 'On part sur quel concept ?' },
-    { side: 'out', text: 'Et si chaque dot ouvrait une carte ?' },
-    { side: 'in',  text: 'Une fenêtre qui pop, genre ?' },
-    { side: 'out', text: 'Exactement. Un brainstorm vivant.' },
-    { side: 'in',  text: 'Parfait, on prototype.' },
+    { side: 'in',  text: 'C\'est quoi le vrai problème user ?' },
+    { side: 'out', text: '40% abandonnent au checkout.' },
+    { side: 'in',  text: 'Trop de champs ?' },
+    { side: 'out', text: 'Oui. On garde l\'essentiel, on prototype.' },
+    { side: 'in',  text: 'Parfait, je teste demain.' },
   ];
 
   const TYPING_MS = 700;

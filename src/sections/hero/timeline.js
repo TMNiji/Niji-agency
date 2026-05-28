@@ -17,7 +17,7 @@
 // Each section label is a button: clicking it jumps the page to that section
 // via the handler registered with setScrollHandler(fn).
 
-const TICK_PITCH = 20;   // px between adjacent ticks (wider = fewer, calmer bars)
+const TICK_PITCH = 44;   // px between adjacent ticks (wider = fewer, calmer bars)
 const TICK_W_BASE = 16;  // base tick width (px) — set on every tick from JS (sole source of truth)
 const TICK_W_PEAK = 40;  // width of the centre tick at the heart of the cluster
 const TICK_BUFFER = 16;  // extra ticks created beyond the last reachable scroll position
@@ -56,9 +56,15 @@ const LABEL_EDGE_OPACITY = 0.45;
 const SLOT_EDGE_PAD = 24;
 // Labels dimmer than this are treated as hidden → pulled out of the tab order
 // and made non-interactive so keyboard users can't focus an unseen anchor.
-const VISIBLE_OPACITY = 0.30;
+// Kept low so the prev/next labels stay clickable across their entire fade,
+// not just while they're at full slot opacity.
+const VISIBLE_OPACITY = 0.05;
 
-export function createTimeline({ labels } = {}) {
+// A label that hints at the page's seamless loop — appended after the real
+// sections. Its scrollY anchor is the end of the document, so it slides into
+// the bottom slot as the user approaches the loop; clicking it scrolls back
+// to the top (where the loop lands anyway).
+export function createTimeline({ labels, loopLabel = null } = {}) {
   const el = document.createElement('nav');
   el.className = 'hero-timeline';
   el.setAttribute('aria-label', 'Section navigation');
@@ -93,14 +99,18 @@ export function createTimeline({ labels } = {}) {
   let sectionCentres     = []; // scrollY at which each label rests on the centre slot
   let sectionScrollStarts = []; // raw scroll-top of each section — used for click navigation
 
-  const sectionLabelEls = labels.map((text, i) => {
+  // Real-section labels first; then an optional loop anchor whose target is 0.
+  const allLabels = loopLabel ? [...labels, loopLabel] : labels;
+  const sectionLabelEls = allLabels.map((text, i) => {
     const s = document.createElement('button');
     s.className = 'hero-timeline__section-label';
     s.innerHTML =
       `<span class="hero-timeline__section-text">${text}</span>` +
       `<span class="hero-timeline__section-arrow">${ARROW_SVG}</span>`;
     s.style.opacity = '0'; // real value set by update() once positions are measured
+    const isLoopAnchor = loopLabel && i === allLabels.length - 1;
     s.addEventListener('click', () => {
+      if (isLoopAnchor) { scrollHandler?.(0); return; }
       const start = sectionScrollStarts[i];
       if (start !== undefined) scrollHandler?.(start === 0 ? 0 : start + 4);
     });
@@ -126,6 +136,10 @@ export function createTimeline({ labels } = {}) {
     // crosses the ScrollTrigger start boundary that drives the shader swaps), so
     // a label centres exactly when the page rests on its section.
     sectionCentres = sectionScrollStarts.map((start) => start + (start === 0 ? 0 : 4));
+    // Loop anchor — placed at the end of the document so it slides into the
+    // bottom slot as the user scrolls through the final section, signalling the
+    // page is about to wrap back to the top.
+    if (loopLabel) sectionCentres.push(maxScroll);
     // Place + fade the labels now that positions are known — without this they
     // stay hidden (opacity 0) until the user scrolls and triggers update()
     // through the Lenis 'scroll' listener.

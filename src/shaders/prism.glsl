@@ -60,7 +60,10 @@ void main() {
 
   // ── Cell — visible at start (continuity with thinking), fades into bg ─────
   // Same pointer parallax as hero_grain so the cell doesn't pop on shader swap.
-  col += drawCell(c - uMouse * 0.02, 1.0, energize) * cellFade;
+  // uCellGrow is left at its end-of-build value (≈2.3) by thinking/index.js so
+  // the cell stays as huge as the user just "walked through" instead of
+  // snapping back to default size when the bolt arrives.
+  col += drawCell(c - uMouse * 0.02, uCellGrow, energize) * cellFade;
 
   // ── White bolt — diagonal from off-screen bottom-left to cell centre ──────
   vec2 bFrom = vec2(-aspect * 0.54, -0.50);

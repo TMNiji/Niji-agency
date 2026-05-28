@@ -1,7 +1,6 @@
 @import './fonts.css';
 @import './hero.css';
 @import './thinking.css';
-@import './chaos.css';
 @import './video.css';
 @import './clients.css';
 @import './awards.css';
@@ -78,7 +77,13 @@ section {
   background-size: 256px 256px;
   opacity: 0.22;
   mix-blend-mode: overlay;
+  transition: opacity 350ms ease;
 }
+
+/* Awards section features the gold trophy cloud and a backdrop shader that
+   already carries its own subtle grain — suppress the global film-grain
+   overlay here so it doesn't crosshatch the 3D models. */
+body.is-awards #noise { opacity: 0; }
 
 /* Lenis */
 html.lenis, html.lenis body { height: auto; }

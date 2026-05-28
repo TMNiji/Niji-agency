@@ -13,15 +13,18 @@ const QUERY = /* groq */ `*[_type == "homePage"][0]{
   hero {
     title,
     facePack {
-      neck          { asset->{ url } },
-      centerHead    { asset->{ url } },
-      cheekLeft     { asset->{ url } },
-      cheekRight    { asset->{ url } },
-      eyeLeft       { asset->{ url } },
-      eyeRight      { asset->{ url } },
-      mouth         { asset->{ url } },
-      foreheadLeft  { asset->{ url } },
-      foreheadRight { asset->{ url } }
+      bgBottomRight   { asset->{ url } },
+      bgTop           { asset->{ url } },
+      foreheadLeftBg  { asset->{ url } },
+      foreheadBgRight { asset->{ url } },
+      bgBottom        { asset->{ url } },
+      mouthLeft       { asset->{ url } },
+      mouthRight      { asset->{ url } },
+      eyeLeft         { asset->{ url } },
+      earRight        { asset->{ url } },
+      bottomEarRight  { asset->{ url } },
+      earLeft         { asset->{ url } },
+      eyeRight        { asset->{ url } }
     }
   },
   thinking {

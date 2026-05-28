@@ -4,7 +4,6 @@ import { initWebGL }         from '@modules/webgl.js';
 import { createOrchestrator } from '@modules/orchestrator.js';
 import { mountHero }          from './sections/hero/index.js';
 import { mountThinking }      from './sections/thinking/index.js';
-import { mountChaos }         from './sections/chaos/index.js';
 import { mountVideo }         from './sections/video/index.js';
 import { mountClients }       from './sections/clients/index.js';
 import { mountAwards }        from './sections/awards/index.js';
@@ -13,9 +12,9 @@ import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
 
 // All sections share the same 200vh height so each occupies one full section of
-// scroll. The rainbow → colorful-bg transition is driven by thinking's last
-// quarter (see onProgress below), so by the time the user reaches chaos.top the
-// colorful background is already at full strength.
+// scroll. The rainbow → DESIGN transition is driven by thinking's last quarter
+// (see onProgress below), then the prism drops back to the dark grain as the
+// user crosses into video.top.
 const SECTION_HEIGHT = '200vh';
 
 const SECTIONS = [
@@ -34,13 +33,6 @@ const SECTIONS = [
     triggerEnd: 'bottom top',
   },
   {
-    id: 'chaos',
-    label: 'CONCEPTION',
-    triggerHeight: SECTION_HEIGHT,
-    triggerStart: 'top top',
-    triggerEnd: 'bottom top',
-  },
-  {
     id: 'video',
     label: 'DESIGN',
     triggerHeight: SECTION_HEIGHT,
@@ -49,11 +41,14 @@ const SECTIONS = [
   },
   {
     id: 'clients',
+    // Taller than the rest so the 8-card river isn't a one-flick blur.
+    // Progress 0→1 maps over (height - 100vh) of scroll, so 400vh = 300vh of
+    // card cycling (≈37vh per card) instead of the previous 100vh.
+    triggerHeight: '400vh',
     label: 'CLIENTS',
-    triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
     // 'bottom bottom' so progress 0→1 maps cleanly over the section's first
-    // viewport of scroll (awards then takes over the trailing 100vh).
+    // (height - viewport) of scroll; awards then takes over the trailing 100vh.
     triggerEnd: 'bottom bottom',
   },
   {
@@ -79,10 +74,10 @@ const SECTIONS = [
   },
 ];
 
-// Fraction of thinking's scroll devoted to the rainbow → colorful-bg
-// transition. Below this threshold, the cell + dots are shown (hero_grain).
-// Above it, the prism shader animates so the colorful bg is full by the
-// time the user lands on CONCEPTION at chaos.top.
+// Fraction of thinking's scroll devoted to the rainbow → DESIGN transition.
+// Below this threshold, the cell + dots are shown (hero_grain). Above it, the
+// prism shader animates; the colorful peak holds briefly and then drops back
+// to the dark grain as the user crosses into DESIGN (video.top).
 const PRISM_THRESHOLD = 0.6;
 
 initNoise();
@@ -114,9 +109,9 @@ async function boot() {
   });
 
   // Thinking — safety net: if the page loads mid-scroll inside thinking,
-  // hero's onProgress never ran, so force uProgress to 1 here.
+  // hero's onProgress never ran, so seed the cell at default size here.
   orchestrator.onEnter('thinking', () => {
-    webgl.shaderPlane.setProgress(1);
+    webgl.shaderPlane.setCellGrow(1);
   });
 
   const sectionLabels = SECTIONS.map((s) => s.label);
@@ -124,11 +119,10 @@ async function boot() {
     container: root, orchestrator, webgl, sectionLabels, content: sanityContent,
   });
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
-  const chaos    = mountChaos({ container: root });
   const video    = mountVideo({ container: root, orchestrator });
   const clients  = mountClients({ container: root, orchestrator });
-  const awards   = mountAwards({ container: root });
-  const footer   = mountFooter({ container: root });
+  const awards   = mountAwards({ container: root, webgl });
+  const footer   = mountFooter({ container: root, content: sanityContent });
 
   // Section-label clicks navigate the page. Use a smooth, eased scroll (not an
   // instant jump) so the user sees the sections animate on the way there.
@@ -140,8 +134,9 @@ async function boot() {
 
   // ── Rainbow transition — driven by thinking's last quarter ─────────────────
   // Below PRISM_THRESHOLD: hero_grain @ uProgress=1 (cell + dots).
-  // Above PRISM_THRESHOLD: prism shader animates so colorful bg is full by
-  // the moment chaos.top (CONCEPTION snap) is reached.
+  // Above PRISM_THRESHOLD: prism shader animates so the colorful bg peaks just
+  // before the user crosses into DESIGN (video.top), where it drops back to
+  // the dark grain so the video plays over a clean backdrop.
   let prismActive = false;
   // Fade the orbital + service panel during the prism cross-fade. Each module
   // owns its own inline styles via these setters — no cross-module DOM poking.
@@ -156,7 +151,7 @@ async function boot() {
   // stay BUILD-only. Each section's onEnter (fired in both scroll directions)
   // sets the state, so no separate onLeave bookkeeping is needed.
   const setAiVisible = (on) => thinking?.rightPanel?.classList.toggle('ai-on', on);
-  ['thinking', 'chaos', 'video', 'clients', 'awards'].forEach((id) =>
+  ['thinking', 'video', 'clients', 'awards'].forEach((id) =>
     orchestrator.onEnter(id, () => setAiVisible(true)));
   ['hero', 'contact'].forEach((id) =>
     orchestrator.onEnter(id, () => setAiVisible(false)));
@@ -168,37 +163,25 @@ async function boot() {
         webgl.shaderPlane.setShader('prism');
         prismActive = true;
       }
+      // uProgress now drives ONLY the prism phase timeline; the cell's size is
+      // owned by uCellGrow (continuous across the shader swap) so the cell
+      // doesn't snap back to default when the bolt fires.
       webgl.shaderPlane.setProgress(p);
       setUIVisible(1 - p);
     } else if (prismActive) {
       webgl.shaderPlane.setShader('hero_grain');
-      webgl.shaderPlane.setProgress(1);
+      webgl.shaderPlane.setProgress(0);
       setUIVisible(1);
       prismActive = false;
     }
   });
 
-  // ── Chaos — colorful background holds at uProgress=1 ───────────────────────
-  orchestrator.onEnter('chaos', () => {
-    webgl.shaderPlane.setShader('prism');
-    webgl.shaderPlane.setProgress(1);
-    prismActive = true;
-    setUIVisible(0);
-  });
-
-  orchestrator.onProgress('chaos', () => {
-    webgl.shaderPlane.setProgress(1);
-  });
-
-  orchestrator.onLeave('chaos', ({ direction }) => {
-    if (direction === 'down') {
-      // Going down into video — drop the prism, return to the dark grain bg.
-      webgl.shaderPlane.setShader('hero_grain');
-      webgl.shaderPlane.setProgress(0);
-      prismActive = false;
-    }
-    // Going up into thinking: thinking's onProgress re-drives the shader.
-  });
+  // ── Video — rainbow hand-off ───────────────────────────────────────────────
+  // DESIGN is left transparent on top of the prism: thinking's onProgress takes
+  // the prism to its peak (p=1) just before crossing into DESIGN, and that state
+  // is intentionally not reset here so the colourful backdrop carries through
+  // the section. Clients' onEnter takes over the next handoff to the awards
+  // backdrop, so DESIGN itself has no shader handler.
 
   // ── Video + Clients — reveal stage when active ──────────────────────────
   const setActive = (id, on) => {
@@ -206,10 +189,32 @@ async function boot() {
     if (el) el.classList.toggle('is-visible', on);
   };
 
-  orchestrator.onEnter('video', () => setActive('video', true));
+  // Video (DESIGN) inherits the prism backdrop from BUILD's tail. Coming back
+  // up from clients, that handoff hasn't happened, so the shader is still
+  // hero_grain — restore the rainbow here so DESIGN looks the same in either
+  // scroll direction.
+  orchestrator.onEnter('video', () => {
+    setActive('video', true);
+    webgl.shaderPlane.setShader('prism');
+    webgl.shaderPlane.setProgress(1);
+    prismActive = true;
+    setUIVisible(0);
+  });
   orchestrator.onLeave('video', () => setActive('video', false));
 
-  orchestrator.onEnter('clients', () => clients?.setActive(true));
+  // Clients enter: drop the rainbow prism (carried over from DESIGN) back to
+  // the dark hero_grain so the cards read crisp on a calm backdrop. This is the
+  // first half of the clients→awards transition; the second half is the card
+  // glow warming to gold across the last quarter of the clients scroll (see
+  // clients/index.js — driven by scrollProgress via --clients-warmth).
+  orchestrator.onEnter('clients', () => {
+    clients?.setActive(true);
+    webgl.shaderPlane.setShader('hero_grain');
+    webgl.shaderPlane.setProgress(0);
+    // Cell is invisible on the clients backdrop — uCellGrow=0 collapses it.
+    webgl.shaderPlane.setCellGrow(0);
+    prismActive = false;
+  });
   orchestrator.onLeave('clients', () => clients?.setActive(false));
 
   // Awards — reveal the DOM stage, run its cursor-follow loop, and crossfade the
@@ -231,16 +236,37 @@ async function boot() {
     awards?.setActive(true);
     webgl.shaderPlane.setShader('awards');
     tweenAwardsBg(1);
+    // Hide the global film-grain overlay so it doesn't muddy the gold trophies
+    // (the awards shader carries its own subtle grain).
+    document.body.classList.add('is-awards');
   });
-  orchestrator.onLeave('awards', () => {
+  orchestrator.onLeave('awards', ({ direction }) => {
     awards?.setActive(false);
-    tweenAwardsBg(0, () => webgl.shaderPlane.setShader('hero_grain'));
+    document.body.classList.remove('is-awards');
+    if (direction === 'up') {
+      // Going back to clients — clients.onEnter has just swapped the shader to
+      // hero_grain. If the awards tween kept ticking, its onUpdate would pump
+      // uProgress (1 → 0) into hero_grain and flash the cell during the
+      // crossfade. Kill the tween and snap to a clean clients backdrop.
+      gsap.killTweensOf(awardsBg);
+      awardsBg.v = 0;
+      webgl.shaderPlane.setShader('hero_grain');
+      webgl.shaderPlane.setProgress(0);
+    } else {
+      tweenAwardsBg(0, () => webgl.shaderPlane.setShader('hero_grain'));
+    }
   });
 
   // Contact — terminal section. Reveal the stage and run the title's font-glitch
   // once on first enter. The WebGL backdrop is left to awards' leave handoff (it
   // settles on the dark hero_grain), so the white email reads over the kept bg.
-  orchestrator.onEnter('contact', () => { setActive('contact', true); footer?.setActive(true); });
+  // Clearing `is-leaving` on enter resets any exit transform left over from the
+  // seamless loop (see scroll handler below) so the email/AI bar fade back in.
+  orchestrator.onEnter('contact', () => {
+    document.querySelector('.footer__stage')?.classList.remove('is-leaving');
+    setActive('contact', true);
+    footer?.setActive(true);
+  });
   orchestrator.onLeave('contact', () => setActive('contact', false));
 
   // ── Pause offscreen per-frame work ───────────────────────────────────────
@@ -258,11 +284,59 @@ async function boot() {
   // Drive the timeline ruler with Lenis's smoothed scroll position. The ruler
   // derives its own current/prev/next labels from this scroll value, so no
   // separate active-index tracking is needed here.
-  lenis.on('scroll', ({ scroll }) => {
+  //
+  // Seamless loop: once the user scrolls past the bottom of the contact section,
+  // glitch the contact email out, jump scroll back to the top, reform the
+  // facepack and glitch the hero title back in. Reads as one continuous loop.
+  //
+  // Sequence:
+  //   1. add `.is-leaving` → email lifts up + AI bar drops down, both fade out
+  //      (footer.css, ~700ms). Also fire a one-shot all-letter glitch burst on
+  //      the email so it visibly *glitches out* before the fade completes.
+  //   2. instantly reset Lenis to scroll=0 (no smoothing — the user mustn't see
+  //      the scroll position rewind)
+  //   3. fire facePack.playEntry() so the fragments re-converge into the resting
+  //      face, and replay hero?.title?.replay() so the intro flicker fires again
+  //   4. `.is-leaving` is cleared by contact's onEnter handler the next time
+  //      the user scrolls into contact
+  //
+  // Calling lenis.scrollTo synchronously from inside a scroll handler re-enters
+  // Lenis's internal state machine and locks the rAF loop, so the reset runs
+  // from setTimeout after the current event has drained.
+  const LOOP_EXIT_MS = 720;
+  let loopGuard = false;
+  lenis.on('scroll', ({ scroll, limit }) => {
     hero?.timeline?.update(scroll);
+
+    if (loopGuard || !(limit > 0)) return;
+    if (scroll >= limit - 1) {
+      loopGuard = true;
+      const stage = document.querySelector('.footer__stage');
+      stage?.classList.add('is-leaving');
+      footer?.title?.glitchBurst?.();
+      setTimeout(() => {
+        lenis.scrollTo(0, { immediate: true, force: true, lock: false });
+        // Reform the facepack from a mid-explosion state and re-fire the hero
+        // title intro flicker. Use replay() not play() — the initial mount call
+        // sets running=true for ~5s and play() is a no-op while running.
+        // setActive(true) explicitly — ScrollTrigger's enter event for hero
+        // can miss the instant scroll reset, leaving the per-frame transform
+        // loop off so the pack stays frozen at its post-explosion state
+        // (invisible) until the user's first wheel tick fires hero.onEnter.
+        hero?.facePack?.setActive?.(true);
+        hero?.facePack?.playEntry?.();
+        // Reset the cell to the start of hero so the entry tween + emerging
+        // cell read like the page is being booted fresh.
+        webgl.shaderPlane.setShader('hero_grain');
+        webgl.shaderPlane.setProgress(0);
+        webgl.shaderPlane.setCellGrow(0);
+        hero?.title?.replay();
+        requestAnimationFrame(() => { loopGuard = false; });
+      }, LOOP_EXIT_MS);
+    }
   });
 
-  window.__niji = { lenis, webgl, orchestrator, hero, thinking, chaos, video, clients, awards, footer };
+  window.__niji = { lenis, webgl, orchestrator, hero, thinking, video, clients, awards, footer };
 }
 
 boot();

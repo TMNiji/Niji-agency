@@ -13,6 +13,11 @@ export class ShaderPlane {
     this.uniforms = {
       uTime:       { value: 0 },
       uProgress:   { value: 0 },
+      // Cell growth — 0 = invisible, 1 = default size, >1 = over-grown
+      // ("walking through" effect). Decoupled from uProgress so the prism
+      // handoff can keep the giant cell on screen while uProgress drives the
+      // prism's own bolt/rainbow phases independently.
+      uCellGrow:   { value: 0 },
       // Physical drawing-buffer size — gl_FragCoord uses physical pixels,
       // so uResolution must match to keep uv in the [0,1]² range.
       uResolution: { value: new THREE.Vector2(
@@ -46,6 +51,9 @@ export class ShaderPlane {
   }
 
   setProgress(v) { this.uniforms.uProgress.value = Math.max(0, Math.min(1, v)); }
+  // Continuous cell-growth driver. Clamped to [0, 3]: 0 = invisible,
+  // 1 = default size, 2–3 = balloon for the "walk-through" effect.
+  setCellGrow(v) { this.uniforms.uCellGrow.value = Math.max(0, Math.min(3, v)); }
   setMouseTarget(x, y) { this.mouseTarget.set(x, y); }
   resize(w, h) {
     // Keep uResolution in physical pixels (matches gl_FragCoord)
