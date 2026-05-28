@@ -59,7 +59,8 @@ void main() {
   float bgProg        = smoothstep(0.55, 0.95, uProgress);
 
   // ── Cell — visible at start (continuity with thinking), fades into bg ─────
-  col += drawCell(c, 1.0, energize) * cellFade;
+  // Same pointer parallax as hero_grain so the cell doesn't pop on shader swap.
+  col += drawCell(c - uMouse * 0.02, 1.0, energize) * cellFade;
 
   // ── White bolt — diagonal from off-screen bottom-left to cell centre ──────
   vec2 bFrom = vec2(-aspect * 0.54, -0.50);

@@ -2,9 +2,11 @@
 // (file `SITE-AGENCE`) one-to-one: layer order, positions, sizes, rotations,
 // and the centred `object-cover` crop that Figma applies to each photo.
 //
-// On scroll the pack explodes radially with per-fragment direction; on mouse
-// move the pack receives a soft, per-fragment parallax that fades as the
-// pack flies away.
+// On scroll the pack dives toward the camera — each fragment rushes forward
+// (+z) staggered by its layer depth, so the front planes blow past first and
+// the viewer punches through the stack layer by layer; a faint lateral drift
+// keeps it organic. On mouse move the pack receives a soft, per-fragment
+// parallax that fades as the pack flies away.
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { ease, prefersReducedMotion } from '@modules/motion.js';
@@ -105,6 +107,9 @@ function applyObjectCover(tex, sw, sh, dw, dh) {
 export function createFacePack({ webgl, imageSrcs = {} } = {}) {
   const scene  = new THREE.Scene();
   const loader = new THREE.TextureLoader();
+  // Front-most layer (highest render order) → depth 1; used to stagger the
+  // forward dive so closer planes reach the camera sooner.
+  const maxZ = Math.max(...FRAGS.map((f) => f.z));
 
   // Camera at distance such that 1 world-unit = 1 viewport-pixel at z=0
   let H = window.innerHeight;
@@ -147,6 +152,7 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       initRz: (f.rz * Math.PI) / 180,
       vx: f.vx, vy: f.vy, speed: f.speed,
       px: f.px, py: f.py,
+      depth: maxZ ? f.z / maxZ : 0,
     };
     return mesh;
   });
@@ -186,30 +192,38 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     // the middle so the motion tracks the scroll (scrubbed, not front-loaded).
     // Reduced motion: fragments stay put and only cross-fade into the cell.
     const move = reduced ? 0 : ease.smoothstep(p);
-    // Opacity drive reaches 1 by p≈0.82 so the fragments have cleared as the
-    // cell finishes revealing (shader reveal completes ~0.9), no visible gap.
-    const fade = ease.smoothstep(Math.min(1, p / 0.82));
+    // Fragments hold full opacity through the early/mid dive, then dissolve
+    // late (clear by p≈0.95) so the "punch through" reads while they balloon
+    // past the camera — the resolving cell shows through the fading planes.
+    // The shader cell finishes revealing ~0.90, so they overlap briefly by design.
+    const fade = ease.smoothstep(Math.max(0, Math.min(1, (p - 0.40) / 0.55)));
 
     const reach   = Math.max(window.innerWidth, window.innerHeight);
-    const forward = camZ * 0.78 * move;
-    // Parallax fades out as the pack explodes away.
+    // Distance the stack travels toward the camera (which sits at z=camZ).
+    const dive    = camZ * move;
+    // Parallax fades out as the pack flies past.
     const parallaxFade = 1 - move;
 
     meshes.forEach((mesh) => {
       const d = mesh.userData;
-      const tx = d.vx * reach * move * d.speed * 0.62;
-      const ty = d.vy * reach * move * d.speed * 0.44;
+      // Faint outward drift only — the motion is now front-to-back, not radial.
+      const tx = d.vx * reach * move * 0.11;
+      const ty = d.vy * reach * move * 0.09;
 
       const mpx =  d.px * mouse.x * parallaxFade;
       const mpy = -d.py * mouse.y * parallaxFade;
 
-      mesh.position.set(d.ox + tx + mpx, d.oy + ty + mpy, d.oz + forward * d.speed);
+      // Depth-staggered rush toward the camera: front planes (depth→1) reach
+      // ~0.9·camZ and balloon past the viewer first, back planes lag at ~0.45,
+      // selling the "navigating through layers" dive.
+      const forward = dive * (0.45 + 0.45 * d.depth);
+      mesh.position.set(d.ox + tx + mpx, d.oy + ty + mpy, d.oz + forward);
 
-      // Y-axis card-flip proportional to horizontal travel (key 3D feel)
-      const rotY = d.vx * Math.PI * 0.52 * move;
-      // X-axis tilt proportional to vertical travel
-      const rotX = d.vy * Math.PI * 0.25 * move;
-      mesh.rotation.set(rotX, rotY, d.initRz + d.vx * 0.32 * move);
+      // Planes stay nearly camera-facing as they pass — just a subtle flutter
+      // so they don't read as dead-flat sprites.
+      const rotY = d.vx * Math.PI * 0.12 * move;
+      const rotX = d.vy * Math.PI * 0.08 * move;
+      mesh.rotation.set(rotX, rotY, d.initRz + d.vx * 0.10 * move);
 
       mesh.material.opacity = Math.max(0, 1 - fade);
     });

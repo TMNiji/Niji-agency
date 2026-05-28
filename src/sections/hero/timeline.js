@@ -23,18 +23,30 @@ const TICK_W_PEAK = 40;  // width of the centre tick at the heart of the cluster
 const TICK_BUFFER = 16;  // extra ticks created beyond the last reachable scroll position
 
 // Cluster — a soft magnifier centred on the strip. Ticks within CLUSTER_RADIUS
-// of the centre swell in width + brightness by a raised-cosine falloff: 1 at the
-// centre, easing to 0 at the edge. Being a rounded dome (not linear ramps) the
-// width changes gently and never dips below base, so there's no triangular
-// chevron strobing when the ruler flows through fast.
+// of the centre swell in width + brightness, easing from 1 at the centre to 0 at
+// the edge. The falloff is the average of a linear ramp (triangular, sharp peak)
+// and a raised cosine (round, flat dome) — halfway between the two so the peak
+// keeps some definition without the chevron strobing a pure triangle gives, and
+// without the over-soft mushiness of a pure dome.
 const CLUSTER_RADIUS = 3;  // ticks each side of centre the dome reaches
 const TICK_A_BASE = 0.16;  // base brightness (matches the CSS dim value)
 const TICK_A_PEAK = 0.90;  // brightness of the centre tick
 
 function clusterFalloff(d) {
   if (d >= CLUSTER_RADIUS) return 0;
-  return 0.5 * (1 + Math.cos((d / CLUSTER_RADIUS) * Math.PI));
+  const x = d / CLUSTER_RADIUS;                    // 0 at centre → 1 at edge
+  const triangular = 1 - x;                        // linear ramp — sharp peak
+  const round = 0.5 * (1 + Math.cos(x * Math.PI)); // raised cosine — flat dome
+  return 0.5 * (triangular + round);               // halfway between the two
 }
+
+// Small right-pointing arrow revealed beside a label on hover — signals the
+// label is clickable. Inherits text colour via currentColor; sized in em so it
+// scales with whatever element it sits in (timeline label or footer CTA).
+const ARROW_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg>';
 
 // Label slots. A label at its centre slot (slotPos 0) is brightest; the prev/
 // next labels rest at the edge slots (slotPos ±1) dimmer; beyond ±1 they fade
@@ -84,7 +96,9 @@ export function createTimeline({ labels } = {}) {
   const sectionLabelEls = labels.map((text, i) => {
     const s = document.createElement('button');
     s.className = 'hero-timeline__section-label';
-    s.textContent = text;
+    s.innerHTML =
+      `<span class="hero-timeline__section-text">${text}</span>` +
+      `<span class="hero-timeline__section-arrow">${ARROW_SVG}</span>`;
     s.style.opacity = '0'; // real value set by update() once positions are measured
     s.addEventListener('click', () => {
       const start = sectionScrollStarts[i];

@@ -4,7 +4,15 @@ import { createTitle }    from './title.js';
 import { createFacePack } from './facePack.js';
 import { ease }           from '@modules/motion.js';
 
-const DEFAULT_TITLE = 'We make products for humans & AGENTS';
+// Four stacked lines, each with its own size/alignment (see hero.css). A CMS
+// `hero.title` with explicit line breaks overrides this; a plain (unbroken)
+// CMS string keeps the designed layout below.
+const DEFAULT_LINES = [
+  { text: 'We',            cls: 'hero-title__line--we' },
+  { text: 'Make products', cls: 'hero-title__line--make' },
+  { text: 'for humans',    cls: 'hero-title__line--humans' },
+  { text: '&AGENTS',       cls: 'hero-title__line--agents' },
+];
 
 export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null } = {}) {
   const section = container.querySelector('[data-section="hero"]');
@@ -33,7 +41,11 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
 
   const header   = createHeader();
   const timeline = createTimeline({ labels: sectionLabels });
-  const title    = createTitle({ text: content?.hero?.title ?? DEFAULT_TITLE });
+  const cmsTitle = content?.hero?.title;
+  const lines    = cmsTitle?.includes('\n')
+    ? cmsTitle.split('\n').map((text) => ({ text }))
+    : DEFAULT_LINES;
+  const title    = createTitle({ lines });
   const facePack = createFacePack({ webgl, imageSrcs });
 
   section.innerHTML = '';
@@ -61,11 +73,15 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     webgl?.shaderPlane?.setProgress(progress);
 
     // Dissolve the title in lockstep with the fragments (same curves as
-    // facePack.js): opacity tracks `fade` (gone ~0.82), drift tracks `move`.
-    const fade = ease.smoothstep(Math.min(1, progress / 0.82));
+    // facePack.js): opacity holds, then tracks `fade` (gone ~0.95), drift `move`.
+    const fade = ease.smoothstep(Math.max(0, Math.min(1, (progress - 0.40) / 0.55)));
     const move = ease.smoothstep(progress);
     title.el.style.opacity   = String(Math.max(0, 1 - fade).toFixed(3));
     title.el.style.transform = `scale(${(1 + move * 0.05).toFixed(4)}) translateY(${(-move * 28).toFixed(1)}px)`;
+    // Once faded out the title is invisible but, with pointer-events:auto, it
+    // still sits above the thinking section (hero z-index:2 > thinking:1) and
+    // would swallow clicks meant for the orbital dots behind it.
+    title.el.style.pointerEvents = (1 - fade) > 0.02 ? 'auto' : 'none';
   });
 
   return { section, header, timeline, title, facePack };

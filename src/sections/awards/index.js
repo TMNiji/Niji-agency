@@ -1,7 +1,7 @@
 // Awards section — a compact, editorial "modern interactive list" of the
 // distinctions Niji has won. A large two-line heading sits on the left; the
-// list is pinned to the right. Hovering a row brightens it, dims the rest, and
-// reveals two placeholder preview images in the empty space beside the list.
+// list is pinned to the right. Hovering a row brightens just that row (CSS
+// :hover) — no list-wide dimming.
 // There is no per-row link (no "see case") — the awards have no subpages.
 //
 // Lives in a fixed stage toggled visible on enter (like clients/video).
@@ -29,9 +29,12 @@ export function mountAwards({
   if (!section) return null;
   section.classList.add('awards');
 
+  // Hoisted to <body> (not the section) so its z-index:9995 escapes #app's
+  // stacking context and sits above the #noise overlay — the text stays crisp
+  // while the WebGL backdrop behind it keeps its grain.
   const stage = document.createElement('div');
   stage.className = 'awards__stage';
-  section.appendChild(stage);
+  document.body.appendChild(stage);
 
   const inner = document.createElement('div');
   inner.className = 'awards__inner';
@@ -53,10 +56,7 @@ export function mountAwards({
   list.className = 'awards__list';
   inner.appendChild(list);
 
-  const rows = awards.map((award, i) => {
-    // Cool blue → purple → pink ramp, matching the site's palette.
-    const hue = Math.round(212 + (i / Math.max(1, awards.length - 1)) * 118);
-
+  awards.forEach((award) => {
     const row = document.createElement('div');
     row.className = 'awards__row';
     row.innerHTML = `
@@ -67,55 +67,16 @@ export function mountAwards({
       </span>
     `;
     list.appendChild(row);
-
-    // Two placeholder image gradients per award — swap for real thumbnails later.
-    const grad1 = `linear-gradient(150deg, hsl(${hue}, 72%, 58%) 0%, hsl(${hue + 40}, 66%, 40%) 100%)`;
-    const grad2 = `linear-gradient(150deg, hsl(${hue + 28}, 70%, 56%) 0%, hsl(${hue + 72}, 64%, 40%) 100%)`;
-    row.addEventListener('pointerenter', () => onRowEnter(row, grad1, grad2));
-    return row;
   });
 
-  // ── Hover preview — two placeholder images revealed beside the list ────────
-  const preview = document.createElement('div');
-  preview.className = 'awards__preview';
-  preview.setAttribute('aria-hidden', 'true');
-  preview.innerHTML = `
-    <span class="awards__preview-img awards__preview-img--1"></span>
-    <span class="awards__preview-img awards__preview-img--2"></span>
-  `;
-  stage.appendChild(preview);
-  const img1 = preview.querySelector('.awards__preview-img--1');
-  const img2 = preview.querySelector('.awards__preview-img--2');
-
-  let activeRow = null;
-
-  // Highlight the entered row, dim the rest, and reveal its two placeholder
-  // images. List-level leave clears it — so moving row-to-row never flickers
-  // the dim state off and on.
-  function onRowEnter(row, grad1, grad2) {
-    if (activeRow && activeRow !== row) activeRow.classList.remove('is-active');
-    row.classList.add('is-active');
-    activeRow = row;
-    list.classList.add('is-hovering');
-    img1.style.backgroundImage = grad1;
-    img2.style.backgroundImage = grad2;
-    preview.classList.add('is-visible');
-  }
-
-  function onListLeave() {
-    activeRow?.classList.remove('is-active');
-    activeRow = null;
-    list.classList.remove('is-hovering');
-    preview.classList.remove('is-visible');
-  }
-  list.addEventListener('pointerleave', onListLeave);
-
+  // Hover is purely per-row via CSS :hover — each award highlights on its own,
+  // with no effect on its siblings (no list-wide dimming).
   return {
     section,
-    // main.js toggles this on section enter/leave; clear any hover on leave.
-    setActive(on) { if (!on) onListLeave(); },
-    destroy() {
-      list.removeEventListener('pointerleave', onListLeave);
-    },
+    // main.js calls this on section enter/leave. Toggling is-visible on the
+    // (body-level) stage drives both the fade/entrance and pointer-events, so
+    // :hover can't fire off-screen.
+    setActive(on) { stage.classList.toggle('is-visible', on); },
+    destroy() { stage.remove(); },
   };
 }

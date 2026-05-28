@@ -7,6 +7,8 @@ precision highp float;
 uniform float uTime;
 uniform float uProgress;
 uniform vec2  uResolution;
+// Smoothed pointer in [-1,1]² (centre = 0). Drives a subtle background parallax.
+uniform vec2  uMouse;
 
 // ── Noise utilities ────────────────────────────────────────────────────────
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -93,6 +95,11 @@ vec3 drawCell(vec2 cUv, float reveal, float energize) {
 
   float dc = length(cUv);
 
+  // Reveal shaping — the bloom/halo ignites first and the crisp body resolves
+  // last, so the cell lights up like a point source rather than fading in flat.
+  float rGlow = smoothstep(0.0,  0.85, reveal);
+  float rBody = smoothstep(0.40, 1.0,  reveal);
+
   // Outer faint field — large dim disk that reads as cell territory.
   float outerField = softDisk(dc, 0.0, CELL_FIELD_R) * 0.06;
   // Crisp soft ring at the field boundary.
@@ -102,6 +109,17 @@ vec3 drawCell(vec2 cUv, float reveal, float energize) {
   float glow       = softDisk(dc, 0.0, CELL_GLOW_R) * 0.16;
   float glowRing   = smoothstep(0.006, 0.0, abs(dc - CELL_GLOW_R)) * 0.16;
 
+  // Exponential bloom — soft diffraction-style light falloff from the core.
+  // A tight inner kernel plus a wide low halo give the cell a luminous, lit feel.
+  float bloom = exp(-dc * 9.0) * 0.45 + exp(-dc * 3.4) * 0.16;
+
+  // Diffraction rings — faint concentric interference in the halo, slowly
+  // breathing via uTime so the light reads as alive rather than static.
+  float ringWave = max(sin(dc * 115.0 - uTime * 0.5), 0.0);
+  float rings    = ringWave
+                 * smoothstep(CELL_FIELD_R, CELL_GLOW_R * 0.8, dc)
+                 * smoothstep(CELL_R * 0.8, CELL_GLOW_R,        dc) * 0.045;
+
   // Cell body — bright crisp disk with a soft outer falloff.
   float body       = softDisk(dc, CELL_R * 0.92, CELL_R * 1.04) * 0.78;
   float bodySoft   = softDisk(dc, CELL_R, CELL_R * 1.65) * 0.18;
@@ -109,10 +127,10 @@ vec3 drawCell(vec2 cUv, float reveal, float energize) {
   // Nucleolus — tiny bright core dot at centre.
   float nucleolus  = softDisk(dc, NUCLEOLUS_R * 0.6, NUCLEOLUS_R * 1.15) * 1.00;
 
-  float intensity = outerField + outerRing
-                  + glow + glowRing
-                  + body + bodySoft
-                  + nucleolus;
+  // Halo/light terms ignite on rGlow; crisp body terms resolve on rBody.
+  float glowI = bloom + outerField + outerRing + glow + glowRing + rings + bodySoft;
+  float bodyI = body + nucleolus;
+  float intensity = glowI * rGlow + bodyI * rBody;
 
   vec3 col = vec3(intensity);
 
@@ -120,7 +138,7 @@ vec3 drawCell(vec2 cUv, float reveal, float energize) {
   col += vec3(1.0) * exp(-dc * dc * 50.0) * energize * 1.4;
   col += vec3(1.0) * softDisk(dc, 0.0, CELL_R * 1.2) * energize * 0.35;
 
-  return col * reveal;
+  return col;
 }
 
 // ── Cinematic vignette — darken edges, leave cell untouched ───────────────

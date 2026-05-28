@@ -26,7 +26,6 @@ export function createFolderCard({
       <div class="folder-card__spacer"></div>
       <div class="folder-card__footer">
         <div class="folder-card__close" aria-hidden="true">×</div>
-        <div class="folder-card__dot"></div>
       </div>
     </div>
   `;

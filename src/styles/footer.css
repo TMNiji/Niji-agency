@@ -1,0 +1,85 @@
+/* ── Contact section — a single mailto link pinned in a fixed stage, over the
+   shared WebGL background. The address reuses the hero title's font-glitch (see
+   title.js): per-letter spans are width-locked so a font swap morphs the glyph
+   without shifting neighbours. */
+
+.footer {
+  position: relative;
+  z-index: 2;
+}
+
+/* Fixed stage — viewport-pinned, transparent so the WebGL backdrop shows
+   through. Hidden by default; only the active section's stage fades in. */
+.footer__stage {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12vh clamp(24px, 6vw, 120px);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 350ms ease;
+}
+
+.footer.is-visible .footer__stage {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.footer__email {
+  position: relative;
+  display: inline-block;
+  text-decoration: none;
+  color: #fff;
+}
+
+/* Underline grows from the left on hover. */
+.footer__email::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.06em;
+  height: 0.05em;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 320ms var(--ease-out-expo);
+}
+
+.footer__email:hover::after { transform: scaleX(1); }
+
+.footer-email {
+  display: block;
+  width: max-content;
+  max-width: 94vw;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 9.5vw, 11rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.footer-email__line { display: block; white-space: nowrap; text-align: center; }
+
+/* Width-locked letter box (width set from JS = its N27 advance) so a glitch
+   swaps only the glyph — the wider/narrower face overflows centred. */
+.footer-email__char {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  overflow: visible;
+}
+
+/* Decorative faces a glitched letter flips to (shared with the hero title). */
+.footer-email__char--niconne { font-family: 'Niconne', cursive; }
+.footer-email__char--rubik   { font-family: 'Rubik80sFade', var(--font); }
+
+/* Reuse the hero title's blink keyframe (defined in hero.css) for the flicker. */
+.footer-email__char.is-glitch {
+  animation: hero-title-glitch 560ms steps(1, end);
+}

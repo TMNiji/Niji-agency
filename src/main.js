@@ -8,6 +8,7 @@ import { mountChaos }         from './sections/chaos/index.js';
 import { mountVideo }         from './sections/video/index.js';
 import { mountClients }       from './sections/clients/index.js';
 import { mountAwards }        from './sections/awards/index.js';
+import { mountFooter }        from './sections/footer/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
 
@@ -60,11 +61,20 @@ const SECTIONS = [
     label: 'AWARDS',
     triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
-    // 'bottom top' (not 'bottom bottom') so the trigger's end sits past the
-    // document bottom — awards stays revealed while the user rests at the very
-    // bottom. It's a hover list with no scroll-scrubbed progress, so only the
-    // enter/leave edges matter. awards.css pulls this section up 100vh to sit
-    // over clients' trailing tail (no dark gap between the two).
+    // 'bottom top' so awards stays revealed across its whole region, then hands
+    // off to contact (the terminal section) as the user scrolls past. It's a
+    // hover list with no scroll-scrubbed progress, so only the enter/leave edges
+    // matter. awards.css pulls this section up 100vh to sit over clients'
+    // trailing tail (no dark gap between the two).
+    triggerEnd: 'bottom top',
+  },
+  {
+    id: 'contact',
+    label: 'CONTACT',
+    triggerHeight: SECTION_HEIGHT,
+    triggerStart: 'top top',
+    // Terminal section — 'bottom top' puts the trigger end past the document
+    // bottom so contact stays revealed while the user rests at the very bottom.
     triggerEnd: 'bottom top',
   },
 ];
@@ -118,6 +128,7 @@ async function boot() {
   const video    = mountVideo({ container: root, orchestrator });
   const clients  = mountClients({ container: root, orchestrator });
   const awards   = mountAwards({ container: root });
+  const footer   = mountFooter({ container: root });
 
   // Section-label clicks navigate the page. Use a smooth, eased scroll (not an
   // instant jump) so the user sees the sections animate on the way there.
@@ -136,8 +147,19 @@ async function boot() {
   // owns its own inline styles via these setters — no cross-module DOM poking.
   const setUIVisible = (visible) => {
     thinking?.orbital?.setOpacity(visible);
-    thinking?.setPanelOpacity?.(visible);
+    thinking?.setServicesOpacity?.(visible);
   };
+
+  // ── Explore-with-AI bar — visible on every section except hero and contact.
+  // Shares the bottom-right panel with the service dropdowns but carries its own
+  // `ai-on` class, so it persists across the middle sections while the dropdowns
+  // stay BUILD-only. Each section's onEnter (fired in both scroll directions)
+  // sets the state, so no separate onLeave bookkeeping is needed.
+  const setAiVisible = (on) => thinking?.rightPanel?.classList.toggle('ai-on', on);
+  ['thinking', 'chaos', 'video', 'clients', 'awards'].forEach((id) =>
+    orchestrator.onEnter(id, () => setAiVisible(true)));
+  ['hero', 'contact'].forEach((id) =>
+    orchestrator.onEnter(id, () => setAiVisible(false)));
 
   orchestrator.onProgress('thinking', ({ progress }) => {
     if (progress >= PRISM_THRESHOLD) {
@@ -187,8 +209,8 @@ async function boot() {
   orchestrator.onEnter('video', () => setActive('video', true));
   orchestrator.onLeave('video', () => setActive('video', false));
 
-  orchestrator.onEnter('clients', () => { setActive('clients', true); clients?.setActive(true); });
-  orchestrator.onLeave('clients', () => { setActive('clients', false); clients?.setActive(false); });
+  orchestrator.onEnter('clients', () => clients?.setActive(true));
+  orchestrator.onLeave('clients', () => clients?.setActive(false));
 
   // Awards — reveal the DOM stage, run its cursor-follow loop, and crossfade the
   // WebGL backdrop (the dark radial + grain lives in the `awards` shader). Tweening
@@ -206,16 +228,20 @@ async function boot() {
     });
 
   orchestrator.onEnter('awards', () => {
-    setActive('awards', true);
     awards?.setActive(true);
     webgl.shaderPlane.setShader('awards');
     tweenAwardsBg(1);
   });
   orchestrator.onLeave('awards', () => {
-    setActive('awards', false);
     awards?.setActive(false);
     tweenAwardsBg(0, () => webgl.shaderPlane.setShader('hero_grain'));
   });
+
+  // Contact — terminal section. Reveal the stage and run the title's font-glitch
+  // once on first enter. The WebGL backdrop is left to awards' leave handoff (it
+  // settles on the dark hero_grain), so the white email reads over the kept bg.
+  orchestrator.onEnter('contact', () => { setActive('contact', true); footer?.setActive(true); });
+  orchestrator.onLeave('contact', () => setActive('contact', false));
 
   // ── Pause offscreen per-frame work ───────────────────────────────────────
   // The face pack only matters while hero is on screen; stop ticking it once
@@ -236,7 +262,7 @@ async function boot() {
     hero?.timeline?.update(scroll);
   });
 
-  window.__niji = { lenis, webgl, orchestrator, hero, thinking, chaos, video, clients, awards };
+  window.__niji = { lenis, webgl, orchestrator, hero, thinking, chaos, video, clients, awards, footer };
 }
 
 boot();

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { SHADER_PRESETS } from '@shaders/index.js';
+import { prefersReducedMotion } from '@modules/motion.js';
 
 export class ShaderPlane {
   constructor({ renderer, initialShader = 'hero_grain' } = {}) {
@@ -18,7 +19,10 @@ export class ShaderPlane {
         window.innerWidth  * dpr,
         window.innerHeight * dpr,
       ) },
+      // Pointer in [-1,1]², eased toward mouseTarget each frame in render().
+      uMouse: { value: new THREE.Vector2(0, 0) },
     };
+    this.mouseTarget = new THREE.Vector2(0, 0);
     this.geometry = new THREE.PlaneGeometry(2, 2);
     this.material = null;
     this.mesh = null;
@@ -42,6 +46,7 @@ export class ShaderPlane {
   }
 
   setProgress(v) { this.uniforms.uProgress.value = Math.max(0, Math.min(1, v)); }
+  setMouseTarget(x, y) { this.mouseTarget.set(x, y); }
   resize(w, h) {
     // Keep uResolution in physical pixels (matches gl_FragCoord)
     const dpr = this.renderer.getPixelRatio();
@@ -51,6 +56,8 @@ export class ShaderPlane {
   render() {
     this.timer.update();
     this.uniforms.uTime.value = this.timer.getElapsed();
+    // Soft, weighted follow toward the latest pointer position.
+    this.uniforms.uMouse.value.lerp(this.mouseTarget, 0.06);
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -97,6 +104,17 @@ export function initWebGL({ canvas, initialShader = 'hero_grain' } = {}) {
   };
   window.addEventListener('resize', handleResize, { passive: true });
 
+  // Subtle pointer parallax — feed normalised coords to the shader plane. Skip
+  // entirely under reduced-motion (the pointer stays centred, so no drift).
+  const handleMouse = (e) => {
+    shaderPlane.setMouseTarget(
+      (e.clientX / window.innerWidth)  * 2 - 1,
+      -((e.clientY / window.innerHeight) * 2 - 1),
+    );
+  };
+  const mouseEnabled = !prefersReducedMotion();
+  if (mouseEnabled) window.addEventListener('mousemove', handleMouse, { passive: true });
+
   return {
     renderer,
     shaderPlane,
@@ -110,6 +128,7 @@ export function initWebGL({ canvas, initialShader = 'hero_grain' } = {}) {
     destroy() {
       gsap.ticker.remove(renderTick);
       window.removeEventListener('resize', handleResize);
+      if (mouseEnabled) window.removeEventListener('mousemove', handleMouse);
       shaderPlane.dispose();
       renderer.dispose();
     },
