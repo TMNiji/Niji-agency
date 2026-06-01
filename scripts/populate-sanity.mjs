@@ -212,7 +212,15 @@ async function main() {
       list: awardList,
     },
     contact: {
-      email: 'contact@niji.fr',
+      headline: [
+        'Question rapide, demandez à une IA.',
+        'Sujet sérieux, demandez à un humain.',
+      ],
+      contacts: [
+        { _type: 'contactEntry', topic: 'Pour parler burning platform et impact P&L global', email: 'yv.corbeil@niji.fr' },
+        { _type: 'contactEntry', topic: 'Pour parler AI commerce, conversion, refonte e-commerce', email: 'nicolas.prudhomme@niji.fr' },
+        { _type: 'contactEntry', topic: 'Pour parler produit, branding et agents IA', email: 'chris.de-abreu@niji.fr' },
+      ],
       loopLabel: 'Keep scrolling — back to start',
       aiLinks: AI_LINKS,
     },

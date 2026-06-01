@@ -163,7 +163,9 @@
       "Bash(curl -s -o /dev/null -w \"prod homepage: %{http_code}\\\\n\" https://niji-agency-v3.vercel.app/)",
       "Bash(curl -s -o /dev/null -w \"anon CMS read: %{http_code}\\\\n\" \"https://kpguac1f.apicdn.sanity.io/v2024-01-01/data/query/production?query=%2A%5B_type%3D%3D%22homePage%22%5D%5B0%5D%7B_id%7D\")",
       "Bash(cd \"/Users/titouan.mazurier/Documents/Niji/Niji Agency V3\" && cp \"/Users/titouan.mazurier/Documents/Niji/assets niji v3/strat_square.glb\" public/awards/strat_square.glb && ls -la public/awards/strat_square.glb)",
-      "Bash(node scripts/update-awards.mjs)"
+      "Bash(node scripts/update-awards.mjs)",
+      "mcp__Sanity__whoami",
+      "mcp__Sanity__get_document"
     ]
   }
 }

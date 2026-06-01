@@ -347,7 +347,30 @@ export default {
       type: 'object',
       group: 'contact',
       fields: [
-        { name: 'email', title: 'Email', type: 'string' },
+        {
+          name: 'headline',
+          title: 'Headline',
+          description: 'Glitching headline (array of lines for stacking).',
+          type: 'array',
+          of: [{ type: 'string' }],
+        },
+        {
+          name: 'contacts',
+          title: 'Named contacts',
+          description: 'Contact entries with topic line and mailto address.',
+          type: 'array',
+          of: [
+            {
+              type: 'object',
+              name: 'contactEntry',
+              fields: [
+                { name: 'topic', title: 'Topic', type: 'string', validation: (R) => R.required() },
+                { name: 'email', title: 'Email', type: 'string', validation: (R) => R.required() },
+              ],
+              preview: { select: { title: 'topic', subtitle: 'email' } },
+            },
+          ],
+        },
         { name: 'loopLabel', title: 'Loop CTA label', description: 'Bottom-centre "back to start" hint.', type: 'string' },
         aiLinksObject,
       ],
