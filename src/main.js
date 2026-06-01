@@ -27,7 +27,7 @@ const SECTIONS = [
   },
   {
     id: 'thinking',
-    label: 'BUILD',
+    label: 'THINKING',
     triggerHeight: SECTION_HEIGHT,
     triggerStart: 'top top',
     triggerEnd: 'bottom top',
@@ -120,7 +120,12 @@ async function boot() {
     container: root, orchestrator, webgl, sectionLabels, content: sanityContent,
   });
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
-  const video    = mountVideo({ container: root, orchestrator });
+  // DESIGN section — scroll-scrubbed image sequence (see video/index.js).
+  const video    = mountVideo({
+    container: root,
+    orchestrator,
+    frames: { base: '/video/frames/frame_', pad: 4, ext: 'webp', count: 494 },
+  });
   const clients  = mountClients({ container: root, orchestrator });
   const awards   = mountAwards({ container: root, webgl });
   const footer   = mountFooter({ container: root, content: sanityContent });
@@ -196,12 +201,29 @@ async function boot() {
   // scroll direction.
   orchestrator.onEnter('video', () => {
     setActive('video', true);
+    // Far-preview the clients card stack while the video still plays so the
+    // first cards are already drifting in from the top-right — the video →
+    // clients boundary then reads as one continuous motion rather than a cut.
+    clients?.setPreview(true);
     webgl.shaderPlane.setShader('prism');
     webgl.shaderPlane.setProgress(1);
     prismActive = true;
     setUIVisible(0);
   });
-  orchestrator.onLeave('video', () => setActive('video', false));
+  orchestrator.onLeave('video', ({ direction }) => {
+    setActive('video', false);
+    // Leaving UP (back toward thinking): tear down the clients preview. Leaving
+    // DOWN (into clients): keep it — clients.onEnter takes over the same visible
+    // stack at scrollProgress 0, so the handoff stays seamless.
+    if (direction === 'up') clients?.setPreview(false);
+  });
+  // Across the LAST THIRD of the video scroll, glide the clients stack from its
+  // parked pre-roll position down into frame. video progress 1.0 coincides with
+  // clients' onEnter at scrollProgress 0, so the cards land exactly where the
+  // clients scroll begins — the section boundary reads as one continuous motion.
+  orchestrator.onProgress('video', ({ progress }) => {
+    clients?.setPreviewProgress((progress - 0.66) / 0.34);
+  });
 
   // Clients enter: drop the rainbow prism (carried over from DESIGN) back to
   // the dark hero_grain so the cards read crisp on a calm backdrop. This is the
@@ -210,25 +232,43 @@ async function boot() {
   // clients/index.js — driven by scrollProgress via --clients-warmth).
   orchestrator.onEnter('clients', () => {
     clients?.setActive(true);
+    // Park the awards trophy cloud far in the background so it reads as distant
+    // specks behind the cards — the clients → awards reveal then plays as the
+    // cloud flying in from depth instead of popping into being.
+    awards?.setFarPreview(true);
     webgl.shaderPlane.setShader('hero_grain');
     webgl.shaderPlane.setProgress(0);
     // Cell is invisible on the clients backdrop — uCellGrow=0 collapses it.
     webgl.shaderPlane.setCellGrow(0);
     prismActive = false;
   });
-  orchestrator.onLeave('clients', () => clients?.setActive(false));
+  orchestrator.onLeave('clients', ({ direction }) => {
+    clients?.setActive(false);
+    // Leaving UP (back toward video): tear down the far preview. Leaving DOWN
+    // (into awards): keep the cloud — awards.onEnter takes over the same visible
+    // cloud and glides it in, so the handoff stays seamless.
+    if (direction === 'up') awards?.setFarPreview(false);
+  });
+  // Across the LAST THIRD of the clients scroll, glide the awards cloud forward
+  // from its deep preview depth to FAR_Z so the trophies are already visibly
+  // approaching as clients ends. clients progress 1.0 coincides with awards'
+  // onEnter, so the cloud lands at FAR_Z exactly where the awards scroll-approach
+  // begins — the section boundary reads as one continuous motion, no jump.
+  orchestrator.onProgress('clients', ({ progress }) => {
+    awards?.setPreviewApproach((progress - 0.66) / 0.34);
+  });
 
   // Awards — share the clients backdrop exactly (hero_grain shader with cell
   // hidden) so the two sections read as one continuous dark stage; the
   // previous bespoke `awards` shader carried a gold mouse-halo + a black
   // crossfade tween that the user wanted dropped.
-  orchestrator.onEnter('awards', () => {
-    awards?.setActive(true);
-    // Reset scroll-driven depth so the cloud always enters from FAR_Z and
-    // zooms in across the section's first half. Without this, an onEnter
-    // before the first onProgress would leave the cloud at the previous
-    // scroll's depth value.
-    awards?.setScrollProgress(0);
+  orchestrator.onEnter('awards', ({ direction }) => {
+    awards?.setActive(true, direction);
+    // Fresh downward entry: reset scroll-driven depth so the cloud always
+    // enters from FAR_Z and zooms in across the section's first half. On
+    // reverse entry (scrolling back up from contact) skip the reset so the
+    // trophies glide back from where they exited instead of snapping far.
+    if (direction === 'down') awards?.setScrollProgress(0);
     webgl.shaderPlane.setShader('hero_grain');
     webgl.shaderPlane.setProgress(0);
     webgl.shaderPlane.setCellGrow(0);
@@ -273,7 +313,13 @@ async function boot() {
   // The face pack only matters while hero is on screen; stop ticking it once
   // it has exploded away (re-arms when scrolling back up into hero).
   orchestrator.onEnter('hero', () => hero?.facePack?.setActive(true));
-  orchestrator.onLeave('hero', () => hero?.facePack?.setActive(false));
+  // Only deactivate when leaving DOWNWARD (past the bottom of hero) — setActive
+  // (false) snaps the pack to its post-dive (off-screen) pose so it doesn't
+  // cover the next section. Leaving BACK UP happens at the very top (scroll 0)
+  // where the pack should stay at rest and visible, so skip the snap there.
+  orchestrator.onLeave('hero', ({ direction }) => {
+    if (direction === 'down') hero?.facePack?.setActive(false);
+  });
 
   orchestrator.refresh();
 

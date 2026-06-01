@@ -99,28 +99,31 @@ void main() {
   col += rbCol * (band * 0.88 * bandFade + glow * 0.20 * glowFade)
        * fwd * rainbowAppear;
 
-  // ── Three-colour atmospheric background — chaos section's resting state ──
-  // Heavily blurred large blobs in fixed positions create the smooth gradient
-  // from the storyboard: deep purple cool side, pink centre, orange warm side.
+  // ── Atmospheric background — DESIGN resting state ────────────────────────
+  // Dark field with a warm orange glow left-of-centre, a cool teal glow on the
+  // right that bleeds downward, and a bright warm light-leak near bottom-centre.
   // Slow drift gives the atmosphere life without distracting from UI content.
-  //   blurFalloff = 0.55 → blobs extend ~1.5 viewport heights before fading
-  //                       out, ensuring full screen coverage at any aspect.
+  // Larger falloff = tighter blob; the dark backdrop reads through everywhere
+  // the glows don't reach, keeping the field near-black like the storyboard.
   float ta = uTime * 0.04;
-  vec2 posPurple = vec2(-0.40 * aspect + cos(ta)       * 0.03,
-                         0.00          + sin(ta * 0.7) * 0.04);
-  vec2 posPink   = vec2( 0.05 * aspect + cos(ta + 2.1) * 0.04,
-                        -0.08          + sin(ta * 0.8 + 1.5) * 0.05);
-  vec2 posOrange = vec2( 0.42 * aspect + cos(ta + 4.2) * 0.03,
-                         0.14          + sin(ta * 0.6 + 3.0) * 0.04);
+  vec2 posOrange = vec2(-0.18 * aspect + cos(ta)           * 0.03,
+                        -0.14          + sin(ta * 0.7)     * 0.04);
+  vec2 posTeal   = vec2( 0.30 * aspect + cos(ta + 2.1)     * 0.04,
+                        -0.22          + sin(ta * 0.8 + 1.5) * 0.05);
+  vec2 posLeak   = vec2(-0.04 * aspect + cos(ta + 4.2)     * 0.02,
+                        -0.46          + sin(ta * 0.6 + 3.0) * 0.03);
 
-  float blurFalloff = 0.55;  // smaller = wider blobs = more diffuse blur
-  float fPurple = exp(-dot(c - posPurple, c - posPurple) * blurFalloff);
-  float fPink   = exp(-dot(c - posPink,   c - posPink)   * blurFalloff);
-  float fOrange = exp(-dot(c - posOrange, c - posOrange) * blurFalloff);
+  float dO = dot(c - posOrange, c - posOrange);
+  float dT = dot(c - posTeal,   c - posTeal);
+  float dL = dot(c - posLeak,   c - posLeak);
 
-  col += vec3(0.506, 0.278, 0.961) * fPurple * bgProg * 0.70; // #8147F5
-  col += vec3(0.984, 0.373, 0.702) * fPink   * bgProg * 0.62; // #FB5FB3
-  col += vec3(1.000, 0.635, 0.000) * fOrange * bgProg * 0.75; // #FFA200
+  float fOrange = exp(-dO * 4.5);
+  float fTeal   = exp(-dT * 4.0);
+  float fLeak   = exp(-dL * 11.0) + exp(-dL * 4.0) * 0.25;
+
+  col += vec3(0.88, 0.36, 0.13) * fOrange * bgProg * 0.80; // warm orange
+  col += vec3(0.16, 0.45, 0.52) * fTeal   * bgProg * 0.65; // cool teal
+  col += vec3(1.00, 0.92, 0.80) * fLeak   * bgProg * 0.60; // warm light-leak
 
   // ── Cinematic finish — grain comes from the DOM #noise overlay ───────────
   col *= vignette(dc);

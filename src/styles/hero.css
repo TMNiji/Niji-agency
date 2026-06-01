@@ -32,6 +32,43 @@
   z-index: 3;
 }
 
+/* Stack title + subtitle, right-anchored against the same edge */
+.hero__heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: clamp(18px, 1.8vw, 30px);
+}
+
+/* Small agency descriptor under the headline — same right edge as the title,
+   muted colour, line-wraps within a comfortable measure. Opacity + Y are
+   driven from JS (hero/index.js) so it tracks the title's shatter exit. */
+.hero__subtitle {
+  font-family: var(--font);
+  font-size: clamp(11px, 0.82vw, 14px);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0.005em;
+  color: rgba(255, 255, 255, 0.50);
+  text-align: right;
+  /* Wide enough to fit the longest hard-coded line ("25 ans à construire ce
+     qui se regarde, s'utilise" ≈ 48 chars) without re-wrapping over the
+     <br>-driven 4-line layout. */
+  max-width: 52ch;
+  margin: 0;
+  padding-right: 12px; /* aligns with .hero-title's padding-right */
+  pointer-events: none;
+  will-change: opacity, transform;
+  /* Never auto-split a word — only break at whitespace. Combined with the
+     non-breaking spaces between numbers and units in the source ("115 designers"
+     etc.) and the non-breaking hyphen in "AI‑native", line wraps land only at
+     natural word boundaries. */
+  hyphens: none;
+  -webkit-hyphens: none;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
 /* Base size = the "Make products" line; other lines scale from it in em.
    The block shrinks to its widest line (&AGENTS) so the smaller lines can be
    aligned within that column (centre / right) for the staggered editorial look. */

@@ -23,12 +23,11 @@
 
 .video.is-visible .video__stage { opacity: 1; }
 
-.video__el {
+.video__canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   background: transparent;
   pointer-events: none;
 }

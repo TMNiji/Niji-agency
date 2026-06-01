@@ -15,27 +15,135 @@ import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@modules/motion.js';
 import { createTitle } from '../hero/title.js';
 
+// Validate an external URL before turning it into a click target. Same shape
+// as aiLinks.js — we don't export there because keeping the helper local
+// makes the file self-contained.
+function safeExternalUrl(url) {
+  if (typeof url !== 'string') return null;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 const DEFAULT_TITLE    = 'Grands noms.';
 const DEFAULT_SUBTITLE = 'Projets à leur hauteur.';
 
-// Each client has a `type` (project category — shown on the front in place of
-// the legacy name) and a `back` describing what flips into view on click:
-//   - 'qr':   render a QR pointing to `url` (case-study link)
-//   - 'text': render `blurb` as a short project description
-// QR codes are generated via the QR-Server API (no extra dependency).
-// Each client carries an `accent` hex sampled from its logo's dominant colour
-// (or, when no real logo exists yet, a sector-appropriate stand-in). The card
-// chrome reads it via the --card-accent CSS variable so the glow + tint matches
-// the brand instead of every card sharing the same purple/blue.
+// Per-client shape:
+//   name        Brand name — used for alt text + back-face label
+//   logo        Path to brand asset (in /public/logo). Falls back to the
+//               frontLabel text if the file is missing.
+//   frontLabel  Project / engagement text shown under the logo on the recto
+//   back        What flips into view on click:
+//                 'qr'    → QR code (qrSvg or `url`) + "Voir le case study" button
+//                 'image' → Screenshot at `image` path (in /public/clients)
+//                 'text'  → Short text `blurb` (multi-line via \n)
+//   qrSvg       Pre-rendered QR SVG path (preferred). Falls back to the
+//               QR-Server API using `url` if absent.
+//   url         Case-study target — used to encode the API-generated QR.
+//   caseUrl     Click-target for the "Voir le case study" button (Vimeo etc.).
+//               Falls back to `url` if not set.
+//   qrLabel     Optional override for the verso label under a QR (only used
+//               when no caseUrl/button is rendered). Multi-line via \n.
+//   accent      Brand hex sampled from the logo's dominant colour. Read by
+//               .clients__card-glow / .clients__card-inner via --card-accent
+//               so each card's tint and glow match its brand.
 const DEFAULT_CLIENTS = [
-  { type: 'SaaS',           back: 'qr',   url: 'https://niji.fr/case/grand-frais', logo: '/logo/grand_frais_grey.svg', accent: '#2EA84A' },
-  { type: 'Mobile App',     back: 'text', blurb: 'Native iOS / Android · 2023 launch · 1.2M users',           accent: '#3DA9FC' },
-  { type: 'B2B Platform',   back: 'qr',   url: 'https://niji.fr/case/northwind',                              accent: '#5B6CFF' },
-  { type: 'E-commerce',     back: 'text', blurb: 'Headless commerce · Composable stack · +38% AOV',           accent: '#FF7A45' },
-  { type: 'Brand System',   back: 'qr',   url: 'https://niji.fr/case/polaris',                                accent: '#F4C95D' },
-  { type: 'Service Design', back: 'text', blurb: 'Journey re-mapping · 12 personas · NPS +27',                accent: '#FF5FA2' },
-  { type: 'Data Platform',  back: 'qr',   url: 'https://niji.fr/case/cobalt',                                 accent: '#22B5C1' },
-  { type: 'Internal Tool',  back: 'text', blurb: 'Ops dashboard · 8 teams · 4× faster onboarding',            accent: '#A86BFF' },
+  // 1. Lacoste — 1ère app m-commerce / screenshot
+  {
+    name: 'Lacoste',
+    logo: '/logo/lacoste.png',
+    frontLabel: '1ère app m-commerce',
+    back: 'image',
+    image: '/clients/screenshots/lacoste.webp',
+    accent: '#00563F',
+  },
+  // 2. Grand Frais — 1ère app m-commerce / screenshot
+  {
+    name: 'Grand Frais',
+    logo: '/logo/grand_frais_grey.svg',
+    frontLabel: '1ère app m-commerce',
+    back: 'image',
+    image: '/clients/screenshots/grand-frais.webp',
+    accent: '#2EA84A',
+  },
+  // 3. Orange — Experience / "Design Partenaire depuis 10 ans"
+  {
+    name: 'Orange',
+    logo: '/logo/orange.png',
+    frontLabel: 'Experience',
+    back: 'text',
+    blurb: 'Design Partenaire depuis 10 ans',
+    accent: '#FF7900',
+  },
+  // 4. Relais & Châteaux — Plateforme de marque & Ecosystème digital / QR + Vimeo
+  {
+    name: 'Relais & Châteaux',
+    logo: '/logo/relais-chateaux.png',
+    frontLabel: 'Plateforme de marque & Ecosystème digital',
+    back: 'qr',
+    qrSvg: '/clients/qr/relais-chateaux.svg',
+    caseUrl: 'https://vimeo.com/842443761/4551f51afc?share=copy&fl=sv&fe=ci',
+    accent: '#7A1A2F',
+  },
+  // 5. Decathlon — Application métiers / 8 ans
+  {
+    name: 'Decathlon',
+    logo: '/logo/decathlon.svg',
+    frontLabel: 'Application métiers',
+    back: 'text',
+    blurb: 'Partenaire depuis 8 ans',
+    accent: '#0082C3',
+  },
+  // 6. Accor — Site Corporate / screenshot
+  {
+    name: 'Accor',
+    logo: '/logo/accor.png',
+    frontLabel: 'Site Corporate',
+    back: 'image',
+    image: '/clients/screenshots/accor.webp',
+    accent: '#C9A14D',
+  },
+  // 7. BNP Paribas — Design Système / Partenaire depuis 9 ans
+  {
+    name: 'BNP Paribas',
+    logo: '/logo/bnp-paribas.png',
+    frontLabel: 'Design Système',
+    back: 'text',
+    blurb: 'Partenaire depuis 9 ans',
+    accent: '#008855',
+  },
+  // 8. Ritz — Ecosystème digital / QR + Vimeo
+  {
+    name: 'Ritz',
+    logo: '/logo/ritz.png',
+    frontLabel: 'Ecosystème digital',
+    back: 'qr',
+    qrSvg: '/clients/qr/ritz.svg',
+    caseUrl: 'https://vimeo.com/911295072/ad02f28185?share=copy&fl=sv&fe=ci',
+    accent: '#1F2A44',
+  },
+  // 9. RATP — 1er site web eco-conçu et accessible / QR + Vimeo
+  {
+    name: 'RATP',
+    logo: '/logo/ratp.webp',
+    frontLabel: '1er site web eco-conçu et accessible',
+    back: 'qr',
+    qrSvg: '/clients/qr/ratp.svg',
+    caseUrl: 'https://vimeo.com/911295002/cabba31990?share=copy&fl=sv&fe=ci',
+    accent: '#008C53',
+  },
+  // 10. Groupe Bel — Site Groupe / screenshot
+  {
+    name: 'Groupe Bel',
+    logo: '/logo/groupe-bel.png',
+    frontLabel: 'Site Groupe',
+    back: 'image',
+    image: '/clients/screenshots/bel.webp',
+    accent: '#E60028',
+  },
 ];
 
 // Diagonal river geometry. Each unit of `rel` (distance from the focused card)
@@ -119,39 +227,85 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
     glow.className = 'clients__card-glow';
     front.appendChild(glow);
 
+    // Brand name used for alt text + back-face label. Falls back to frontLabel
+    // for legacy entries that still use the old `type` field.
+    const brandName  = client.name       ?? client.type ?? '';
+    const frontLabel = client.frontLabel ?? client.type ?? '';
+
     if (client.logo) {
       const img = document.createElement('img');
       img.className = 'clients__card-image';
       img.src = client.logo;
-      img.alt = client.type;
+      img.alt = brandName;
       img.loading = 'lazy';
       front.appendChild(img);
     }
 
+    // Front text label — only created when the client actually has one.
+    // Cards like Relais & Châteaux are logo-only and skip this entirely so the
+    // recto doesn't reserve vertical space for a label that doesn't exist.
     const logo = document.createElement('div');
     logo.className = 'clients__card-logo';
-    logo.textContent = client.type;
-    front.appendChild(logo);
+    if (frontLabel) {
+      logo.textContent = frontLabel;
+      front.appendChild(logo);
+    }
 
     // ── Back face ────────────────────────────────────────────────────────
     const back = document.createElement('div');
     back.className = `clients__card-inner clients__card-face clients__card-face--back clients__card-face--${client.back}`;
 
-    if (client.back === 'qr' && client.url) {
+    if (client.back === 'qr' && (client.qrSvg || client.url)) {
       const qr = document.createElement('img');
       qr.className = 'clients__card-qr';
-      // QR-Server is a stable, public QR endpoint — swap for a bundled
-      // generator later if offline rendering becomes a requirement.
-      const encoded = encodeURIComponent(client.url);
-      qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encoded}`;
-      qr.alt = `QR · ${client.type}`;
+      if (client.qrSvg) {
+        // Pre-rendered SVG QR provided in /public/clients/qr/*.svg.
+        qr.src = client.qrSvg;
+      } else {
+        // Fallback: QR-Server public endpoint encoded with the case-study URL.
+        const encoded = encodeURIComponent(client.url);
+        qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encoded}`;
+      }
+      qr.alt = `QR · ${brandName}`;
       qr.loading = 'lazy';
       back.appendChild(qr);
 
-      const qrLabel = document.createElement('div');
-      qrLabel.className = 'clients__card-back-label';
-      qrLabel.textContent = 'Scan for case study';
-      back.appendChild(qrLabel);
+      // "Voir le case study" CTA: a link wrapping the shared button SVG. The
+      // link target is `caseUrl` (Vimeo / external case study), falling back
+      // to `url` so older entries without a separate Vimeo link still work.
+      const ctaUrl = safeExternalUrl(client.caseUrl ?? client.url);
+      if (ctaUrl) {
+        const cta = document.createElement('a');
+        cta.className = 'clients__card-cta';
+        cta.href = ctaUrl;
+        cta.target = '_blank';
+        cta.rel = 'noopener';
+        cta.setAttribute('aria-label', `Voir le case study ${brandName}`);
+        const img = document.createElement('img');
+        img.src = '/clients/button.svg';
+        img.alt = '';
+        img.loading = 'lazy';
+        cta.appendChild(img);
+        back.appendChild(cta);
+      } else if (client.qrLabel) {
+        // Legacy fallback — no case URL but caller passed a text label.
+        const qrLabel = document.createElement('div');
+        qrLabel.className = 'clients__card-back-label';
+        qrLabel.textContent = client.qrLabel;
+        back.appendChild(qrLabel);
+      }
+    } else if (client.back === 'image' && client.image) {
+      const shot = document.createElement('img');
+      shot.className = 'clients__card-screenshot';
+      shot.src = client.image;
+      shot.alt = `${brandName} — capture d'écran`;
+      shot.loading = 'lazy';
+      back.appendChild(shot);
+
+      const tag = document.createElement('div');
+      tag.className = 'clients__card-back-label';
+      tag.textContent = brandName;
+      back.appendChild(tag);
     } else {
       const blurb = document.createElement('p');
       blurb.className = 'clients__card-blurb';
@@ -160,7 +314,7 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
 
       const tag = document.createElement('div');
       tag.className = 'clients__card-back-label';
-      tag.textContent = client.type;
+      tag.textContent = brandName;
       back.appendChild(tag);
     }
 
@@ -175,7 +329,11 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
     // the centred card responds — passed/queued cards stay inert.
     // stopPropagation so the click doesn't bubble to document handlers that
     // could close popups or scroll-anchor the page.
+    // Exception: clicks on the "Voir le case study" CTA must reach the anchor
+    // so the browser opens the Vimeo link. Returning early there leaves the
+    // anchor's default behaviour intact.
     pivot.addEventListener('click', (e) => {
+      if (e.target.closest('.clients__card-cta')) return;
       e.stopPropagation();
       e.preventDefault();
       card.classList.toggle('is-flipped');
@@ -188,6 +346,14 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
   let scrollProgress = 0;
   let targetMouseX = 0, targetMouseY = 0;
   let curMouseX    = 0, curMouseY    = 0;
+
+  // Pre-roll scroll position used during the preview (while the prior video
+  // section is still on screen). Negative and deep enough (~5 steps up-right of
+  // the progress-0 resting spot) that the lead card sits past the depth-fade
+  // floor — so the stack reads as invisible while parked and only sweeps into
+  // view as the preview glides toward 0, instead of lingering on screen for the
+  // whole video section.
+  const PREVIEW_START = -5 / (N + 1);
 
   orchestrator?.onProgress('clients', ({ progress }) => {
     scrollProgress = progress;
@@ -257,10 +423,12 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
       el.style.pointerEvents = opacity > 0.5 ? 'auto' : 'none';
 
       // Depth-of-field blur — upcoming cards (rel > 0) read blurry until
-      // they approach focus (rel → 0). Passed cards (rel < 0) stay sharp:
-      // they're already opacity-fading off the bottom-left exit, so layering
-      // blur on top would muddy the read-out.
-      const blurPx = rel > 0 ? Math.min(rel * 2.6, 12) : 0;
+      // they approach focus (rel → 0). A sharp dead-zone (rel ≤ BLUR_START)
+      // keeps the card crisp as it passes through the centre of the screen;
+      // the blur only kicks in for cards further back in the queue and ramps
+      // gently from there. Passed cards (rel < 0) stay sharp.
+      const BLUR_START = 0.6;   // rel units of fully-sharp range around focus
+      const blurPx = rel > BLUR_START ? Math.min((rel - BLUR_START) * 1.7, 6) : 0;
       el.style.setProperty('--card-blur', `${blurPx.toFixed(2)}px`);
 
       // Label reads in only as the card settles into focus.
@@ -271,15 +439,39 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
   // Only animate while the section is on screen — main.js toggles this on
   // clients enter/leave so the stack stops costing frames elsewhere.
   let active = false;
+  let previewing = false;
+  let ticking = false;
+  function startTicker() { if (!ticking) { gsap.ticker.add(update); ticking = true; } }
+  function stopTicker()  { if (ticking) { gsap.ticker.remove(update); ticking = false; } }
+
+  // Far-preview while the prior video section is still on screen: render the
+  // card stack (opacity:1, no pointer-events) with the first card parked
+  // up-right of its resting spot, then glide it down as the video finishes.
+  function setPreview(on) {
+    if (active) return;
+    previewing = on;
+    stage.classList.toggle('is-preview', on);
+    if (on) { scrollProgress = PREVIEW_START; startTicker(); }
+    else stopTicker();
+  }
+  function setPreviewProgress(t) {
+    if (active || !previewing) return;
+    const ct = Math.max(0, Math.min(1, t));
+    const eased = ct * ct * (3 - 2 * ct); // smoothstep — gentle glide
+    scrollProgress = PREVIEW_START * (1 - eased); // PREVIEW_START → 0
+  }
+
   function setActive(on) {
     if (on === active) return;
     active = on;
+    stage.classList.remove('is-preview');
+    previewing = false;
     stage.classList.toggle('is-visible', on);
     if (on) {
-      gsap.ticker.add(update);
+      startTicker();
       titleHandle.glitchIn(0.7);
     } else {
-      gsap.ticker.remove(update);
+      stopTicker();
       titleHandle.glitchOut(0.4);
       // The per-frame loop sets `el.style.pointerEvents = 'auto'` on whichever
       // card is currently focused, and the loop stops here without a final
@@ -293,6 +485,8 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
   return {
     section,
     setActive,
+    setPreview,
+    setPreviewProgress,
     destroy() {
       setActive(false);
       stage.removeEventListener('pointermove', onPointerMove);

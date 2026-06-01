@@ -58,8 +58,8 @@ const FRAGS = [
 
   { id: 'mouth-left',       src: '/hero/mouth-left.webp',
     srcW: 322, srcH: 243,
-    // Nudged right again (520 → 580) so it sits flush against the centre face.
-    left: 580, top: 585, w: 322, h: 243,
+    // Nudged right again (520 → 630) so it sits flush against the centre face.
+    left: 630, top: 585, w: 322, h: 243,
     vx: -0.45, vy: -0.89, speed: 1.20, px: 20, py: 26, z: 50 },
 
   { id: 'mouth-right',      src: '/hero/mouth-right.webp',
@@ -149,22 +149,54 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     uniform vec2 uMapRepeat;
     uniform float uLod;
     uniform float uOpacity;
+    uniform float uBlur;
+    uniform float uPad;
     in vec2 vUv;
     out vec4 outColor;
+
+    // luv is texture-local UV: 0..1 spans the silhouette region, which sits in
+    // the centre of the oversized quad. Outside that range there is no image —
+    // return 0 so the blur fades into transparency at the padded border instead
+    // of clamping the rectangle edge (which is what squared the shadow off).
+    float sampleAlpha(vec2 luv) {
+      if (any(lessThan(luv, vec2(0.0))) || any(greaterThan(luv, vec2(1.0)))) return 0.0;
+      return textureLod(map, luv * uMapRepeat + uMapOffset, uLod).a;
+    }
+
     void main() {
-      vec2 mappedUv = vUv * uMapRepeat + uMapOffset;
-      // textureLod with a high LOD samples a heavily downscaled mip → blur.
-      float a = textureLod(map, mappedUv, uLod).a;
+      // Expand vUv around the centre so 0..1 of the texture occupies only the
+      // inner 1/uPad of the quad, leaving a transparent margin for the blur.
+      vec2 luv = (vUv - 0.5) * uPad + 0.5;
+
+      // Two-ring gaussian-weighted blur of the silhouette alpha. textureLod at
+      // a moderate LOD pre-softens; the 16 ring taps spread that into a smooth,
+      // even falloff so the shadow reads as a genuinely diffuse cast rather
+      // than a blocky downscaled mip.
+      const float TAU = 6.2831853;
+      float a = sampleAlpha(luv);   // centre, weight 1.0
+      float total = 1.0;
+      for (int i = 0; i < 8; i++) {
+        float ang = (float(i) / 8.0) * TAU;
+        vec2 dir = vec2(cos(ang), sin(ang));
+        a     += sampleAlpha(luv + dir * uBlur)       * 0.60;
+        a     += sampleAlpha(luv + dir * uBlur * 2.0) * 0.30;
+        total += 0.90;
+      }
+      a /= total;
       outColor = vec4(0.0, 0.0, 0.0, a * uOpacity);
     }
   `;
 
   // Drop-shadow geometry tuning — applied as a screen-space (px) offset to
-  // each shadow mesh in applyTransforms(). Kept small so the shadow reads as
-  // a soft cast under the face rather than a separate layer.
-  const SHADOW_OFFSET_X =  10;
-  const SHADOW_OFFSET_Y = -14;
+  // each shadow mesh in applyTransforms(). Light source sits top-right, so the
+  // cast falls down-left (negative x, negative y in three.js world coords).
+  const SHADOW_OFFSET_X = -4;
+  const SHADOW_OFFSET_Y = -4;
   const SHADOW_SCALE    = 1.10;
+  // Oversized shadow quad: the silhouette occupies the inner 1/SHADOW_PAD, with
+  // the surrounding margin left transparent so the blur fades smoothly instead
+  // of being clipped at the fragment's rectangular edge.
+  const SHADOW_PAD      = 1.4;
 
   const meshes = FRAGS.map((f) => {
     const w = f.w * SCALE;
@@ -213,7 +245,9 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
         uMapOffset: { value: new THREE.Vector2(tex.offset.x, tex.offset.y) },
         uMapRepeat: { value: new THREE.Vector2(tex.repeat.x, tex.repeat.y) },
         uLod:       { value: 3.0 },
-        uOpacity:   { value: 0.55 },
+        uOpacity:   { value: 0.38 },
+        uBlur:      { value: 0.018 },
+        uPad:       { value: SHADOW_PAD },
       },
       vertexShader:   SHADOW_VERT,
       fragmentShader: SHADOW_FRAG,
@@ -222,7 +256,10 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       depthTest: false,
       depthWrite: false,
     });
-    const shadowMesh = new THREE.Mesh(geo, shadowMat);
+    // Own geometry, padded by SHADOW_PAD so the blur has transparent room to
+    // fade into beyond the silhouette (see SHADOW_FRAG / uPad).
+    const shadowGeo = new THREE.PlaneGeometry(w * SHADOW_PAD, h * SHADOW_PAD);
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
     shadowMesh.renderOrder = f.z * 2 - 1; // drawn just before its face
     shadowMesh.scale.set(
       SHADOW_SCALE * (f.flipX ? -1 : 1),
@@ -428,8 +465,7 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       document.removeEventListener('mouseout', onDocMouseOut);
       window.removeEventListener('blur', recenter);
       meshes.forEach((m) => {
-        // Shadow shares the same geometry instance as its face, so dispose it
-        // first and skip the duplicate face dispose to avoid double-frees.
+        m.userData.shadow?.geometry.dispose();
         m.userData.shadow?.material.dispose();
         m.geometry.dispose();
         m.material.map?.dispose();

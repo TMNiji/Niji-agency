@@ -62,7 +62,27 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
 
   const overlay = document.createElement('div');
   overlay.className = 'hero__overlay';
-  overlay.appendChild(title.el);
+
+  // Heading wrapper stacks the glitch title + a small agency descriptor below,
+  // both right-anchored within the overlay so they share the same right edge.
+  const heading = document.createElement('div');
+  heading.className = 'hero__heading';
+  heading.appendChild(title.el);
+
+  const subtitle = document.createElement('p');
+  subtitle.className = 'hero__subtitle';
+  // Non-breaking spaces glue numbers to their units ("115 designers" stays as
+  // one block) and a non-breaking hyphen (‑, U+2011) keeps "AI-native"
+  // together if the line happens to break right at the dash.
+  subtitle.innerHTML =
+    "Agence de product design AI‑native.<br>"
+    + "115 designers&nbsp;|&nbsp;9 bureaux<br>"
+    + "25 ans à construire<br>"
+    + "ce qui se regarde, s'utilise<br>"
+    + "et maintenant se parle.";
+  heading.appendChild(subtitle);
+
+  overlay.appendChild(heading);
   section.appendChild(overlay);
 
   // Hoist the timeline AND the header outside #app's stacking context (z-index:1)
@@ -90,6 +110,10 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     const move = ease.smoothstep(progress);
     title.setExit(fade);
     title.el.style.transform = `scale(${(1 + move * 0.05).toFixed(4)}) translateY(${(-move * 28).toFixed(1)}px)`;
+    // Subtitle fades in lockstep with the title's shatter — same `fade` curve
+    // so the descriptor never lingers after the title has come apart.
+    subtitle.style.opacity = (1 - fade).toFixed(3);
+    subtitle.style.transform = `translateY(${(-move * 22).toFixed(1)}px)`;
     // Once shattered the title is invisible but, with pointer-events:auto, it
     // still sits above the thinking section (hero z-index:2 > thinking:1) and
     // would swallow clicks meant for the orbital dots behind it.

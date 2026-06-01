@@ -28,6 +28,12 @@
   pointer-events: auto;
 }
 
+/* Far-preview while the prior video section is still on screen — cards are
+   visible and glide in, but stay click-through and the heading stays hidden
+   until the section properly activates (setActive → glitchIn). */
+.clients__stage.is-preview { opacity: 1; }
+.clients__stage.is-preview .clients__title { opacity: 0; }
+
 /* ── Title ───────────────────────────────────────────────────────────────── */
 
 .clients__title {
@@ -199,6 +205,21 @@
   color: rgba(255, 255, 255, 0.92);
   margin: 0;
   padding: 0 4px;
+  /* Honour explicit \n line breaks in the data (e.g. Orange's "Design\nPartenaire...") */
+  white-space: pre-line;
+}
+
+/* Project screenshot displayed on the verso for clients whose case study is
+   illustrated by a UI capture rather than a QR or text blurb. */
+.clients__card-screenshot {
+  width: 88%;
+  height: auto;
+  max-height: 70%;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.10),
+    0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 .clients__card-back-label {
@@ -208,6 +229,33 @@
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  /* Honour \n line breaks for multi-line QR labels (e.g. "Case study\nPartenaire depuis 3 ans") */
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+/* "Voir le case study" CTA — wraps the shared button SVG below the QR. The
+   anchor is the click target; the SVG inside provides the visual chrome (white
+   1px border, label, play triangle). Hover bumps opacity for affordance. */
+.clients__card-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+.clients__card-cta img {
+  display: block;
+  width: clamp(96px, 50%, 140px);
+  height: auto;
+  pointer-events: none;
+}
+.clients__card-cta:hover {
+  opacity: 1;
+  transform: translateY(-1px);
 }
 
 /* ── Glass surface — rectangular with softly rounded corners ─────────────── */

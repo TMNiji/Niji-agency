@@ -2,10 +2,10 @@ import { createOrbital } from '../hero/orbital.js';
 import { createAiLinks, DEFAULT_AI_LINKS } from '../shared/aiLinks.js';
 
 const DEFAULT_SERVICES = [
-  { tag: 'PRODUCT',  items: ['Product Design', 'User Research'] },
-  { tag: 'BUSINESS', items: ['Brand Strategy', 'Market Analysis'] },
-  { tag: 'BRANDING', items: ['Visual Identity', 'Brand Systems'] },
-  { tag: 'TECH',     items: ['Frontend Engineering', 'System Design'] },
+  { tag: 'PRODUCT',  items: ['Vision, conception et roadmap',     'Design system, tokens, gouvernance'] },
+  { tag: 'AI',       items: ['Audit, workflows',                  'Développement d\'agents'] },
+  { tag: 'BUSINESS', items: ['Analyse marché, GTM, BP, BM',       'Cadrage stratégique'] },
+  { tag: 'BRANDING', items: ['Plateforme et positionnement',      'Promesse, preuves, territoire'] },
 ];
 
 export function mountThinking({ container, orchestrator, webgl, content = null } = {}) {
@@ -24,7 +24,10 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
   const services = document.createElement('div');
   services.className = 'thinking__services';
 
-  const SERVICES   = content?.thinking?.services?.length   ? content.thinking.services   : DEFAULT_SERVICES;
+  // Use the local DEFAULT_SERVICES — the Sanity CMS still holds the old
+  // PRODUCT/BUSINESS/BRANDING/TECH labels and would override the fresh copy
+  // below. Restore the CMS check once Sanity has been updated to mirror these.
+  const SERVICES   = DEFAULT_SERVICES;
   const AI_LINKS   = content?.thinking?.aiLinks?.buttons?.length ? content.thinking.aiLinks : DEFAULT_AI_LINKS;
 
   const serviceItems = SERVICES.map((s, i) => {

@@ -19,10 +19,11 @@ import { prefersReducedMotion } from '@modules/motion.js';
 import { createTitle } from '../hero/title.js';
 
 // Per-slot GLB URLs. null entries keep the placeholder primitive for that slot.
+// Order matches DEFAULT_AWARDS so each tooltip lands on the right trophy.
 const TROPHY_GLB_URLS = [
-  '/awards/strat.glb',         // Red box — Grand Prix Stratégies du Design
-  '/awards/plaque-strat.glb',  // Plaque — Grand Prix Stratégies du Digital
-  '/awards/lovie.glb',         // Gold bar — Lovie Awards
+  '/awards/strat.glb', // Grand Prix Stratégies
+  '/awards/lovie.glb', // Lovie Awards
+  '/awards/webby.glb', // Webby Awards
 ];
 // Target on-screen radius for the loaded GLBs, in scene units. Matches the
 // placeholder shapes (~0.36 radius) so the cloud stays visually balanced.
@@ -31,12 +32,21 @@ const TROPHY_GLB_RADIUS = 0.45;
 const DEFAULT_HEADING_TOP    = 'On ne les cherchait pas.';
 const DEFAULT_HEADING_BOTTOM = 'Ils sont là.';
 
-// Three trophies — name + how many of each Niji has won. Order MUST match
+// Three trophies — title + detail lines (two per award). Order MUST match
 // TROPHY_GLB_URLS above so the right tooltip lands on each model.
 const DEFAULT_AWARDS = [
-  { count: '12', title: 'Grand Prix Stratégies du Design'  }, // red box
-  { count: '8',  title: 'Grand Prix Stratégies du Digital' }, // plaque
-  { count: '5',  title: 'Lovie Awards'                     }, // gold bar
+  {
+    title: '26 Grand Prix Stratégies',
+    details: ['1 Grand Prix | 14 Golds', '7 Silvers | 4 Bronzes'],
+  },
+  {
+    title: '11 Lovie Awards',
+    details: ['2 Golds | 4 Silvers', '2 Bronzes | 2 Shortlist'],
+  },
+  {
+    title: '7 Webby Awards',
+    details: ['3 Nominee | 4 Honorée', 'Top 4 Agency worldwide'],
+  },
 ];
 
 // Cloud layout — three points tightly clustered so the trio reads as one
@@ -70,14 +80,22 @@ const PARALLAX_X   = 0.32;
 const PARALLAX_Y   = 0.18;
 const PARALLAX_ROT = 0.14;
 
-// Scroll-driven approach — the cloud starts FAR_Z behind its resting position,
-// zooms in toward the camera as progress 0 → NEAR_REACHED (trophies materialise
-// and approach), then continues pushing past the resting depth toward NEAR_Z
-// across the rest of the section so the awards → contact transition reads as
-// the trophies passing close to the user before disappearing.
+// Scroll-driven approach — the cloud travels at a CONSTANT rate from FAR_Z
+// (progress 0) straight through its resting depth and on to NEAR_Z (progress 1),
+// so the trophies are always gliding while the user scrolls. There is no
+// mid-section easing plateau (which previously read as the scroll "stopping"
+// halfway through the section).
 const FAR_Z        = -6;
-const NEAR_Z       =  3;     // positive z = closer to camera (cam at z = CAM_Z = 4.6)
-const NEAR_REACHED = 0.45;   // fraction of progress where the cloud reaches z=0
+// Deeper still — where the cloud parks as a faint, distant background preview
+// while the clients section is on screen. Pushing past FAR_Z keeps it reading
+// as far-off specks; on awards entry the scroll trajectory pulls it smoothly
+// forward through FAR_Z, so the handoff stays continuous (no snap).
+const PREVIEW_Z    = -13;
+// Pushed PAST the camera (CAM_Z = 4.6) so by the end of the section the cloud
+// has actually flown behind the camera and self-culls from the frustum —
+// otherwise the trophies hang in front at z=3 and pop out the instant the
+// section's leave hides them (reads as "disappearing before they exit").
+const NEAR_Z       =  7;     // positive z = closer to camera (cam at z = CAM_Z = 4.6)
 
 // Per-trophy hover response.
 const HOVER_SCALE       = 1.18;
@@ -117,16 +135,20 @@ export function mountAwards({
   titleHandle.el.classList.add('awards__head');
   stage.appendChild(titleHandle.el);
 
-  // ── Hover tooltip — single element repositioned over the focused trophy ──
+  // ── Hover tooltip — single element repositioned over the focused trophy.
+  // The title sits above two detail lines (e.g. "1 Grand Prix | 14 Golds").
+  // setHovered() fills these from the focused award's data.
   const tooltip = document.createElement('div');
   tooltip.className = 'awards__tooltip';
   tooltip.innerHTML = `
     <span class="awards__tooltip-title"></span>
-    <span class="awards__tooltip-count"></span>
+    <span class="awards__tooltip-detail awards__tooltip-detail--1"></span>
+    <span class="awards__tooltip-detail awards__tooltip-detail--2"></span>
   `;
   stage.appendChild(tooltip);
-  const tooltipTitle = tooltip.querySelector('.awards__tooltip-title');
-  const tooltipCount = tooltip.querySelector('.awards__tooltip-count');
+  const tooltipTitle    = tooltip.querySelector('.awards__tooltip-title');
+  const tooltipDetail1  = tooltip.querySelector('.awards__tooltip-detail--1');
+  const tooltipDetail2  = tooltip.querySelector('.awards__tooltip-detail--2');
 
   // ── 3D scene — placeholder trophy cloud ──────────────────────────────────
   const scene  = new THREE.Scene();
@@ -253,26 +275,15 @@ export function mountAwards({
   let curX    = 0, curY    = 0;
   let hovered = null;
 
-  // Scroll-driven Z target — two phases. Phase 1 (p < NEAR_REACHED): trophies
-  // ease in from FAR_Z to z=0 (resting). Phase 2 (p > NEAR_REACHED): trophies
-  // continue accelerating toward NEAR_Z so they pass close to the user across
-  // the awards → contact handoff.
+  // Scroll-driven Z target — a single linear map from FAR_Z (progress 0) to
+  // NEAR_Z (progress 1). Constant rate means the cloud is always moving while
+  // the user scrolls, so the depth never plateaus mid-section. It naturally
+  // passes through its resting depth (~progress 0.46) without a deceleration.
   let scrollZTarget = FAR_Z;
   let scrollZ       = FAR_Z;
   function setScrollProgress(p) {
     const cp = Math.max(0, Math.min(1, p));
-    if (cp < NEAR_REACHED) {
-      // Approach: FAR_Z → 0, eased so the deceleration reads as "settling in".
-      const t = cp / NEAR_REACHED;
-      const eased = 1 - Math.pow(1 - t, 3);
-      scrollZTarget = FAR_Z * (1 - eased);
-    } else {
-      // Dive past: 0 → NEAR_Z, accelerated so the closing distance reads as
-      // the cloud rushing toward the camera before the section ends.
-      const t = (cp - NEAR_REACHED) / (1 - NEAR_REACHED);
-      const eased = t * t;
-      scrollZTarget = NEAR_Z * eased;
-    }
+    scrollZTarget = FAR_Z + (NEAR_Z - FAR_Z) * cp;
   }
 
   // ── Gold-dust particles — soft bokeh trail that follows the cursor ────────
@@ -340,8 +351,9 @@ export function mountAwards({
     hovered = mesh;
     if (mesh) {
       const a = mesh.userData.award;
-      tooltipTitle.textContent = a.title;
-      tooltipCount.textContent = `${a.count} récompenses`;
+      tooltipTitle.textContent   = a.title;
+      tooltipDetail1.textContent = a.details?.[0] ?? '';
+      tooltipDetail2.textContent = a.details?.[1] ?? '';
       tooltip.classList.add('is-visible');
     } else {
       tooltip.classList.remove('is-visible');
@@ -391,28 +403,45 @@ export function mountAwards({
       }
     });
 
-    // Raycast against the latest (un-smoothed) pointer so hover tracks 1:1.
-    // Recursive so the GLB's sub-meshes are picked; resolve the hit back to
-    // its owning top-level item group.
-    ndc.set(targetX, targetY);
-    raycaster.setFromCamera(ndc, camera);
-    const hits = raycaster.intersectObjects(items, true);
-    let hit = null;
-    if (hits.length) {
-      let n = hits[0].object;
-      while (n && !items.includes(n)) n = n.parent;
-      hit = n || null;
-    }
-    setHovered(hit);
+    // Hover/tooltip only while the section is fully active — the far-away
+    // background preview (rendered during clients) has no interaction.
+    if (active) {
+      // Raycast against the latest (un-smoothed) pointer so hover tracks 1:1.
+      // Recursive so the GLB's sub-meshes are picked; resolve the hit back to
+      // its owning top-level item group.
+      ndc.set(targetX, targetY);
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObjects(items, true);
+      let hit = null;
+      if (hits.length) {
+        let n = hits[0].object;
+        while (n && !items.includes(n)) n = n.parent;
+        hit = n || null;
+      }
+      setHovered(hit);
 
-    // Tooltip follows the hovered trophy's projected screen position.
-    if (hovered) {
-      hovered.getWorldPosition(worldPos);
-      worldPos.project(camera);
-      const sx = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
-      const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
-      tooltip.style.transform =
-        `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, -120%)`;
+      // Tooltip follows the hovered trophy's projected screen position. It sits
+      // OFFSET to the side (right or left depending on which half of the viewport
+      // the trophy is in) and slightly BELOW the trophy so the text never sits
+      // on top of the 3D mesh and stays readable.
+      if (hovered) {
+        hovered.getWorldPosition(worldPos);
+        worldPos.project(camera);
+        const sx = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
+        const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
+        const OFFSET_X = 70;  // px from trophy centre to tooltip nearest edge
+        const OFFSET_Y = 40;  // px down from trophy centre
+        const onLeftHalf = sx < window.innerWidth / 2;
+        // Trophies on the left half → tooltip to the RIGHT (anchored at its left).
+        // Trophies on the right half → tooltip to the LEFT  (anchored at its right).
+        const tx = onLeftHalf ? sx + OFFSET_X : sx - OFFSET_X;
+        const ty = sy + OFFSET_Y;
+        const anchorX = onLeftHalf ? '0%' : '-100%';
+        tooltip.classList.toggle('is-right', onLeftHalf);
+        tooltip.classList.toggle('is-left',  !onLeftHalf);
+        tooltip.style.transform =
+          `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) translate(${anchorX}, 0)`;
+      }
     }
   }
 
@@ -450,23 +479,64 @@ export function mountAwards({
   }
 
   let active = false;
-  function setActive(on) {
+  let previewing = false;
+  let ticking = false;
+  function startTicker() { if (!ticking) { gsap.ticker.add(update); ticking = true; } }
+  function stopTicker()  { if (ticking) { gsap.ticker.remove(update); ticking = false; } }
+
+  // Far-away background preview — park the trophy cloud at FAR_Z and render it
+  // (no HTML stage, no hover, no materialise glitch) while a PRIOR section
+  // (clients) is still on screen, so the awards reveal reads as the cloud
+  // flying in from depth rather than popping into being. No-op once the section
+  // is fully active.
+  function setFarPreview(on) {
+    if (active) return;
+    previewing = on;
+    cloud.visible = on;
+    if (on) {
+      scrollZ = scrollZTarget = PREVIEW_Z;
+      startTicker();
+    } else {
+      stopTicker();
+    }
+  }
+
+  // Drive the cloud's depth during the PRIOR section's (clients) tail so the
+  // trophies glide forward from the deep PREVIEW_Z toward FAR_Z as clients ends
+  // — i.e. they're already visibly approaching before awards takes over. t: 0 →
+  // parked deep (PREVIEW_Z, faint specks); 1 → at FAR_Z, exactly where the
+  // awards scroll-approach (setScrollProgress(0)) begins, so the section
+  // boundary is seamless (no jump from a frozen preview into sudden motion).
+  function setPreviewApproach(t) {
+    if (active || !previewing) return;
+    const ct = Math.max(0, Math.min(1, t));
+    const eased = ct * ct * (3 - 2 * ct); // smoothstep — gentle in/out
+    scrollZTarget = PREVIEW_Z + (FAR_Z - PREVIEW_Z) * eased;
+  }
+
+  function setActive(on, direction = 'down') {
     if (on === active) return;
     active = on;
     stage.classList.toggle('is-visible', on);
     cloud.visible = on;
     if (on) {
-      // Snap depth back to FAR so the cloud always reads as approaching from
-      // far away on re-entry (without this, scrolling back up into awards
-      // would skip the zoom-in because scrollZ holds its last value).
-      scrollZ = FAR_Z;
-      gsap.ticker.add(update);
+      // If the cloud was already on screen as a far preview, glide straight
+      // into the scroll-driven zoom from there — no FAR_Z snap, no materialise
+      // glitch — so the clients → awards handoff stays continuous. Same skip on
+      // REVERSE entry (scrolling back UP from contact): scrollZ already holds
+      // the depth the trophies exited at, so the scroll progress glides them
+      // back onto the page instead of snapping far + re-materialising (bouncy).
+      const fromPreview = previewing;
+      previewing = false;
+      startTicker();
       titleHandle.glitchIn(0.7);
-      // Stepped opacity stutter on every trophy material — reads as the
-      // trophies materialising into existence rather than popping in.
-      glitchInTrophies(0.55);
+      if (direction === 'down' && !fromPreview) {
+        scrollZ = FAR_Z;
+        glitchInTrophies(0.55);
+      }
     } else {
-      gsap.ticker.remove(update);
+      previewing = false;
+      stopTicker();
       titleHandle.glitchOut(0.4);
       setHovered(null);
     }
@@ -475,6 +545,8 @@ export function mountAwards({
   return {
     section,
     setActive,
+    setFarPreview,
+    setPreviewApproach,
     setScrollProgress,
     destroy() {
       setActive(false);

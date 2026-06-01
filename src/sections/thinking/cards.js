@@ -23,89 +23,46 @@ function baseCard({ title, modifier }) {
   return el;
 }
 
-// ── Dot 1 — /Stratégie — a radar chart that draws itself on open ─────────────
+// ── Dot 1 — /Stratégie — flippable recto/verso text card ─────────────────────
+// The radar/spider chart used to live here. It was replaced by a two-sided
+// statement: the recto reads "Le vrai sujet n'est jamais dans le brief." and a
+// click flips to the verso "Il est dans la burning platform." A small chevron
+// hints at the flip. play()/stop() reset the card to its recto on each open.
 export function createStrategyCard() {
   const el = baseCard({ title: '/Stratégie', modifier: 'st' });
 
-  const AXES = [
-    { label: 'Vision',      value: 0.86 },
-    { label: 'Insight',     value: 0.72 },
-    { label: 'Audience',    value: 0.92 },
-    { label: 'Différence',  value: 0.78 },
-    { label: 'Objectif',    value: 0.88 },
-  ];
-  const N  = AXES.length;
-  const cx = 110, cy = 100, r = 58;
-  const angle  = (i) => -Math.PI / 2 + (i / N) * Math.PI * 2;
-  const vertex = (i, scale) => {
-    const a = angle(i);
-    return [cx + scale * r * Math.cos(a), cy + scale * r * Math.sin(a)];
-  };
-  const pentaPts = (scale) => AXES.map((_, i) => {
-    const [x, y] = vertex(i, scale);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-
-  const dataPts = AXES.map((a, i) => vertex(i, a.value));
-  const dataPolyPts = dataPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  // Polyline closes by repeating the first vertex so stroke-dasharray draws the
-  // full outline including the final edge back to the top.
-  const dataLinePts = dataPolyPts + ' ' + `${dataPts[0][0].toFixed(1)},${dataPts[0][1].toFixed(1)}`;
-
-  const axisLines = AXES.map((_, i) => {
-    const [x, y] = vertex(i, 1);
-    return `<line class="st__axis" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
-  }).join('');
-
-  const dots = dataPts.map(([x, y], i) =>
-    `<circle class="st__dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" style="--i:${i}"/>`,
-  ).join('');
-
-  const labels = AXES.map((a, i) => {
-    const [lx, ly] = vertex(i, 1.32);
-    // Anchor text per side of the pentagon so labels don't clip the geometry.
-    const anchor = i === 0 ? 'middle' : (lx > cx ? 'start' : 'end');
-    return `<text class="st__label" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" style="--li:${i}">${a.label}</text>`;
-  }).join('');
-
   el.querySelector('.bcard__body').innerHTML = `
-    <div class="st">
-      <svg class="st__svg" viewBox="0 0 220 200" aria-hidden="true">
-        <polygon class="st__ring"            points="${pentaPts(1)}"/>
-        <polygon class="st__ring st__ring--m" points="${pentaPts(0.66)}"/>
-        <polygon class="st__ring st__ring--s" points="${pentaPts(0.33)}"/>
-        ${axisLines}
-        <polygon  class="st__data-fill" points="${dataPolyPts}"/>
-        <polyline class="st__data-line" points="${dataLinePts}"/>
-        ${dots}
-        ${labels}
-      </svg>
+    <div class="st-flip" role="button" tabindex="0" aria-label="Retourner la carte">
+      <div class="st-flip__inner">
+        <div class="st-flip__face st-flip__face--recto">
+          <span class="st-flip__tag">Recto</span>
+          <p class="st-flip__text">Le vrai sujet n'est jamais dans le brief.</p>
+          <span class="st-flip__hint">Cliquer pour retourner →</span>
+        </div>
+        <div class="st-flip__face st-flip__face--verso">
+          <span class="st-flip__tag">Verso</span>
+          <p class="st-flip__text">Il est dans la burning platform.</p>
+          <span class="st-flip__hint">← Retour</span>
+        </div>
+      </div>
     </div>
   `;
 
-  const root = el.querySelector('.st');
-  const line = el.querySelector('.st__data-line');
+  const flip = el.querySelector('.st-flip');
+  function toggle() { flip.classList.toggle('is-flipped'); }
+  // Click + keyboard activation. Pointer event is stopped so the orbital's
+  // click-outside handler doesn't close the popup when the user just wanted to
+  // flip the card.
+  flip.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+  flip.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+  });
 
   return {
     el,
     closeSelector: '.bcard__close',
-    play() {
-      if (prefersReducedMotion()) { root.classList.add('is-done'); return; }
-      const len = line.getTotalLength();
-      line.style.transition = 'none';
-      line.style.strokeDasharray  = `${len}`;
-      line.style.strokeDashoffset = `${len}`;
-      line.getBoundingClientRect(); // force reflow so the reset takes
-      root.classList.remove('is-playing', 'is-done');
-      requestAnimationFrame(() => {
-        line.style.transition = 'stroke-dashoffset 1200ms var(--ease-out-expo)';
-        line.style.strokeDashoffset = '0';
-        root.classList.add('is-playing');
-      });
-    },
-    stop() {
-      root.classList.remove('is-playing', 'is-done');
-    },
+    play()  { flip.classList.remove('is-flipped'); },
+    stop()  { flip.classList.remove('is-flipped'); },
   };
 }
 
@@ -114,7 +71,7 @@ export function createBusinessValueCard() {
   const el = baseCard({ title: '/Business Value', modifier: 'bv' });
   el.querySelector('.bcard__body').innerHTML = `
     <div class="bv">
-      <span class="bv__delta">+38%</span>
+      <span class="bv__delta"><span class="bv__delta-tag">LCV</span> +38&nbsp;%</span>
       <svg class="bv__svg" viewBox="0 0 220 120" aria-hidden="true">
         <defs>
           <linearGradient id="bvGrad" x1="0" y1="0" x2="0" y2="1">
@@ -159,7 +116,7 @@ export function createBusinessValueCard() {
 // ── Dot 3 — /Design Sprint — an interactive checklist ────────────────────────
 export function createDesignSprintCard() {
   const el = baseCard({ title: '/Design Sprint', modifier: 'ds' });
-  const STEPS = ['Map', 'Sketch', 'Decide', 'Prototype', 'Test'];
+  const STEPS = ['Brief', 'Hypothèse', 'Proto', 'Test', 'Décision'];
   el.querySelector('.bcard__body').innerHTML = `
     <ul class="ds">
       ${STEPS.map((s, i) => `
@@ -171,7 +128,7 @@ export function createDesignSprintCard() {
     <div class="ds__bar"><span class="ds__fill"></span></div>
     <div class="ds__status">
       <span class="ds__count"></span>
-      <span class="ds__ready">SPRINT READY</span>
+      <span class="ds__ready">READY TO DECIDE</span>
     </div>
   `;
   const list  = el.querySelector('.ds');
@@ -211,11 +168,10 @@ export function createBrainstormCard() {
   const feed = el.querySelector('.bs');
 
   const MSGS = [
-    { side: 'in',  text: 'C\'est quoi le vrai problème user ?' },
-    { side: 'out', text: '40% abandonnent au checkout.' },
-    { side: 'in',  text: 'Trop de champs ?' },
-    { side: 'out', text: 'Oui. On garde l\'essentiel, on prototype.' },
-    { side: 'in',  text: 'Parfait, je teste demain.' },
+    { side: 'in',  text: 'C\'est quoi le vrai problème ?' },
+    { side: 'out', text: '40 % abandonnent au checkout.' },
+    { side: 'in',  text: 'Humains ? Agents ?' },
+    { side: 'out', text: 'Les 2' },
   ];
 
   const TYPING_MS = 700;
