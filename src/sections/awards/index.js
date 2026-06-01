@@ -21,9 +21,18 @@ import { createTitle } from '../hero/title.js';
 // Per-slot GLB URLs. null entries keep the placeholder primitive for that slot.
 // Order matches DEFAULT_AWARDS so each tooltip lands on the right trophy.
 const TROPHY_GLB_URLS = [
-  '/awards/strat.glb', // Grand Prix Stratégies
-  '/awards/lovie.glb', // Lovie Awards
-  '/awards/webby.glb', // Webby Awards
+  '/awards/strat_square.glb', // Grand Prix Stratégies
+  '/awards/lovie.glb',        // Lovie Awards
+  '/awards/webby.glb',        // Webby Awards
+];
+
+// Per-slot resting orientation (radians). The idle sway in update() oscillates
+// around these, so each model shows its intended face instead of the raw GLB
+// default. Order matches TROPHY_GLB_URLS.
+const TROPHY_BASE_ROTATION = [
+  { x: Math.PI / 2,   y: 0, z: 0 }, // strat square — top (S) face tipped forward to vertical/front, S upright
+  { x: Math.PI / 4,   y: Math.PI,               z: 0 }, // lovie — 45° forward + 180°
+  { x: 0,             y: 0,           z: 0 }, // webby
 ];
 // Target on-screen radius for the loaded GLBs, in scene units. Matches the
 // placeholder shapes (~0.36 radius) so the cloud stays visually balanced.
@@ -36,16 +45,16 @@ const DEFAULT_HEADING_BOTTOM = 'Ils sont là.';
 // TROPHY_GLB_URLS above so the right tooltip lands on each model.
 const DEFAULT_AWARDS = [
   {
-    title: '26 Grand Prix Stratégies',
-    details: ['1 Grand Prix | 14 Golds', '7 Silvers | 4 Bronzes'],
+    title: '25 Grand Prix Stratégies',
+    details: ['1 Grand Prix | 13 Golds', '7 Silvers | 4 Bronzes'],
   },
   {
     title: '11 Lovie Awards',
-    details: ['2 Golds | 4 Silvers', '2 Bronzes | 2 Shortlist'],
+    details: ['2 Golds | 4 Silvers | 2 Bronzes', '2 Shortlist | Top 4 worldwide'],
   },
   {
     title: '7 Webby Awards',
-    details: ['3 Nominee | 4 Honorée', 'Top 4 Agency worldwide'],
+    details: ['3 Nominee | 4 Honoree', 'Top 4 Agency worldwide'],
   },
 ];
 
@@ -203,13 +212,15 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     const pos = CLOUD_POSITIONS[i % CLOUD_POSITIONS.length];
     const group = new THREE.Group();
     group.position.set(pos.x, pos.y, pos.z);
-    group.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+    // Fixed resting angle (per-slot) so every award always shows the same face.
+    const baseRot = TROPHY_BASE_ROTATION[i % TROPHY_BASE_ROTATION.length];
+    group.rotation.set(baseRot.x, baseRot.y, baseRot.z);
     group.userData = {
-      basePos:  new THREE.Vector3(pos.x, pos.y, pos.z),
-      spinX:    0.10 + Math.random() * 0.18,
-      spinY:    0.12 + Math.random() * 0.22,
-      bobAmp:   0.05 + Math.random() * 0.07,
-      bobPhase: Math.random() * Math.PI * 2,
+      basePos:   new THREE.Vector3(pos.x, pos.y, pos.z),
+      baseRot,
+      swayPhase: Math.random() * Math.PI * 2,
+      bobAmp:    0.05 + Math.random() * 0.07,
+      bobPhase:  Math.random() * Math.PI * 2,
       award,
       // hasEmissive controls whether hover lights up the material — only the
       // shared gold material supports it; the GLB keeps its authored look.
@@ -387,8 +398,10 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     const t = performance.now() * 0.001;
     items.forEach((item) => {
       const ud = item.userData;
-      item.rotation.x += ud.spinX * 0.005;
-      item.rotation.y += ud.spinY * 0.005;
+      // Gentle sway around each slot's resting angle — never a full rotation.
+      item.rotation.y = ud.baseRot.y + Math.sin(t * 0.5 + ud.swayPhase) * 0.10;
+      item.rotation.x = ud.baseRot.x + Math.sin(t * 0.4 + ud.swayPhase) * 0.05;
+      item.rotation.z = ud.baseRot.z;
       item.position.y = ud.basePos.y + Math.sin(t * 0.7 + ud.bobPhase) * ud.bobAmp;
 
       const targetScale = hovered === item ? HOVER_SCALE : 1;

@@ -84,9 +84,9 @@ const CLIENTS = [
 ];
 
 const AWARDS = [
-  { title: '26 Grand Prix Stratégies', details: ['1 Grand Prix | 14 Golds', '7 Silvers | 4 Bronzes'],   trophy: 'awards/strat.glb' },
-  { title: '11 Lovie Awards',          details: ['2 Golds | 4 Silvers', '2 Bronzes | 2 Shortlist'],     trophy: 'awards/lovie.glb' },
-  { title: '7 Webby Awards',           details: ['3 Nominee | 4 Honorée', 'Top 4 Agency worldwide'],     trophy: 'awards/webby.glb' },
+  { title: '25 Grand Prix Stratégies', details: ['1 Grand Prix | 13 Golds', '7 Silvers | 4 Bronzes'],            trophy: 'awards/strat_square.glb' },
+  { title: '11 Lovie Awards',          details: ['2 Golds | 4 Silvers | 2 Bronzes', '2 Shortlist | Top 4 worldwide'], trophy: 'awards/lovie.glb' },
+  { title: '7 Webby Awards',           details: ['3 Nominee | 4 Honoree', 'Top 4 Agency worldwide'],             trophy: 'awards/webby.glb' },
 ];
 
 async function buildClient(c) {
