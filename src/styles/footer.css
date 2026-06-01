@@ -32,53 +32,30 @@
 }
 
 /* Loop exit — the seamless loop in main.js adds `is-leaving` to drive the
-   email up + AI bar down before instantly resetting scroll to the top. The
+   headline up + columns down before instantly resetting scroll to the top. The
    class is removed when the user scrolls back into contact so the next visit
    starts clean. */
-.footer__stage.is-leaving .footer__email {
+.footer__stage.is-leaving .footer__headline {
   opacity: 0;
   transform: translateY(-40px);
   transition: opacity 480ms ease, transform 680ms cubic-bezier(0.7, 0, 0.84, 0);
 }
-.footer__stage.is-leaving .footer__ai-links {
+.footer__stage.is-leaving .footer__columns {
   opacity: 0;
   transform: translateY(28px);
   transition: opacity 460ms ease 80ms,
               transform 660ms cubic-bezier(0.7, 0, 0.84, 0) 80ms;
 }
 
-/* The email and AI bar have implicit transitions on entry too, so a brief
+/* The headline and columns have implicit transitions on entry too, so a brief
    fade-in plays when the user lands on contact (whether by scrolling down the
    first time or coming back around through the loop). */
-.footer__email,
-.footer__ai-links {
+.footer__headline,
+.footer__columns {
   transition: opacity 480ms ease, transform 680ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.footer__email {
-  position: relative;
-  display: inline-block;
-  text-decoration: none;
-  color: #fff;
-}
-
-/* Underline grows from the left on hover. */
-.footer__email::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.06em;
-  height: 6px;
-  background: #fff;
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform 320ms var(--ease-out-expo);
-}
-
-.footer__email:hover::after { transform: scaleX(1); }
-
-.footer-email {
+.footer-headline {
   display: block;
   width: max-content;
   max-width: 94vw;
@@ -87,16 +64,17 @@
      so the clients/contact section titles share the same size + weight. */
   font-weight: 700;
   font-size: clamp(36px, 4vw, 60px);
-  line-height: 1;
+  line-height: 1.05;
   letter-spacing: -0.02em;
   color: #fff;
+  text-align: center;
 }
 
-.footer-email__line { display: block; white-space: nowrap; text-align: center; }
+.footer-headline__line { display: block; white-space: nowrap; text-align: center; }
 
 /* Width-locked letter box (width set from JS = its N27 advance) so a glitch
    swaps only the glyph — the wider/narrower face overflows centred. */
-.footer-email__char {
+.footer-headline__char {
   display: inline-block;
   vertical-align: top;
   text-align: center;
@@ -105,8 +83,53 @@
 
 /* Reuse the hero title's blink keyframe (defined in hero.css) for the flicker.
    The footer keeps the per-letter blink only — no font swap. */
-.footer-email__char.is-glitch {
+.footer-headline__char.is-glitch {
   animation: hero-title-glitch 560ms steps(1, end);
+}
+
+/* ── Two-column row under the headline ──────────────────────────────────────
+   Left column holds the AI bar, right column the named contacts. Stacks on
+   narrow viewports. */
+.footer__columns {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(40px, 8vw, 120px);
+  width: 100%;
+  max-width: 980px;
+}
+
+/* Light vertical splitter centred in the gap between the two columns. */
+.footer__columns::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.footer__col {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+}
+
+.footer__col--ai {
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .footer__columns {
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(28px, 6vh, 48px);
+  }
+  .footer__columns::before { display: none; }
+  .footer__col { width: 100%; align-items: center; }
 }
 
 /* ── "Explore with AI" bar — centred inside the contact stage ───────────────
@@ -133,6 +156,64 @@
 .footer__ai-links-buttons {
   display: flex;
   gap: 10px;
+}
+
+/* ── Named contacts — topic line above a mailto address, stacked. ─────────── */
+.footer__contacts {
+  gap: clamp(18px, 3vh, 28px);
+  pointer-events: auto;
+}
+
+.footer__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: #fff;
+}
+
+.footer__contact-topic {
+  font-family: 'DotGothic16', monospace;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 220ms ease;
+}
+
+.footer__contact-email {
+  position: relative;
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: clamp(18px, 1.6vw, 24px);
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+/* Underline grows from the left on hover. */
+.footer__contact-email::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 320ms var(--ease-out-expo);
+}
+
+.footer__contact:hover .footer__contact-email::after,
+.footer__contact:focus-visible .footer__contact-email::after { transform: scaleX(1); }
+.footer__contact:hover .footer__contact-topic { color: rgba(255, 255, 255, 0.85); }
+
+@media (max-width: 720px) {
+  .footer__contact { align-items: center; text-align: center; }
 }
 
 /* ── Loop hint — bottom-centre CTA signalling the seamless wrap to the top.

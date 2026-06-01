@@ -1,17 +1,24 @@
-// Contact section — a single mailto link pinned in a fixed stage, just like the
-// other sections (video/clients/awards). The address reuses the hero title's
-// font-glitch (createTitle): letters flicker into a decorative face for a few
-// seconds, then freeze. main.js reveals the stage and calls setActive(true) on
-// section enter, which plays the glitch once.
+// Contact section — a glitching headline pinned in a fixed stage, just like the
+// other sections (video/clients/awards). The headline reuses the hero title's
+// font-glitch (createTitle): letters flicker for a few seconds, then freeze.
+// main.js reveals the stage and calls setActive(true) on section enter, which
+// plays the glitch once. Below the headline, two columns: the "Explore with AI"
+// bar on one side, the named contact list (topic + mailto) on the other.
 
 import { createTitle } from '../hero/title.js';
 import { createAiLinks, DEFAULT_AI_LINKS } from '../shared/aiLinks.js';
 
-const DEFAULT_EMAIL = 'contact@niji.fr';
+const DEFAULT_HEADLINE = ['Question rapide, demandez à une IA.', 'Sujet sérieux, demandez à un humain.'];
+const DEFAULT_CONTACTS = [
+  { topic: 'Pour parler burning platform et impact P&L global', email: 'yv.corbeil@niji.fr' },
+  { topic: 'Pour parler AI commerce, conversion, refonte e-commerce', email: 'nicolas.prudhomme@niji.fr' },
+  { topic: 'Pour parler produit, branding et agents IA', email: 'chris.de-abreu@niji.fr' },
+];
 const DEFAULT_LOOP_LABEL = 'Keep scrolling — back to start';
 
 export function mountFooter({ container, content = null } = {}) {
-  const EMAIL      = content?.contact?.email     ?? DEFAULT_EMAIL;
+  const HEADLINE   = content?.contact?.headline?.length ? content.contact.headline : DEFAULT_HEADLINE;
+  const CONTACTS   = content?.contact?.contacts?.length ? content.contact.contacts : DEFAULT_CONTACTS;
   const LOOP_LABEL = content?.contact?.loopLabel ?? DEFAULT_LOOP_LABEL;
   const section = container.querySelector('[data-section="contact"]');
   if (!section) return null;
@@ -21,33 +28,56 @@ export function mountFooter({ container, content = null } = {}) {
   stage.className = 'footer__stage';
   section.appendChild(stage);
 
-  const link = document.createElement('a');
-  link.className = 'footer__email';
-  link.href = `mailto:${EMAIL}`;
-  link.setAttribute('aria-label', EMAIL); // letters are split into spans
-
-  // Reuse the hero title's timed auto-glitch (default ~5s, then freezes).
-  // glitchFontClasses: [] keeps the per-letter blink but skips the Niconne/Rubik
-  // glyph swap — the address stays in N27 the whole time.
-  // Displayed uppercase even though the mailto + aria-label keep the canonical
-  // lowercase address.
+  // Headline — reuses the hero title's timed auto-glitch (default ~5s, then
+  // freezes). glitchFontClasses: [] keeps the per-letter blink but skips the
+  // Niconne/Rubik glyph swap, so the text stays in N27 the whole time.
   const title = createTitle({
-    lines: [EMAIL.toUpperCase()],
-    baseClass: 'footer-email',
+    lines: HEADLINE,
+    baseClass: 'footer-headline',
     tag: 'span',
     glitchFontClasses: [],
   });
-  link.appendChild(title.el);
-  stage.appendChild(link);
+  title.el.classList.add('footer__headline');
+  stage.appendChild(title.el);
 
-  // "Explore with AI" bar under the email — same icon chrome as the right-panel
-  // version, but centred inside the contact stage. main.js already hides the
-  // right-panel AI bar on contact, so the two never overlap.
+  // Two-column layout below the headline: AI bar on the left, named contacts on
+  // the right.
+  const columns = document.createElement('div');
+  columns.className = 'footer__columns';
+  stage.appendChild(columns);
+
+  // "Explore with AI" bar — same icon chrome as the right-panel version, but
+  // centred inside the contact stage. main.js already hides the right-panel AI
+  // bar on contact, so the two never overlap.
   const aiData = content?.contact?.aiLinks?.buttons?.length
     ? content.contact.aiLinks
     : (content?.thinking?.aiLinks?.buttons?.length ? content.thinking.aiLinks : DEFAULT_AI_LINKS);
   const { el: aiBar } = createAiLinks({ data: aiData, baseClass: 'footer__ai-links' });
-  stage.appendChild(aiBar);
+  const aiCol = document.createElement('div');
+  aiCol.className = 'footer__col footer__col--ai';
+  aiCol.appendChild(aiBar);
+  columns.appendChild(aiCol);
+
+  // Named contacts — each is a mailto with its topic line above the address.
+  const contactsCol = document.createElement('div');
+  contactsCol.className = 'footer__col footer__contacts';
+  CONTACTS.forEach(({ topic, email }) => {
+    const item = document.createElement('a');
+    item.className = 'footer__contact';
+    item.href = `mailto:${email}`;
+
+    const topicEl = document.createElement('span');
+    topicEl.className = 'footer__contact-topic';
+    topicEl.textContent = topic;
+
+    const emailEl = document.createElement('span');
+    emailEl.className = 'footer__contact-email';
+    emailEl.textContent = email;
+
+    item.append(topicEl, emailEl);
+    contactsCol.appendChild(item);
+  });
+  columns.appendChild(contactsCol);
 
   // Loop hint — bottom-centre button that signals scrolling past the contact
   // section wraps the page back to the top. Clicking it scrolls to the start
