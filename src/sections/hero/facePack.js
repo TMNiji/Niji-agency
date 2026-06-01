@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { ease, prefersReducedMotion } from '@modules/motion.js';
 import { SHADER_PRESETS } from '@shaders/index.js';
+import { asset } from '@/lib/asset.js';
 
 const PACK_W  = 1484;
 const PACK_H  = 1051;
@@ -202,7 +203,7 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     const w = f.w * SCALE;
     const h = f.h * SCALE;
     const geo = new THREE.PlaneGeometry(w, h);
-    const tex = loader.load(imageSrcs[f.id] ?? f.src);
+    const tex = loader.load(asset(imageSrcs[f.id] ?? f.src));
     tex.colorSpace = THREE.SRGBColorSpace;
     // Ensure mipmap chain exists so the shadow shader's textureLod() has a
     // pyramid to sample from. These are the TextureLoader defaults, but we

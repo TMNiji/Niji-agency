@@ -13,6 +13,7 @@
 
 import { createServiceDropdowns } from '../shared/serviceDropdowns.js';
 import { createTitle } from '../hero/title.js';
+import { asset } from '@/lib/asset.js';
 
 // ── Dropdown copy ────────────────────────────────────────────────────────────
 // DESIGN (frames 1-160) and CODE (frames 161-end) each get their own service
@@ -110,7 +111,7 @@ export function mountVideo({
     img.decoding = 'async';
     img.addEventListener('load',  () => onSettle(i), { once: true });
     img.addEventListener('error', () => onSettle(i), { once: true });
-    img.src = `${base}${String(start + i).padStart(pad, '0')}.${ext}`;
+    img.src = asset(`${base}${String(start + i).padStart(pad, '0')}.${ext}`);
     imgs[i] = img;
   }
 

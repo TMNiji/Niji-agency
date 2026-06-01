@@ -14,6 +14,7 @@
 import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@modules/motion.js';
 import { createTitle } from '../hero/title.js';
+import { asset } from '@/lib/asset.js';
 
 // Validate an external URL before turning it into a click target. Same shape
 // as aiLinks.js — we don't export there because keeping the helper local
@@ -258,7 +259,7 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
     if (client.logo) {
       const img = document.createElement('img');
       img.className = 'clients__card-image';
-      img.src = client.logo;
+      img.src = asset(client.logo);
       img.alt = brandName;
       img.loading = 'lazy';
       front.appendChild(img);
@@ -283,7 +284,7 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
       qr.className = 'clients__card-qr';
       if (client.qrSvg) {
         // Pre-rendered SVG QR provided in /public/clients/qr/*.svg.
-        qr.src = client.qrSvg;
+        qr.src = asset(client.qrSvg);
       } else {
         // Fallback: QR-Server public endpoint encoded with the case-study URL.
         const encoded = encodeURIComponent(client.url);
@@ -305,7 +306,7 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
         cta.rel = 'noopener';
         cta.setAttribute('aria-label', `Voir le case study ${brandName}`);
         const img = document.createElement('img');
-        img.src = '/clients/button.svg';
+        img.src = asset('/clients/button.svg');
         img.alt = '';
         img.loading = 'lazy';
         cta.appendChild(img);
@@ -320,7 +321,7 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
     } else if (client.back === 'image' && client.image) {
       const shot = document.createElement('img');
       shot.className = 'clients__card-screenshot';
-      shot.src = client.image;
+      shot.src = asset(client.image);
       shot.alt = `${brandName} — capture d'écran`;
       shot.loading = 'lazy';
       back.appendChild(shot);
@@ -337,7 +338,7 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
         cta.rel = 'noopener';
         cta.setAttribute('aria-label', `Voir le case study ${brandName}`);
         const img = document.createElement('img');
-        img.src = '/clients/button.svg';
+        img.src = asset('/clients/button.svg');
         img.alt = '';
         img.loading = 'lazy';
         cta.appendChild(img);

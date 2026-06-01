@@ -14,6 +14,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { asset } from '@/lib/asset.js';
 import { gsap }   from 'gsap';
 import { prefersReducedMotion } from '@modules/motion.js';
 import { createTitle } from '../hero/title.js';
@@ -249,7 +250,7 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     const slot = items[i];
     if (!slot) return;
     gltfLoader.load(
-      url,
+      asset(url),
       (gltf) => {
         slot.userData.material?.dispose();
         slot.clear();
