@@ -4,6 +4,7 @@ import glsl from 'vite-plugin-glsl';
 import { resolve } from 'path';
 
 export default defineConfig({
+  base: '/Niji-agency/',
   plugins: [
     glsl({
       include: ['**/*.glsl', '**/*.vert', '**/*.frag'],
