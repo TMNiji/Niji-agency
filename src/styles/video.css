@@ -23,6 +23,67 @@
 
 .video.is-visible .video__stage { opacity: 1; }
 
+/* ── Title + subtitle — top-centre overlay, glitches in/out on enter/leave ─── */
+
+/* Shared title spec — identical sizes/colors/placement to the clients and
+   awards headings so every section heading reads the same (see clients.css /
+   awards.css). Large/bold line on top, small/muted line below. */
+.video__title {
+  position: absolute;
+  top: clamp(110px, 12vh, 160px);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Built via createTitle — each letter is a width-locked span so the glitch
+   morph never reflows the line. Stacked lines mirror the clients title. */
+.video-title__line {
+  display: block;
+  font-family: var(--font);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.video-title__line + .video-title__line { margin-top: 6px; }
+
+.video-title__line--large {
+  font-size: clamp(36px, 4vw, 60px);
+  font-weight: 700;
+  color: #fff;
+}
+
+.video-title__line--small {
+  font-size: clamp(20px, 1.7vw, 26px);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Per-letter chrome — width locked from JS; exit-t/exit drives the glitch pop. */
+.video-title__char {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  overflow: visible;
+  opacity: clamp(0, calc((var(--exit-t, 1) - var(--exit, 0)) * 14), 1);
+}
+
+.video-title.is-exiting .video-title__char {
+  animation: hero-title-shatter 220ms steps(3) infinite;
+  animation-delay: calc(var(--exit-t, 0) * -1s);
+}
+
+.video-title__char.is-glitch {
+  animation: hero-title-glitch 560ms steps(1, end);
+}
+
+/* Narrow screens — same lift as the awards/clients headings. */
+@media (max-width: 860px) {
+  .video__title { top: clamp(80px, 10vh, 140px); }
+}
+
 .video__canvas {
   position: absolute;
   inset: 0;

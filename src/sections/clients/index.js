@@ -28,8 +28,8 @@ function safeExternalUrl(url) {
   }
 }
 
-const DEFAULT_TITLE    = 'Grands noms.';
-const DEFAULT_SUBTITLE = 'Projets à leur hauteur.';
+const DEFAULT_TITLE    = 'Quelques grands noms qui nous font confiance';
+const DEFAULT_SUBTITLE = 'Des produits à leur hauteur';
 
 // Per-client shape:
 //   name        Brand name — used for alt text + back-face label
@@ -67,6 +67,7 @@ const DEFAULT_CLIENTS = [
     frontLabel: '1ère app m-commerce',
     back: 'image',
     image: '/clients/screenshots/grand-frais.webp',
+    caseUrl: 'https://apps.apple.com/fr/app/grand-frais/id6753673412',
     accent: '#2EA84A',
   },
   // 3. Orange — Experience / "Design Partenaire depuis 10 ans"
@@ -104,13 +105,14 @@ const DEFAULT_CLIENTS = [
     frontLabel: 'Site Corporate',
     back: 'image',
     image: '/clients/screenshots/accor.webp',
+    caseUrl: 'https://group.accor.com/fr',
     accent: '#C9A14D',
   },
-  // 7. BNP Paribas — Design Système / Partenaire depuis 9 ans
+  // 7. BNP Paribas — Design System / Partenaire depuis 9 ans
   {
     name: 'BNP Paribas',
     logo: '/logo/bnp-paribas.png',
-    frontLabel: 'Design Système',
+    frontLabel: 'Design System. Partenaire depuis 9 ans.',
     back: 'text',
     blurb: 'Partenaire depuis 9 ans',
     accent: '#008855',
@@ -142,6 +144,7 @@ const DEFAULT_CLIENTS = [
     frontLabel: 'Site Groupe',
     back: 'image',
     image: '/clients/screenshots/bel.webp',
+    caseUrl: 'https://www.groupe-bel.com',
     accent: '#E60028',
   },
 ];
@@ -162,7 +165,27 @@ const MOUSE_LERP = 0.08;
 const ROT_Y_MAX  = 7;     // deg of stack rotateY at mouseX = ±1
 const ROT_X_MAX  = 4;     // deg of stack rotateX at mouseY = ±1
 
-export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, subtitle = DEFAULT_SUBTITLE, clients = DEFAULT_CLIENTS } = {}) {
+// Map a CMS client (Sanity image objects) onto the internal shape the renderer
+// expects (flat URL strings). Falls through any plain string fields untouched
+// so a partially-filled CMS entry still renders.
+function fromCms(c) {
+  return {
+    name:       c.name,
+    logo:       c.logo?.asset?.url  ?? c.logo,
+    frontLabel: c.frontLabel,
+    back:       c.back,
+    image:      c.image?.asset?.url ?? c.image,
+    qrSvg:      c.qr?.asset?.url    ?? c.qrSvg,
+    blurb:      c.blurb,
+    caseUrl:    c.caseUrl,
+    accent:     c.accent,
+  };
+}
+
+export function mountClients({ container, orchestrator, content = null } = {}) {
+  const title    = content?.title    ?? DEFAULT_TITLE;
+  const subtitle = content?.subtitle ?? DEFAULT_SUBTITLE;
+  const clients  = content?.list?.length ? content.list.map(fromCms) : DEFAULT_CLIENTS;
   const section = container.querySelector('[data-section="clients"]');
   if (!section) return null;
   section.classList.add('clients');
@@ -181,8 +204,8 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
     baseClass: 'clients-title',
     tag: 'div',
     lines: [
-      { text: title,    cls: 'clients-title__line--small' },
       { text: subtitle, cls: 'clients-title__line--large' },
+      { text: title,    cls: 'clients-title__line--small' },
     ],
     // No glyph swap — clean RGB-split flicker only (the burst spawn pulses the
     // is-glitch class so the CSS chromatic-aberration keyframe fires).
@@ -302,10 +325,29 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
       shot.loading = 'lazy';
       back.appendChild(shot);
 
-      const tag = document.createElement('div');
-      tag.className = 'clients__card-back-label';
-      tag.textContent = brandName;
-      back.appendChild(tag);
+      // Same CTA button as the QR cards (Ritz etc.): an anchor wrapping the
+      // shared button SVG. When `caseUrl`/`url` is set it links to the live
+      // project; otherwise the brand label is shown instead.
+      const ctaUrl = safeExternalUrl(client.caseUrl ?? client.url);
+      if (ctaUrl) {
+        const cta = document.createElement('a');
+        cta.className = 'clients__card-cta';
+        cta.href = ctaUrl;
+        cta.target = '_blank';
+        cta.rel = 'noopener';
+        cta.setAttribute('aria-label', `Voir le case study ${brandName}`);
+        const img = document.createElement('img');
+        img.src = '/clients/button.svg';
+        img.alt = '';
+        img.loading = 'lazy';
+        cta.appendChild(img);
+        back.appendChild(cta);
+      } else {
+        const tag = document.createElement('div');
+        tag.className = 'clients__card-back-label';
+        tag.textContent = brandName;
+        back.appendChild(tag);
+      }
     } else {
       const blurb = document.createElement('p');
       blurb.className = 'clients__card-blurb';
@@ -353,7 +395,7 @@ export function mountClients({ container, orchestrator, title = DEFAULT_TITLE, s
   // floor — so the stack reads as invisible while parked and only sweeps into
   // view as the preview glides toward 0, instead of lingering on screen for the
   // whole video section.
-  const PREVIEW_START = -5 / (N + 1);
+  const PREVIEW_START = -7 / (N + 1);
 
   orchestrator?.onProgress('clients', ({ progress }) => {
     scrollProgress = progress;

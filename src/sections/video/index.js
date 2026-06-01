@@ -7,17 +7,67 @@
 // decode-forward, zero seek latency, frame-accurate. This is the Apple-style
 // product-page technique.
 //
-// Frames live in public/video/frames/ as frame_0001.jpg … frame_NNNN.jpg and
-// are described by the `frames` manifest passed from main.js.
+// Frames live in public/video/frames/ as frame_0001.webp … frame_NNNN.webp.
+// The full clip is split across two sections (DESIGN + CODE): each mount only
+// preloads + scrubs its own frame range, so the work is shared, not doubled.
 
-export function mountVideo({ container, orchestrator, frames } = {}) {
-  const section = container.querySelector('[data-section="video"]');
+import { createServiceDropdowns } from '../shared/serviceDropdowns.js';
+import { createTitle } from '../hero/title.js';
+
+// ── Dropdown copy ────────────────────────────────────────────────────────────
+// DESIGN (frames 1-160) and CODE (frames 161-end) each get their own service
+// panel. Tags render with a leading "/" added by createServiceDropdowns.
+export const DESIGN_SERVICES = [
+  { tag: 'CONCEPT',  items: ['Vision produit, direction créative',  'Concepts qui tiennent en boardroom'] },
+  { tag: 'WORKSHOP', items: ['Idéation co-conçue avec vos équipes', 'Une idée par mur. Une décision par jour.'] },
+  { tag: 'WORKFLOW', items: ['IA générative dans le process créatif', 'Idée prototypée en quelques heures'] },
+];
+
+export const CODE_SERVICES = [
+  { tag: 'FRONT',          items: ['React, Next.js, Vue, TypeScript',       'Shopify, Salesforce Commerce Cloud'] },
+  { tag: 'ANIMATION',      items: ['GSAP, Three.js, Framer Motion, Lottie', 'Le mouvement sert le produit, ou il sort'] },
+  { tag: 'AI PIXEL CODEUR', items: ['Figma vers React, sans handoff',        'Design-to-code-to-design'] },
+];
+
+export function mountVideo({
+  container,
+  orchestrator,
+  sectionId = 'video',
+  frames,
+  title = '',
+  subtitle = '',
+  services = [],
+} = {}) {
+  const section = container.querySelector(`[data-section="${sectionId}"]`);
   if (!section) return null;
   section.classList.add('video');
 
   const stage = document.createElement('div');
   stage.className = 'video__stage';
   section.appendChild(stage);
+
+  // ── Title + subtitle overlay ───────────────────────────────────────────────
+  // Built via the shared createTitle so it glitches in/out on section
+  // enter/leave, matching the clients/awards rhythm. The subtitle reads as the
+  // large/bold line, the title as the smaller lead-in beneath it.
+  const titleHandle = createTitle({
+    baseClass: 'video-title',
+    tag: 'div',
+    lines: [
+      { text: title,    cls: 'video-title__line--large' },
+      { text: subtitle, cls: 'video-title__line--small' },
+    ],
+    glitchFontClasses: [],
+    glitchDuration: 0,
+  });
+  titleHandle.el.classList.add('video__title');
+  stage.appendChild(titleHandle.el);
+
+  // ── Service dropdowns — same panel as THINKING ─────────────────────────────
+  // The container is built here but mounted into the shared right-panel (and
+  // revealed/hidden per scroll) by main.js, so it stacks above the persistent
+  // AI-links bar instead of overlapping it.
+  const { el: designServices } = createServiceDropdowns({ services });
 
   const canvas = document.createElement('canvas');
   canvas.className = 'video__canvas';
@@ -37,7 +87,10 @@ export function mountVideo({ container, orchestrator, frames } = {}) {
   stage.appendChild(placeholder);
 
   // ── Preload the sequence ──────────────────────────────────────────────────
-  const { base = '/video/frames/frame_', pad = 4, ext = 'jpg', count = 0 } = frames || {};
+  // `start`/`end` are 1-based, inclusive frame numbers. This mount only loads
+  // its own slice of the full clip, so DESIGN and CODE never double up.
+  const { base = '/video/frames/frame_', pad = 4, ext = 'jpg', start = 1, end = start } = frames || {};
+  const count = Math.max(0, end - start + 1);
   const imgs = new Array(count);
   let settled = 0;
   let firstReady = false;
@@ -57,7 +110,7 @@ export function mountVideo({ container, orchestrator, frames } = {}) {
     img.decoding = 'async';
     img.addEventListener('load',  () => onSettle(i), { once: true });
     img.addEventListener('error', () => onSettle(i), { once: true });
-    img.src = `${base}${String(i + 1).padStart(pad, '0')}.${ext}`;
+    img.src = `${base}${String(start + i).padStart(pad, '0')}.${ext}`;
     imgs[i] = img;
   }
 
@@ -105,7 +158,7 @@ export function mountVideo({ container, orchestrator, frames } = {}) {
     raf = requestAnimationFrame(() => { raf = 0; drawIndex(pending); });
   }
 
-  orchestrator?.onProgress('video', ({ progress }) => {
+  orchestrator?.onProgress(sectionId, ({ progress }) => {
     if (count <= 0) return;
     const idx = Math.max(0, Math.min(count - 1, Math.round(progress * (count - 1))));
     schedule(idx);
@@ -117,5 +170,5 @@ export function mountVideo({ container, orchestrator, frames } = {}) {
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
 
-  return { section, canvas };
+  return { section, canvas, designServices, titleHandle };
 }

@@ -46,7 +46,10 @@ const DOTS_DEF = Array.from({ length: DOT_COUNT }, (_, i) => {
   return { angle, rFactor: rBase + jitter };
 });
 
-export function createOrbital({ stage }) {
+export function createOrbital({ stage, cards = {} } = {}) {
+  // Per-dot CMS content for the floating cards (dots 0-3). Index order matches
+  // CARD_BUILDERS; undefined entries let each builder use its own defaults.
+  const CARD_CONTENT = [cards.strategy, cards.businessValue, cards.designSprint, cards.brainstorm];
   // Wrap centered at stage midpoint (width/height 0 — children offset from it)
   const wrap = document.createElement('div');
   wrap.className = 'hero-orbital';
@@ -195,13 +198,13 @@ export function createOrbital({ stage }) {
   popup.hidden = true;
   document.body.appendChild(popup);
 
-  const benchmark = createBenchmarkStack({ stage });
+  const benchmark = createBenchmarkStack({ stage, sites: cards.benchmark?.sites });
 
   // Lazily built and cached so card state (e.g. checklist) survives re-opens.
   const cardCache = new Array(CARD_BUILDERS.length).fill(null);
   function getCard(idx) {
     if (!cardCache[idx]) {
-      const inst = CARD_BUILDERS[idx]();
+      const inst = CARD_BUILDERS[idx](CARD_CONTENT[idx]);
       inst.el.querySelector(inst.closeSelector)
         ?.addEventListener('click', (e) => { e.stopPropagation(); closeAll(); });
       cardCache[idx] = inst;

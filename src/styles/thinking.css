@@ -55,7 +55,14 @@
   pointer-events: none;
 }
 
-.thinking__right-panel.services-on .thinking__services { pointer-events: auto; }
+/* Reveal is per-block (`is-on`), not panel-wide, so the THINKING and DESIGN
+   dropdown sets can share the same right-panel and show independently. */
+.thinking__services.is-on { pointer-events: auto; }
+
+/* An idle (not is-on) block leaves the flex flow so a stacked sibling never
+   inserts an empty gap above the AI-links bar. It stays rendered (opacity 0)
+   so its per-item entrance animation can still play when it becomes active. */
+.thinking__services:not(.is-on) { position: absolute; pointer-events: none; }
 
 .thinking__service {
   opacity: 0;
@@ -63,13 +70,13 @@
   transition: opacity 600ms ease, transform 700ms var(--ease-out-expo);
 }
 
-.thinking__right-panel.services-on .thinking__service                    { opacity: 0.32; transform: scale(1); }
-.thinking__right-panel.services-on .thinking__service.is-open             { opacity: 1; }
-.thinking__right-panel.services-on .thinking__service:not(.is-open):hover { opacity: 0.75; transition: opacity 150ms ease-out, transform 700ms var(--ease-out-expo); }
-.thinking__right-panel.services-on .thinking__service:nth-child(1)  { transition-delay: 100ms; }
-.thinking__right-panel.services-on .thinking__service:nth-child(2)  { transition-delay: 220ms; }
-.thinking__right-panel.services-on .thinking__service:nth-child(3)  { transition-delay: 340ms; }
-.thinking__right-panel.services-on .thinking__service:nth-child(4)  { transition-delay: 460ms; }
+.thinking__services.is-on .thinking__service                    { opacity: 0.32; transform: scale(1); }
+.thinking__services.is-on .thinking__service.is-open             { opacity: 1; }
+.thinking__services.is-on .thinking__service:not(.is-open):hover { opacity: 0.75; transition: opacity 150ms ease-out, transform 700ms var(--ease-out-expo); }
+.thinking__services.is-on .thinking__service:nth-child(1)  { transition-delay: 100ms; }
+.thinking__services.is-on .thinking__service:nth-child(2)  { transition-delay: 220ms; }
+.thinking__services.is-on .thinking__service:nth-child(3)  { transition-delay: 340ms; }
+.thinking__services.is-on .thinking__service:nth-child(4)  { transition-delay: 460ms; }
 
 /* Tag button: /NAME or >NAME */
 .thinking__service-tag {
@@ -114,6 +121,10 @@
   font-weight: 400;
   color: rgba(255, 255, 255, 0.50);
   letter-spacing: 0.01em;
+  /* DotGothic16 is a full-width pixel font: its space glyph carries a near-
+     full-character advance, so multi-word phrases read with oversized gaps.
+     Pull the inter-word spacing back toward a proportional rhythm. */
+  word-spacing: -0.28em;
   padding: 2px 0;
   text-align: right;
 }

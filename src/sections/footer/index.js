@@ -7,9 +7,12 @@
 import { createTitle } from '../hero/title.js';
 import { createAiLinks, DEFAULT_AI_LINKS } from '../shared/aiLinks.js';
 
-const EMAIL = 'contact@niji.fr';
+const DEFAULT_EMAIL = 'contact@niji.fr';
+const DEFAULT_LOOP_LABEL = 'Keep scrolling — back to start';
 
 export function mountFooter({ container, content = null } = {}) {
+  const EMAIL      = content?.contact?.email     ?? DEFAULT_EMAIL;
+  const LOOP_LABEL = content?.contact?.loopLabel ?? DEFAULT_LOOP_LABEL;
   const section = container.querySelector('[data-section="contact"]');
   if (!section) return null;
   section.classList.add('footer');
@@ -40,7 +43,9 @@ export function mountFooter({ container, content = null } = {}) {
   // "Explore with AI" bar under the email — same icon chrome as the right-panel
   // version, but centred inside the contact stage. main.js already hides the
   // right-panel AI bar on contact, so the two never overlap.
-  const aiData = content?.thinking?.aiLinks?.buttons?.length ? content.thinking.aiLinks : DEFAULT_AI_LINKS;
+  const aiData = content?.contact?.aiLinks?.buttons?.length
+    ? content.contact.aiLinks
+    : (content?.thinking?.aiLinks?.buttons?.length ? content.thinking.aiLinks : DEFAULT_AI_LINKS);
   const { el: aiBar } = createAiLinks({ data: aiData, baseClass: 'footer__ai-links' });
   stage.appendChild(aiBar);
 
@@ -54,9 +59,10 @@ export function mountFooter({ container, content = null } = {}) {
   loopCta.className = 'footer__loop-cta';
   loopCta.setAttribute('aria-label', 'Back to start');
   loopCta.innerHTML = `
-    <span class="footer__loop-cta-label">Keep scrolling — back to start</span>
+    <span class="footer__loop-cta-label"></span>
     <span class="footer__loop-cta-arrow" aria-hidden="true">↓</span>
   `;
+  loopCta.querySelector('.footer__loop-cta-label').textContent = LOOP_LABEL;
   loopCta.addEventListener('click', () => {
     // Defer to the seamless loop handler in main.js by triggering a scroll
     // past the document bottom. Falls back to native scroll-to-top if Lenis

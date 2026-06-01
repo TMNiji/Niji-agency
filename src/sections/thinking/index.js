@@ -1,11 +1,12 @@
 import { createOrbital } from '../hero/orbital.js';
 import { createAiLinks, DEFAULT_AI_LINKS } from '../shared/aiLinks.js';
+import { createServiceDropdowns } from '../shared/serviceDropdowns.js';
 
 const DEFAULT_SERVICES = [
   { tag: 'PRODUCT',  items: ['Vision, conception et roadmap',     'Design system, tokens, gouvernance'] },
   { tag: 'AI',       items: ['Audit, workflows',                  'Développement d\'agents'] },
-  { tag: 'BUSINESS', items: ['Analyse marché, GTM, BP, BM',       'Cadrage stratégique'] },
-  { tag: 'BRANDING', items: ['Plateforme et positionnement',      'Promesse, preuves, territoire'] },
+  { tag: 'BUSINESS', items: ['Unit economics, cost-to-serve',      'Cadrage produit, business case, go-to-market'] },
+  { tag: 'BRANDING', items: ['Plateforme et positionnement',      'Promesse, preuves, expérience'] },
 ];
 
 export function mountThinking({ container, orchestrator, webgl, content = null } = {}) {
@@ -18,52 +19,13 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
   stage.className = 'thinking__stage';
   section.appendChild(stage);
 
-  const orbital = createOrbital({ stage });
+  const orbital = createOrbital({ stage, cards: content?.thinking?.cards });
 
   // ── Service panel — dropdowns ──────────────────────────────────────────────
-  const services = document.createElement('div');
-  services.className = 'thinking__services';
-
-  // Use the local DEFAULT_SERVICES — the Sanity CMS still holds the old
-  // PRODUCT/BUSINESS/BRANDING/TECH labels and would override the fresh copy
-  // below. Restore the CMS check once Sanity has been updated to mirror these.
-  const SERVICES   = DEFAULT_SERVICES;
+  const SERVICES   = content?.thinking?.services?.length ? content.thinking.services : DEFAULT_SERVICES;
   const AI_LINKS   = content?.thinking?.aiLinks?.buttons?.length ? content.thinking.aiLinks : DEFAULT_AI_LINKS;
 
-  const serviceItems = SERVICES.map((s, i) => {
-    const item   = document.createElement('div');
-    item.className = 'thinking__service';
-
-    const tagBtn = document.createElement('button');
-    tagBtn.className = 'thinking__service-tag';
-
-    const subEl  = document.createElement('div');
-    subEl.className = 'thinking__service-sub';
-    (s.items ?? []).forEach((text) => {
-      const span  = document.createElement('span');
-      span.className = 'thinking__service-sub-item';
-      span.textContent = text;
-      subEl.appendChild(span);
-    });
-
-    item.appendChild(tagBtn);
-    item.appendChild(subEl);
-    services.appendChild(item);
-
-    const setState = (open) => {
-      tagBtn.textContent = (open ? '>' : '/') + s.tag;
-      item.classList.toggle('is-open', open);
-    };
-    setState(false); // closed by default; open only on click
-
-    tagBtn.addEventListener('click', () => {
-      const wasOpen = item.classList.contains('is-open');
-      serviceItems.forEach(({ setState: st }) => st(false));
-      if (!wasOpen) setState(true);
-    });
-
-    return { item, setState };
-  });
+  const { el: services } = createServiceDropdowns({ services: SERVICES });
 
   // ── AI links ──────────────────────────────────────────────────────────────
   const { el: aiLinks } = createAiLinks({ data: AI_LINKS, baseClass: 'thinking__ai-links' });
@@ -80,7 +42,7 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
   // ── Orchestration ──────────────────────────────────────────────────────────
   const reveal = () => {
     section.classList.add('is-visible');
-    rightPanel.classList.add('services-on');
+    services.classList.add('is-on');
   };
 
   // Debounced hide — the ease-out snap animation can land 1-2px before the
@@ -111,7 +73,7 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
 
   orchestrator?.onLeave('thinking', ({ direction }) => {
     section.classList.remove('is-visible');
-    rightPanel.classList.remove('services-on');
+    services.classList.remove('is-on');
     clearTimeout(hideTimer);
     if (direction === 'up') {
       // Debounce: a micro-bounce snap can briefly cross the start boundary going

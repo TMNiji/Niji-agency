@@ -4,12 +4,13 @@ import { initWebGL }         from '@modules/webgl.js';
 import { createOrchestrator } from '@modules/orchestrator.js';
 import { mountHero }          from './sections/hero/index.js';
 import { mountThinking }      from './sections/thinking/index.js';
-import { mountVideo }         from './sections/video/index.js';
+import { mountVideo, DESIGN_SERVICES, CODE_SERVICES } from './sections/video/index.js';
 import { mountClients }       from './sections/clients/index.js';
 import { mountAwards }        from './sections/awards/index.js';
 import { mountFooter }        from './sections/footer/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
+import { prefersReducedMotion } from '@modules/motion.js';
 
 // All sections share the same 200vh height so each occupies one full section of
 // scroll. The rainbow → DESIGN transition is driven by thinking's last quarter
@@ -35,7 +36,18 @@ const SECTIONS = [
   {
     id: 'video',
     label: 'DESIGN',
-    triggerHeight: SECTION_HEIGHT,
+    // DESIGN scrubs frames 1-160. Height tuned so the ~160-frame slice spreads
+    // over enough scroll that scrubbing doesn't feel twitchy.
+    triggerHeight: '200vh',
+    triggerStart: 'top top',
+    triggerEnd: 'bottom top',
+  },
+  {
+    id: 'code',
+    label: 'CODE',
+    // CODE scrubs frames 161-end (~337 frames) — taller than DESIGN so the
+    // larger slice keeps the same frames-per-pixel feel.
+    triggerHeight: '350vh',
     triggerStart: 'top top',
     triggerEnd: 'bottom top',
   },
@@ -115,19 +127,37 @@ async function boot() {
     webgl.shaderPlane.setCellGrow(1);
   });
 
-  const sectionLabels = SECTIONS.map((s) => s.label);
+  // CMS section labels override the hardcoded defaults when present (kept
+  // index-aligned with SECTIONS so the timeline order stays intact).
+  const cmsLabels = sanityContent?.sectionLabels;
+  const sectionLabels = SECTIONS.map((s, i) => cmsLabels?.[i] ?? s.label);
   const hero     = mountHero({
     container: root, orchestrator, webgl, sectionLabels, content: sanityContent,
   });
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
-  // DESIGN section — scroll-scrubbed image sequence (see video/index.js).
+  // DESIGN + CODE sections — one scroll-scrubbed image sequence (496 frames)
+  // split at frame 160. Each mount preloads + scrubs only its own slice.
+  const FRAME_BASE = { base: '/video/frames/frame_', pad: 4, ext: 'webp' };
   const video    = mountVideo({
     container: root,
     orchestrator,
-    frames: { base: '/video/frames/frame_', pad: 4, ext: 'webp', count: 494 },
+    sectionId: 'video',
+    frames: { ...FRAME_BASE, start: 1, end: 160 },
+    title: sanityContent?.design?.title ?? 'Du chaos naît le produit',
+    subtitle: sanityContent?.design?.subtitle ?? 'On juge une idée à ce qu\'elle transforme',
+    services: sanityContent?.design?.services?.length ? sanityContent.design.services : DESIGN_SERVICES,
   });
-  const clients  = mountClients({ container: root, orchestrator });
-  const awards   = mountAwards({ container: root, webgl });
+  const code     = mountVideo({
+    container: root,
+    orchestrator,
+    sectionId: 'code',
+    frames: { ...FRAME_BASE, start: 161, end: 496 },
+    title: sanityContent?.code?.title ?? 'Le produit prend vie.',
+    subtitle: sanityContent?.code?.subtitle ?? 'Le go-live n\'est que le début.',
+    services: sanityContent?.code?.services?.length ? sanityContent.code.services : CODE_SERVICES,
+  });
+  const clients  = mountClients({ container: root, orchestrator, content: sanityContent?.clients });
+  const awards   = mountAwards({ container: root, webgl, content: sanityContent?.awards });
   const footer   = mountFooter({ container: root, content: sanityContent });
 
   // Section-label clicks navigate the page. Use a smooth, eased scroll (not an
@@ -157,7 +187,7 @@ async function boot() {
   // stay BUILD-only. Each section's onEnter (fired in both scroll directions)
   // sets the state, so no separate onLeave bookkeeping is needed.
   const setAiVisible = (on) => thinking?.rightPanel?.classList.toggle('ai-on', on);
-  ['thinking', 'video', 'clients', 'awards'].forEach((id) =>
+  ['thinking', 'video', 'code', 'clients', 'awards'].forEach((id) =>
     orchestrator.onEnter(id, () => setAiVisible(true)));
   ['hero', 'contact'].forEach((id) =>
     orchestrator.onEnter(id, () => setAiVisible(false)));
@@ -195,35 +225,103 @@ async function boot() {
     if (el) el.classList.toggle('is-visible', on);
   };
 
-  // Video (DESIGN) inherits the prism backdrop from BUILD's tail. Coming back
-  // up from clients, that handoff hasn't happened, so the shader is still
-  // hero_grain — restore the rainbow here so DESIGN looks the same in either
-  // scroll direction.
+  // Video (DESIGN/CODE) inherits the prism backdrop from BUILD's tail. Coming
+  // back up from clients, that handoff hasn't happened, so the shader is still
+  // hero_grain — restore the rainbow here so the sections look the same in
+  // either scroll direction.
+  // DESIGN + CODE dropdowns share the thinking right-panel so they stack above
+  // the persistent AI-links bar. Insert above the (now-idle) thinking services
+  // so the active block always sits directly over the AI links. Only one block
+  // carries `is-on` at a time (toggled per section enter/leave below).
+  if (thinking?.rightPanel) {
+    [code?.designServices, video?.designServices].forEach((el) => {
+      if (el) thinking.rightPanel.insertBefore(el, thinking.rightPanel.firstChild);
+    });
+  }
+
+  // DESIGN (frames 1-160) — prism backdrop, own title + dropdowns. No clients
+  // preview here; that's handed off in CODE, the last frame-scrub section.
   orchestrator.onEnter('video', () => {
     setActive('video', true);
-    // Far-preview the clients card stack while the video still plays so the
-    // first cards are already drifting in from the top-right — the video →
-    // clients boundary then reads as one continuous motion rather than a cut.
+    video?.designServices?.classList.add('is-on');
+    video?.titleHandle?.glitchIn(0.7);
+    webgl.shaderPlane.setShader('prism');
+    webgl.shaderPlane.setProgress(1);
+    prismActive = true;
+    setUIVisible(0);
+  });
+  orchestrator.onLeave('video', () => {
+    setActive('video', false);
+    video?.designServices?.classList.remove('is-on');
+    video?.titleHandle?.glitchOut(0.4);
+  });
+
+  // CODE (frames 161-end) — keeps the prism backdrop, swaps in its own title +
+  // dropdowns, and runs the clients far-preview so the CODE → clients boundary
+  // reads as one continuous motion.
+  orchestrator.onEnter('code', () => {
+    setActive('code', true);
+    code?.designServices?.classList.add('is-on');
+    code?.titleHandle?.glitchIn(0.7);
     clients?.setPreview(true);
     webgl.shaderPlane.setShader('prism');
     webgl.shaderPlane.setProgress(1);
     prismActive = true;
     setUIVisible(0);
   });
-  orchestrator.onLeave('video', ({ direction }) => {
-    setActive('video', false);
-    // Leaving UP (back toward thinking): tear down the clients preview. Leaving
+  orchestrator.onLeave('code', ({ direction }) => {
+    setActive('code', false);
+    code?.designServices?.classList.remove('is-on');
+    code?.titleHandle?.glitchOut(0.4);
+    // Leaving UP (back toward DESIGN): tear down the clients preview. Leaving
     // DOWN (into clients): keep it — clients.onEnter takes over the same visible
     // stack at scrollProgress 0, so the handoff stays seamless.
     if (direction === 'up') clients?.setPreview(false);
   });
-  // Across the LAST THIRD of the video scroll, glide the clients stack from its
-  // parked pre-roll position down into frame. video progress 1.0 coincides with
+  // Across the LAST THIRD of the CODE scroll, glide the clients stack from its
+  // parked pre-roll position down into frame. CODE progress 1.0 coincides with
   // clients' onEnter at scrollProgress 0, so the cards land exactly where the
   // clients scroll begins — the section boundary reads as one continuous motion.
-  orchestrator.onProgress('video', ({ progress }) => {
-    clients?.setPreviewProgress((progress - 0.66) / 0.34);
+  orchestrator.onProgress('code', ({ progress }) => {
+    clients?.setPreviewProgress((progress - 0.88) / 0.12);
   });
+
+  // Frame-44 magnet — softly settle the DESIGN scrub onto a key frame when the
+  // user stops scrolling near it (from either direction). The DESIGN trigger's
+  // progress 0→1 maps to frame index 0→159 (frames 1-160), so frame 44 lives at
+  // (44-1)/(160-1). We only snap on scroll-settle (a short quiet window after
+  // the last scroll event), never mid-scroll, so it reads as a gentle magnet
+  // rather than a sticky wall. Skipped under reduced-motion.
+  if (!prefersReducedMotion()) {
+    const MAGNET_PROGRESS = (44 - 1) / (160 - 1); // ≈ 0.270
+    const MAGNET_WINDOW   = 22 / (160 - 1);       // ± ~22 frames of capture range
+    const SETTLE_MS       = 140;                  // quiet time that counts as "stopped"
+    let settleTimer = 0;
+    let snapping = false;
+
+    const tryMagnet = () => {
+      const st = orchestrator.getTrigger('video');
+      if (!st) return;
+      if (Math.abs(st.progress - MAGNET_PROGRESS) > MAGNET_WINDOW) return;
+      const targetY = st.start + (st.end - st.start) * MAGNET_PROGRESS;
+      if (Math.abs(window.scrollY - targetY) < 2) return;
+      snapping = true;
+      lenis.scrollTo(targetY, {
+        duration: 0.6,
+        easing: (t) => 1 - Math.pow(1 - t, 3), // easeOutCubic
+        onComplete: () => { snapping = false; },
+      });
+      // Fallback release in case the glide is interrupted before completing.
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => { snapping = false; }, 800);
+    };
+
+    lenis.on('scroll', () => {
+      if (snapping) return;
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(tryMagnet, SETTLE_MS);
+    });
+  }
 
   // Clients enter: drop the rainbow prism (carried over from DESIGN) back to
   // the dark hero_grain so the cards read crisp on a calm backdrop. This is the
@@ -384,7 +482,7 @@ async function boot() {
     }
   });
 
-  window.__niji = { lenis, webgl, orchestrator, hero, thinking, video, clients, awards, footer };
+  window.__niji = { lenis, webgl, orchestrator, hero, thinking, video, code, clients, awards, footer };
 }
 
 boot();

@@ -10,7 +10,7 @@ import { ease }           from '@modules/motion.js';
 const DEFAULT_LINES = [
   { text: 'We',            cls: 'hero-title__line--we' },
   { text: 'Make products', cls: 'hero-title__line--make' },
-  { text: 'for humans',    cls: 'hero-title__line--humans' },
+  { text: 'for humans.',   cls: 'hero-title__line--humans' },
   { text: '&AGENTS',       cls: 'hero-title__line--agents' },
 ];
 
@@ -42,7 +42,7 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
       .map(([k, v]) => [k, v.asset.url]),
   );
 
-  const header   = createHeader();
+  const header   = createHeader({ logoSrc: content?.logo?.asset?.url });
   // A "back to start" loop anchor past CONTACT hints at the seamless wrap-around
   // to the top (see main.js loop handler).
   const timeline = createTimeline({ labels: sectionLabels, loopLabel: 'BACK TO START' });
@@ -74,12 +74,22 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   // Non-breaking spaces glue numbers to their units ("115 designers" stays as
   // one block) and a non-breaking hyphen (‑, U+2011) keeps "AI-native"
   // together if the line happens to break right at the dash.
-  subtitle.innerHTML =
+  const DEFAULT_SUBTITLE =
     "Agence de product design AI‑native.<br>"
     + "115 designers&nbsp;|&nbsp;9 bureaux<br>"
     + "25 ans à construire<br>"
     + "ce qui se regarde, s'utilise<br>"
     + "et maintenant se parle.";
+  const cmsSubtitle = content?.hero?.subtitle;
+  // CMS value is plain multiline text — render one line per row, escaped, so a
+  // visitor can't inject markup. Falls back to the designed default above.
+  subtitle.innerHTML = cmsSubtitle
+    ? cmsSubtitle.split('\n').map((line) => {
+        const div = document.createElement('div');
+        div.textContent = line;
+        return div.innerHTML;
+      }).join('<br>')
+    : DEFAULT_SUBTITLE;
   heading.appendChild(subtitle);
 
   overlay.appendChild(heading);

@@ -25,28 +25,35 @@ function baseCard({ title, modifier }) {
 
 // ── Dot 1 — /Stratégie — flippable recto/verso text card ─────────────────────
 // The radar/spider chart used to live here. It was replaced by a two-sided
-// statement: the recto reads "Le vrai sujet n'est jamais dans le brief." and a
-// click flips to the verso "Il est dans la burning platform." A small chevron
-// hints at the flip. play()/stop() reset the card to its recto on each open.
-export function createStrategyCard() {
-  const el = baseCard({ title: '/Stratégie', modifier: 'st' });
+// statement: the recto reads "Pas une feature à ajouter." and a click flips to
+// the verso "Une expérience à réinventer." A small chevron hints at the flip.
+// play()/stop() reset the card to its recto on each open.
+export function createStrategyCard({
+  title = '/Stratégie',
+  recto = 'Pas une feature à ajouter.',
+  verso = 'Une expérience à réinventer.',
+} = {}) {
+  const el = baseCard({ title, modifier: 'st' });
 
-  el.querySelector('.bcard__body').innerHTML = `
+  const body = el.querySelector('.bcard__body');
+  body.innerHTML = `
     <div class="st-flip" role="button" tabindex="0" aria-label="Retourner la carte">
       <div class="st-flip__inner">
         <div class="st-flip__face st-flip__face--recto">
           <span class="st-flip__tag">Recto</span>
-          <p class="st-flip__text">Le vrai sujet n'est jamais dans le brief.</p>
+          <p class="st-flip__text"></p>
           <span class="st-flip__hint">Cliquer pour retourner →</span>
         </div>
         <div class="st-flip__face st-flip__face--verso">
           <span class="st-flip__tag">Verso</span>
-          <p class="st-flip__text">Il est dans la burning platform.</p>
+          <p class="st-flip__text"></p>
           <span class="st-flip__hint">← Retour</span>
         </div>
       </div>
     </div>
   `;
+  body.querySelector('.st-flip__face--recto .st-flip__text').textContent = recto;
+  body.querySelector('.st-flip__face--verso .st-flip__text').textContent = verso;
 
   const flip = el.querySelector('.st-flip');
   function toggle() { flip.classList.toggle('is-flipped'); }
@@ -67,11 +74,15 @@ export function createStrategyCard() {
 }
 
 // ── Dot 2 — /Business Value — a line graph that draws itself upward ──────────
-export function createBusinessValueCard() {
-  const el = baseCard({ title: '/Business Value', modifier: 'bv' });
+export function createBusinessValueCard({
+  title = '/Business Value',
+  deltaTag = 'LCV',
+  deltaValue = '+38 %',
+} = {}) {
+  const el = baseCard({ title, modifier: 'bv' });
   el.querySelector('.bcard__body').innerHTML = `
     <div class="bv">
-      <span class="bv__delta"><span class="bv__delta-tag">LCV</span> +38&nbsp;%</span>
+      <span class="bv__delta"><span class="bv__delta-tag"></span> <span class="bv__delta-val"></span></span>
       <svg class="bv__svg" viewBox="0 0 220 120" aria-hidden="true">
         <defs>
           <linearGradient id="bvGrad" x1="0" y1="0" x2="0" y2="1">
@@ -89,6 +100,8 @@ export function createBusinessValueCard() {
   `;
   const bv   = el.querySelector('.bv');
   const line = el.querySelector('.bv__line');
+  el.querySelector('.bv__delta-tag').textContent = deltaTag;
+  el.querySelector('.bv__delta-val').textContent = deltaValue;
 
   return {
     el,
@@ -114,27 +127,31 @@ export function createBusinessValueCard() {
 }
 
 // ── Dot 3 — /Design Sprint — an interactive checklist ────────────────────────
-export function createDesignSprintCard() {
-  const el = baseCard({ title: '/Design Sprint', modifier: 'ds' });
-  const STEPS = ['Brief', 'Hypothèse', 'Proto', 'Test', 'Décision'];
+export function createDesignSprintCard({
+  title = '/Design Sprint',
+  steps,
+} = {}) {
+  const el = baseCard({ title, modifier: 'ds' });
+  const STEPS = steps?.length ? steps : ['Brief', 'Hypothèse', 'Proto', 'Test', 'Décision'];
   el.querySelector('.bcard__body').innerHTML = `
     <ul class="ds">
-      ${STEPS.map((s, i) => `
+      ${STEPS.map((_, i) => `
         <li class="ds__item${i < 1 ? ' is-done' : ''}" style="--i:${i}">
           <span class="ds__box"></span>
-          <span class="ds__label">${s}</span>
+          <span class="ds__label"></span>
         </li>`).join('')}
     </ul>
     <div class="ds__bar"><span class="ds__fill"></span></div>
     <div class="ds__status">
       <span class="ds__count"></span>
-      <span class="ds__ready">READY TO DECIDE</span>
+      <span class="ds__ready">GO/NOGO</span>
     </div>
   `;
   const list  = el.querySelector('.ds');
   const items = [...el.querySelectorAll('.ds__item')];
   const fill  = el.querySelector('.ds__fill');
   const count = el.querySelector('.ds__count');
+  items.forEach((it, i) => { it.querySelector('.ds__label').textContent = STEPS[i]; });
 
   const update = () => {
     const done = items.filter((it) => it.classList.contains('is-done')).length;
@@ -162,16 +179,17 @@ export function createDesignSprintCard() {
 }
 
 // ── Dot 4 — /Brainstorming — chat messages that auto-play and loop ───────────
-export function createBrainstormCard() {
-  const el = baseCard({ title: '/Brainstorming', modifier: 'bs' });
+export function createBrainstormCard({ title = '/Brainstorming', messages } = {}) {
+  const el = baseCard({ title, modifier: 'bs' });
   el.querySelector('.bcard__body').innerHTML = `<div class="bs"></div>`;
   const feed = el.querySelector('.bs');
 
-  const MSGS = [
+  const MSGS = messages?.length ? messages : [
     { side: 'in',  text: 'C\'est quoi le vrai problème ?' },
     { side: 'out', text: '40 % abandonnent au checkout.' },
     { side: 'in',  text: 'Humains ? Agents ?' },
     { side: 'out', text: 'Les 2' },
+    { side: 'out', text: 'Ok, on active le protocole AI.Commerce' },
   ];
 
   const TYPING_MS = 700;
@@ -193,7 +211,11 @@ export function createBrainstormCard() {
         feed.appendChild(row);
         scroll();
         timers.push(setTimeout(() => {
-          row.innerHTML = `<div class="bs__bubble">${m.text}</div>`;
+          row.innerHTML = '';
+          const b = document.createElement('div');
+          b.className = 'bs__bubble';
+          b.textContent = m.text;   // textContent — CMS copy can't inject markup
+          row.appendChild(b);
           scroll();
         }, TYPING_MS));
       }, t));
@@ -208,9 +230,16 @@ export function createBrainstormCard() {
     play() {
       clear();
       if (prefersReducedMotion()) {
-        feed.innerHTML = MSGS
-          .map((m) => `<div class="bs__row bs__row--${m.side}"><div class="bs__bubble">${m.text}</div></div>`)
-          .join('');
+        feed.innerHTML = '';
+        MSGS.forEach((m) => {
+          const row = document.createElement('div');
+          row.className = `bs__row bs__row--${m.side}`;
+          const b = document.createElement('div');
+          b.className = 'bs__bubble';
+          b.textContent = m.text;
+          row.appendChild(b);
+          feed.appendChild(row);
+        });
         scroll();
         return;
       }
@@ -234,7 +263,8 @@ const SITES = [
   { url: 'apple.com',    accent: '#555555' },
 ];
 
-export function createBenchmarkStack({ stage }) {
+export function createBenchmarkStack({ stage, sites } = {}) {
+  const SITE_LIST = sites?.length ? sites : SITES;
   const layer = document.createElement('div');
   layer.className = 'bwin-layer';
   stage.appendChild(layer);
@@ -246,12 +276,12 @@ export function createBenchmarkStack({ stage }) {
   function makeWindow(site, i) {
     const w = document.createElement('div');
     w.className = 'bwin';
-    w.style.setProperty('--accent', site.accent);
+    if (site.accent) w.style.setProperty('--accent', site.accent);
     w.style.zIndex = String(10 + i);
     w.innerHTML = `
       <div class="bwin__bar">
         <span class="bwin__lights"><i></i><i></i><i></i></span>
-        <span class="bwin__url">${site.url}</span>
+        <span class="bwin__url"></span>
         <button class="bwin__close" type="button" aria-label="Fermer">×</button>
       </div>
       <div class="bwin__view">
@@ -260,6 +290,7 @@ export function createBenchmarkStack({ stage }) {
         <div class="bwin__grid"><span></span><span></span><span></span></div>
       </div>
     `;
+    w.querySelector('.bwin__url').textContent = site.url;
     w.querySelector('.bwin__close').addEventListener('click', (e) => {
       e.stopPropagation();
       w.classList.add('is-out');
@@ -275,7 +306,7 @@ export function createBenchmarkStack({ stage }) {
     layer.innerHTML = '';
 
     const reduced  = prefersReducedMotion();
-    const picks    = [...SITES].sort(() => Math.random() - 0.5).slice(0, 5);
+    const picks    = [...SITE_LIST].sort(() => Math.random() - 0.5).slice(0, 5);
     const sw = stage.offsetWidth  || window.innerWidth;
     const sh = stage.offsetHeight || window.innerHeight;
     const baseX = sw / 2 - 150; // windows are 300px wide

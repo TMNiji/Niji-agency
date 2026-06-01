@@ -93,6 +93,11 @@
   animation: hero-title-glitch 560ms steps(1, end);
 }
 
+/* Narrow screens — same lift as the awards/video headings. */
+@media (max-width: 860px) {
+  .clients__title { top: clamp(80px, 10vh, 140px); }
+}
+
 /* ── Stack — 3D container (receives mouse-driven rotation in JS) ─────────── */
 
 .clients__stack {
@@ -184,6 +189,13 @@
   gap: 16px;
   padding: clamp(18px, 2vw, 28px);
   text-align: center;
+}
+
+/* Image and QR cards pair their visual (screenshot / QR) with the "Voir le
+   case" button — give that pair more breathing room than the default gap. */
+.clients__card-face--image,
+.clients__card-face--qr {
+  gap: 28px;
 }
 
 .clients__card-qr {

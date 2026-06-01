@@ -104,13 +104,12 @@ const HOVER_EMISSIVE_R  = 0.45;
 const HOVER_EMISSIVE_G  = 0.32;
 const HOVER_EMISSIVE_B  = 0.10;
 
-export function mountAwards({
-  container,
-  webgl,
-  headingTop    = DEFAULT_HEADING_TOP,
-  headingBottom = DEFAULT_HEADING_BOTTOM,
-  awards        = DEFAULT_AWARDS,
-} = {}) {
+export function mountAwards({ container, webgl, content = null } = {}) {
+  const headingTop    = content?.headingTop    ?? DEFAULT_HEADING_TOP;
+  const headingBottom = content?.headingBottom ?? DEFAULT_HEADING_BOTTOM;
+  const awards        = content?.list?.length ? content.list : DEFAULT_AWARDS;
+  // Per-slot GLB URL — CMS trophy asset wins, else the static fallback path.
+  const glbUrls = awards.map((a, i) => a.trophy?.asset?.url ?? TROPHY_GLB_URLS[i] ?? null);
   const section = container.querySelector('[data-section="awards"]');
   if (!section) return null;
   section.classList.add('awards');
@@ -125,9 +124,12 @@ export function mountAwards({
   const titleHandle = createTitle({
     baseClass: 'awards-title',
     tag: 'div',
+    // Large/bold line on top, small/muted line below — same logic as the
+    // clients and video (DESIGN/CODE) headings. headingBottom is the punchy
+    // emphasis line, so it takes the large top slot.
     lines: [
-      { text: headingTop,    cls: 'awards-title__line--small' },
       { text: headingBottom, cls: 'awards-title__line--large' },
+      { text: headingTop,    cls: 'awards-title__line--small' },
     ],
     glitchFontClasses: [],
     glitchDuration: 0,
@@ -231,7 +233,7 @@ export function mountAwards({
   // wrapper group stays so positions/animations are unaffected; we just
   // replace its children and drop the emissive-hover effect for that slot.
   const gltfLoader = new GLTFLoader();
-  TROPHY_GLB_URLS.forEach((url, i) => {
+  glbUrls.forEach((url, i) => {
     if (!url) return;
     const slot = items[i];
     if (!slot) return;
@@ -495,6 +497,11 @@ export function mountAwards({
     cloud.visible = on;
     if (on) {
       scrollZ = scrollZTarget = PREVIEW_Z;
+      // Start fully transparent — the trophies stay hidden for most of the
+      // clients section and only fade in across its tail (see
+      // setPreviewApproach), so they don't sit visible behind the cards the
+      // whole time.
+      setMaterialOpacity(0);
       startTicker();
     } else {
       stopTicker();
@@ -512,6 +519,11 @@ export function mountAwards({
     const ct = Math.max(0, Math.min(1, t));
     const eased = ct * ct * (3 - 2 * ct); // smoothstep — gentle in/out
     scrollZTarget = PREVIEW_Z + (FAR_Z - PREVIEW_Z) * eased;
+    // Fade the trophies in alongside the depth approach so they materialise
+    // only at the very end of the clients section instead of lingering visible
+    // behind every card. By t=1 (clients end / awards enter) they're at full
+    // opacity, so the handoff into the active section is seamless.
+    setMaterialOpacity(eased);
   }
 
   function setActive(on, direction = 'down') {
