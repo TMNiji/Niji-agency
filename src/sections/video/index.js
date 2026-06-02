@@ -106,13 +106,22 @@ export function mountVideo({
     if (settled >= count) placeholder.classList.add('is-hidden');
   };
 
-  for (let i = 0; i < count; i++) {
-    const img = new Image();
-    img.decoding = 'async';
-    img.addEventListener('load',  () => onSettle(i), { once: true });
-    img.addEventListener('error', () => onSettle(i), { once: true });
-    img.src = asset(`${base}${String(start + i).padStart(pad, '0')}.${ext}`);
-    imgs[i] = img;
+  // Frames are fetched lazily: each section's slice only starts downloading when
+  // the user is one section away (wired in main.js via startPreload), so the
+  // initial page load isn't competing with all ~500 frames at once. Idempotent,
+  // and also fired from onProgress below as a safety net for deep page loads.
+  let preloadStarted = false;
+  function startPreload() {
+    if (preloadStarted || count <= 0) return;
+    preloadStarted = true;
+    for (let i = 0; i < count; i++) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.addEventListener('load',  () => onSettle(i), { once: true });
+      img.addEventListener('error', () => onSettle(i), { once: true });
+      img.src = asset(`${base}${String(start + i).padStart(pad, '0')}.${ext}`);
+      imgs[i] = img;
+    }
   }
 
   // ── Drawing ────────────────────────────────────────────────────────────────
@@ -161,6 +170,7 @@ export function mountVideo({
 
   orchestrator?.onProgress(sectionId, ({ progress }) => {
     if (count <= 0) return;
+    startPreload(); // safety net: ensure frames load if we reach this section directly
     const idx = Math.max(0, Math.min(count - 1, Math.round(progress * (count - 1))));
     schedule(idx);
   });
@@ -171,5 +181,5 @@ export function mountVideo({
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
 
-  return { section, canvas, designServices, titleHandle };
+  return { section, canvas, designServices, titleHandle, startPreload };
 }

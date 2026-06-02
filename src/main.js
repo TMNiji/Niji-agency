@@ -160,6 +160,16 @@ async function boot() {
   const awards   = mountAwards({ container: root, webgl, content: sanityContent?.awards });
   const footer   = mountFooter({ container: root, content: sanityContent });
 
+  // ── Lazy frame prefetch ──────────────────────────────────────────────────
+  // The DESIGN + CODE image sequences total ~500 WebP frames. Loading them all
+  // at boot is the dominant cause of slow first paint, so each slice only starts
+  // downloading when the user is one section away: DESIGN's 160 frames on
+  // entering THINKING, CODE's 336 frames on entering DESIGN. By the time either
+  // scrubbed section is reached, its frames have had a full section of scroll to
+  // arrive (and pick() degrades gracefully to the nearest loaded frame meanwhile).
+  orchestrator.onEnter('thinking', () => video?.startPreload?.());
+  orchestrator.onEnter('video',    () => code?.startPreload?.());
+
   // Section-label clicks navigate the page. Use a smooth, eased scroll (not an
   // instant jump) so the user sees the sections animate on the way there.
   hero?.timeline?.setScrollHandler((y) =>
