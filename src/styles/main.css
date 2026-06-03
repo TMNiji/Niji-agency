@@ -31,6 +31,20 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Visually hidden but exposed to assistive tech — for content rendered only
+   in WebGL/canvas (e.g. the awards trophy stats). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 html, body {
   background: var(--bg);
   color: var(--fg);
@@ -86,6 +100,33 @@ section {
    adds its own grain pass on the background so the section still reads
    textured — just under the trophies, not over them. */
 body.is-awards #noise { opacity: 0; }
+
+/* ── AI-links toast — confirms the prompt was copied to the clipboard ────
+   Shared by the thinking + footer "Explore with AI" bars (see aiLinks.js).
+   Light pill inverts cleanly against the dark page. */
+.niji-ai-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translate(-50%, 120%);
+  max-width: min(90vw, 420px);
+  padding: 12px 20px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: transform var(--dur-base) var(--ease-out-expo), opacity var(--dur-base) var(--ease-out-expo);
+}
+.niji-ai-toast.is-visible {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
 
 /* Lenis */
 html.lenis, html.lenis body { height: auto; }

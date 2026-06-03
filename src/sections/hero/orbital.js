@@ -67,6 +67,10 @@ export function createOrbital({ stage, cards = {} } = {}) {
   const dotEls = DOTS_DEF.map((d, i) => {
     const el = document.createElement('div');
     el.className = 'hero-orbital__dot';
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-label', DOT_LABELS[i].replace(/^\//, ''));
+    el.setAttribute('aria-expanded', 'false');
     const label = document.createElement('span');
     label.className = 'hero-orbital__dot-label';
     label.textContent = DOT_LABELS[i];
@@ -110,16 +114,23 @@ export function createOrbital({ stage, cards = {} } = {}) {
   const FOLLOW_MAX  = 9;    // px — maximum displacement at cursor centre
   const FOLLOW_LERP = 0.10; // fraction per frame — spring smoothing
 
-  const followOffsets = dotEls.map(() => ({ x: 0, y: 0 }));
+  const followOffsets = dotEls.map(() => ({ x: 0, y: 0, lastX: NaN, lastY: NaN }));
   let mouseStageX = null;
   let mouseStageY = null;
   let following = false;
 
+  // Stage dimensions are read once per resize, not per frame, so the follow
+  // loop never forces a layout reflow.
+  let stageW = 0, stageH = 0;
+  function measureStage() {
+    stageW = stage.offsetWidth  || window.innerWidth;
+    stageH = stage.offsetHeight || window.innerHeight;
+  }
+  measureStage();
+
   function applyTransforms() {
-    const sw = stage.offsetWidth  || window.innerWidth;
-    const sh = stage.offsetHeight || window.innerHeight;
-    const ox = sw / 2;
-    const oy = sh / 2;
+    const ox = stageW / 2;
+    const oy = stageH / 2;
 
     const reduced = prefersReducedMotion();
 
@@ -146,8 +157,16 @@ export function createOrbital({ stage, cards = {} } = {}) {
       fo.x += (targetX - fo.x) * FOLLOW_LERP;
       fo.y += (targetY - fo.y) * FOLLOW_LERP;
 
+      // Skip the style write once the spring has settled — avoids re-painting
+      // every dot every frame when the cursor is far away and nothing moves.
+      const rx = Math.round(fo.x * 100) / 100;
+      const ry = Math.round(fo.y * 100) / 100;
+      if (rx === fo.lastX && ry === fo.lastY) return;
+      fo.lastX = rx;
+      fo.lastY = ry;
+
       dot.el.style.transform =
-        `translate(calc(-50% + ${fo.x.toFixed(2)}px), calc(-50% + ${fo.y.toFixed(2)}px))`;
+        `translate(calc(-50% + ${rx}px), calc(-50% + ${ry}px))`;
     });
   }
 
@@ -240,7 +259,10 @@ export function createOrbital({ stage, cards = {} } = {}) {
     popup.hidden = true;
     connLine.setAttribute('opacity', '0');
     activeDotIdx = null;
-    dotEls.forEach(({ el }) => el.classList.remove('is-open'));
+    dotEls.forEach(({ el }) => {
+      el.classList.remove('is-open');
+      el.setAttribute('aria-expanded', 'false');
+    });
   }
 
   function openSingleCard(idx) {
@@ -280,7 +302,10 @@ export function createOrbital({ stage, cards = {} } = {}) {
     if (activeDotIdx === idx) { closeAll(); return; }
     closeAll();
     activeDotIdx = idx;
-    dotEls.forEach(({ el }, i) => el.classList.toggle('is-open', i === idx));
+    dotEls.forEach(({ el }, i) => {
+      el.classList.toggle('is-open', i === idx);
+      el.setAttribute('aria-expanded', i === idx ? 'true' : 'false');
+    });
     if (idx === BENCHMARK_IDX) benchmark.open();
     else openSingleCard(idx);
   }
@@ -288,6 +313,15 @@ export function createOrbital({ stage, cards = {} } = {}) {
   // Wire up interactions
   dotEls.forEach(({ el }, idx) => {
     el.addEventListener('click', (e) => { e.stopPropagation(); openDot(idx); });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        openDot(idx);
+      } else if (e.key === 'Escape' && activeDotIdx === idx) {
+        closeAll();
+      }
+    });
   });
 
   // Click-anywhere-outside closes whatever's open. Listening on document (not
@@ -300,6 +334,7 @@ export function createOrbital({ stage, cards = {} } = {}) {
   });
 
   window.addEventListener('resize', () => {
+    measureStage();
     updatePositions();
     resizeConnector();
     closeAll();
@@ -310,6 +345,7 @@ export function createOrbital({ stage, cards = {} } = {}) {
   function startFollow() {
     if (following) return;
     following = true;
+    measureStage(); // stage may have been laid out since the last measure
     dotEls.forEach(({ el }) => { el.style.willChange = 'transform'; });
     gsap.ticker.add(applyTransforms);
   }

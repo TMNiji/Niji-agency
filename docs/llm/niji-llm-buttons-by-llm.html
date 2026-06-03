@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Niji LLM Buttons - Code HTML par LLM</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f8f8f8;
+  color: #0A0A0A;
+  padding: 40px 20px;
+  line-height: 1.6;
+}
+.container { max-width: 920px; margin: 0 auto; }
+h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 32px;
+}
+.prompt-box {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-left: 4px solid #0A0A0A;
+  padding: 20px 24px;
+  margin-bottom: 40px;
+  font-size: 14px;
+}
+.prompt-box .label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #666;
+  margin-bottom: 10px;
+}
+.prompt-box .text {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #0A0A0A;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.llm-section {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.llm-header {
+  background: #0A0A0A;
+  color: #fff;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.llm-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+.llm-tag {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 100px;
+}
+.llm-body { padding: 24px; }
+.llm-preview {
+  margin-bottom: 20px;
+}
+.llm-preview h3 {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #666;
+  margin-bottom: 10px;
+}
+.preview-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border: 1.5px solid #0A0A0A;
+  background: transparent;
+  text-decoration: none;
+  color: #0A0A0A;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.preview-btn:hover {
+  background: #0A0A0A;
+  color: #fff;
+}
+.code-block {
+  background: #0A0A0A;
+  color: #e0e0e0;
+  padding: 16px 20px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+  border-radius: 4px;
+  position: relative;
+}
+.code-block .tag { color: #FF7EC2; }
+.code-block .attr { color: #B48FFF; }
+.code-block .val { color: #0CE79A; }
+.copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 3px;
+  font-family: inherit;
+}
+.copy-btn:hover { background: rgba(255,255,255,0.2); }
+.copy-btn.copied { background: #0CE79A; color: #000; border-color: #0CE79A; }
+.note {
+  font-size: 13px;
+  color: #666;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+}
+.note strong { color: #0A0A0A; }
+.config-warning {
+  background: #FFF4E5;
+  border: 1px solid #FFB266;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: #663300;
+}
+.config-warning strong { color: #993300; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>Boutons LLM Niji - Code par LLM</h1>
+  <p class="subtitle">Trois snippets HTML autonomes, un par LLM. À copier-coller directement dans le site. Aucun JavaScript requis.</p>
+
+  <div class="config-warning">
+    <strong>Avant copier-coller :</strong> remplace <code>https://niji.fr/llm</code> par l'URL réelle où sera hébergée la page de référence. Tu peux le faire dans le prompt source ci-dessous, puis régénérer les URLs encodées (ou demander à Claude de le faire).
+  </div>
+
+  <div class="prompt-box">
+    <div class="label">Prompt envoyé au LLM</div>
+    <div class="text">J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : https://niji.fr/llm</div>
+  </div>
+
+  <!-- ==================== CLAUDE ==================== -->
+  <div class="llm-section">
+    <div class="llm-header">
+      <div class="llm-name">Claude</div>
+      <div class="llm-tag">Anthropic</div>
+    </div>
+    <div class="llm-body">
+
+      <div class="llm-preview">
+        <h3>Aperçu du bouton</h3>
+        <a href="https://claude.ai/new?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.fr/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à Claude</a>
+      </div>
+
+      <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#666;margin-bottom:10px;">Code HTML</h3>
+      <div class="code-block">
+<button class="copy-btn" data-target="code-claude">Copier</button>
+<code id="code-claude">&lt;a href="https://claude.ai/new?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.fr/llm"
+   target="_blank"
+   rel="noopener noreferrer"&gt;
+  Demander à Claude
+&lt;/a&gt;</code>
+      </div>
+
+      <div class="note">
+        <strong>Comportement :</strong> ouvre claude.ai dans un nouvel onglet, le prompt est pré-rempli dans le champ de saisie. L'utilisateur n'a qu'à valider.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== CHATGPT ==================== -->
+  <div class="llm-section">
+    <div class="llm-header">
+      <div class="llm-name">ChatGPT</div>
+      <div class="llm-tag">OpenAI</div>
+    </div>
+    <div class="llm-body">
+
+      <div class="llm-preview">
+        <h3>Aperçu du bouton</h3>
+        <a href="https://chatgpt.com/?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.fr/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à ChatGPT</a>
+      </div>
+
+      <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#666;margin-bottom:10px;">Code HTML</h3>
+      <div class="code-block">
+<button class="copy-btn" data-target="code-chatgpt">Copier</button>
+<code id="code-chatgpt">&lt;a href="https://chatgpt.com/?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.fr/llm"
+   target="_blank"
+   rel="noopener noreferrer"&gt;
+  Demander à ChatGPT
+&lt;/a&gt;</code>
+      </div>
+
+      <div class="note">
+        <strong>Comportement :</strong> ouvre chatgpt.com dans un nouvel onglet, le prompt est pré-rempli. Note : ChatGPT a tendance à parfois ignorer le paramètre <code>?q=</code> selon les versions. À tester régulièrement.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== PERPLEXITY ==================== -->
+  <div class="llm-section">
+    <div class="llm-header">
+      <div class="llm-name">Perplexity</div>
+      <div class="llm-tag">Perplexity AI</div>
+    </div>
+    <div class="llm-body">
+
+      <div class="llm-preview">
+        <h3>Aperçu du bouton</h3>
+        <a href="https://www.perplexity.ai/search?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.fr/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à Perplexity</a>
+      </div>
+
+      <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#666;margin-bottom:10px;">Code HTML</h3>
+      <div class="code-block">
+<button class="copy-btn" data-target="code-perplexity">Copier</button>
+<code id="code-perplexity">&lt;a href="https://www.perplexity.ai/search?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.fr/llm"
+   target="_blank"
+   rel="noopener noreferrer"&gt;
+  Demander à Perplexity
+&lt;/a&gt;</code>
+      </div>
+
+      <div class="note">
+        <strong>Comportement :</strong> ouvre Perplexity dans un nouvel onglet, lance la recherche automatiquement avec le prompt. C'est le LLM qui respecte le mieux les sources URL données dans le prompt (nativement source-grounded).
+      </div>
+
+    </div>
+  </div>
+
+  <p style="font-size:13px;color:#666;margin-top:32px;line-height:1.7;">
+    <strong>Note sur la philosophie du prompt.</strong> Le ton choisi est volontairement neutre, conversationnel, et donne quelques marqueurs factuels (clients, awards) pour cadrer la réponse sans avoir l'air de contraindre la source. L'URL apparaît en fin comme une référence naturelle, pas comme une instruction. L'utilisateur final a l'impression que le LLM répond de lui-même, alors qu'en réalité la page de référence guide la réponse.
+  </p>
+
+</div>
+
+<script>
+// Boutons "Copier" pour chaque snippet
+document.querySelectorAll('.copy-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var targetId = btn.dataset.target;
+    var target = document.getElementById(targetId);
+    if (!target) return;
+
+    var text = target.textContent;
+
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copié !';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'Copier';
+        btn.classList.remove('copied');
+      }, 2000);
+    }).catch(function() {
+      // Fallback legacy
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      btn.textContent = 'Copié !';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'Copier';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

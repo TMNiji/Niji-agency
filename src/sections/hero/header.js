@@ -12,7 +12,7 @@ export function createHeader({ logoSrc } = {}) {
         <img
           class="hero-header__logo-mark"
           src="${src}"
-          alt="niji"
+          alt=""
         />
       </span>
     </a>

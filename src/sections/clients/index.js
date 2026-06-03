@@ -38,16 +38,11 @@ const DEFAULT_SUBTITLE = 'Des produits à leur hauteur';
 //               frontLabel text if the file is missing.
 //   frontLabel  Project / engagement text shown under the logo on the recto
 //   back        What flips into view on click:
-//                 'qr'    → QR code (qrSvg or `url`) + "Voir le case study" button
+//                 'qr'    → QR code (qrSvg) + "Voir le case study" button
 //                 'image' → Screenshot at `image` path (in /public/clients)
 //                 'text'  → Short text `blurb` (multi-line via \n)
-//   qrSvg       Pre-rendered QR SVG path (preferred). Falls back to the
-//               QR-Server API using `url` if absent.
-//   url         Case-study target — used to encode the API-generated QR.
+//   qrSvg       Pre-rendered QR SVG path (in /public/clients/qr).
 //   caseUrl     Click-target for the "Voir le case study" button (Vimeo etc.).
-//               Falls back to `url` if not set.
-//   qrLabel     Optional override for the verso label under a QR (only used
-//               when no caseUrl/button is rendered). Multi-line via \n.
 //   accent      Brand hex sampled from the logo's dominant colour. Read by
 //               .clients__card-glow / .clients__card-inner via --card-accent
 //               so each card's tint and glow match its brand.
@@ -160,6 +155,7 @@ const Z_RANGE    = 950;   // depth over which upcoming cards fade in
 const EXIT_SPAN  = 1.35;  // rel units over which a passed card fades out
 const ROT_Y      = 32;    // deg — base deck angle (cards seen at a slant)
 const STRAIGHTEN = 0.55;  // fraction the focused card straightens toward camera
+const BLUR_START = 0.6;   // rel units of fully-sharp range around focus before DoF blur
 
 // Mouse parallax
 const MOUSE_LERP = 0.08;
@@ -225,6 +221,9 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
   const cards = clients.map((client, i) => {
     const pivot = document.createElement('div');
     pivot.className = 'clients__card-pivot';
+    pivot.setAttribute('role', 'button');
+    pivot.setAttribute('tabindex', '0');
+    pivot.setAttribute('aria-pressed', 'false');
 
     const card = document.createElement('div');
     card.className = 'clients__card';
@@ -251,10 +250,9 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
     glow.className = 'clients__card-glow';
     front.appendChild(glow);
 
-    // Brand name used for alt text + back-face label. Falls back to frontLabel
-    // for legacy entries that still use the old `type` field.
-    const brandName  = client.name       ?? client.type ?? '';
-    const frontLabel = client.frontLabel ?? client.type ?? '';
+    // Brand name used for alt text + back-face label.
+    const brandName  = client.name       ?? '';
+    const frontLabel = client.frontLabel ?? '';
 
     if (client.logo) {
       const img = document.createElement('img');
@@ -279,31 +277,24 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
     const back = document.createElement('div');
     back.className = `clients__card-inner clients__card-face clients__card-face--back clients__card-face--${client.back}`;
 
-    if (client.back === 'qr' && (client.qrSvg || client.url)) {
+    if (client.back === 'qr' && client.qrSvg) {
       const qr = document.createElement('img');
       qr.className = 'clients__card-qr';
-      if (client.qrSvg) {
-        // Pre-rendered SVG QR provided in /public/clients/qr/*.svg.
-        qr.src = asset(client.qrSvg);
-      } else {
-        // Fallback: QR-Server public endpoint encoded with the case-study URL.
-        const encoded = encodeURIComponent(client.url);
-        qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encoded}`;
-      }
+      // Pre-rendered SVG QR provided in /public/clients/qr/*.svg.
+      qr.src = asset(client.qrSvg);
       qr.alt = `QR · ${brandName}`;
       qr.loading = 'lazy';
       back.appendChild(qr);
 
-      // "Voir le case study" CTA: a link wrapping the shared button SVG. The
-      // link target is `caseUrl` (Vimeo / external case study), falling back
-      // to `url` so older entries without a separate Vimeo link still work.
-      const ctaUrl = safeExternalUrl(client.caseUrl ?? client.url);
+      // "Voir le case study" CTA: a link wrapping the shared button SVG,
+      // targeting `caseUrl` (Vimeo / external case study).
+      const ctaUrl = safeExternalUrl(client.caseUrl);
       if (ctaUrl) {
         const cta = document.createElement('a');
         cta.className = 'clients__card-cta';
         cta.href = ctaUrl;
         cta.target = '_blank';
-        cta.rel = 'noopener';
+        cta.rel = 'noopener noreferrer';
         cta.setAttribute('aria-label', `Voir le case study ${brandName}`);
         const img = document.createElement('img');
         img.src = asset('/clients/button.svg');
@@ -311,12 +302,6 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
         img.loading = 'lazy';
         cta.appendChild(img);
         back.appendChild(cta);
-      } else if (client.qrLabel) {
-        // Legacy fallback — no case URL but caller passed a text label.
-        const qrLabel = document.createElement('div');
-        qrLabel.className = 'clients__card-back-label';
-        qrLabel.textContent = client.qrLabel;
-        back.appendChild(qrLabel);
       }
     } else if (client.back === 'image' && client.image) {
       const shot = document.createElement('img');
@@ -327,15 +312,15 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
       back.appendChild(shot);
 
       // Same CTA button as the QR cards (Ritz etc.): an anchor wrapping the
-      // shared button SVG. When `caseUrl`/`url` is set it links to the live
-      // project; otherwise the brand label is shown instead.
-      const ctaUrl = safeExternalUrl(client.caseUrl ?? client.url);
+      // shared button SVG. When `caseUrl` is set it links to the live project;
+      // otherwise the brand label is shown instead.
+      const ctaUrl = safeExternalUrl(client.caseUrl);
       if (ctaUrl) {
         const cta = document.createElement('a');
         cta.className = 'clients__card-cta';
         cta.href = ctaUrl;
         cta.target = '_blank';
-        cta.rel = 'noopener';
+        cta.rel = 'noopener noreferrer';
         cta.setAttribute('aria-label', `Voir le case study ${brandName}`);
         const img = document.createElement('img');
         img.src = asset('/clients/button.svg');
@@ -375,15 +360,33 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
     // Exception: clicks on the "Voir le case study" CTA must reach the anchor
     // so the browser opens the Vimeo link. Returning early there leaves the
     // anchor's default behaviour intact.
+    if (brandName) pivot.setAttribute('aria-label', brandName);
+    const flip = () => {
+      const flipped = card.classList.toggle('is-flipped');
+      pivot.setAttribute('aria-pressed', flipped ? 'true' : 'false');
+    };
     pivot.addEventListener('click', (e) => {
       if (e.target.closest('.clients__card-cta')) return;
       e.stopPropagation();
       e.preventDefault();
-      card.classList.toggle('is-flipped');
+      flip();
+    });
+    pivot.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        if (e.target.closest('.clients__card-cta')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        flip();
+      }
     });
 
     return { el: pivot, logo, index: i };
   });
+
+  // Last-written discrete state per card, so the update loop only touches the
+  // DOM for pointer-events / tabindex / blur when they actually change (they
+  // stay constant for most of the scroll, unlike transform/opacity).
+  const cardState = cards.map(() => ({ interactable: null, blur: NaN }));
 
   // ── Per-frame state ───────────────────────────────────────────────────────
   let scrollProgress = 0;
@@ -462,17 +465,27 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
         `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ` +
         `rotateY(${rotY.toFixed(2)}deg)`;
       el.style.opacity = opacity.toFixed(3);
-      // Only the visible card receives the pointer (for the hover lift).
-      el.style.pointerEvents = opacity > 0.5 ? 'auto' : 'none';
+      const st = cardState[index];
+      // Only the visible card receives the pointer (for the hover lift) and is
+      // reachable by keyboard, so Tab doesn't cycle through 10 stacked cards.
+      const interactable = opacity > 0.5;
+      if (interactable !== st.interactable) {
+        st.interactable = interactable;
+        el.style.pointerEvents = interactable ? 'auto' : 'none';
+        el.setAttribute('tabindex', interactable ? '0' : '-1');
+      }
 
       // Depth-of-field blur — upcoming cards (rel > 0) read blurry until
       // they approach focus (rel → 0). A sharp dead-zone (rel ≤ BLUR_START)
       // keeps the card crisp as it passes through the centre of the screen;
       // the blur only kicks in for cards further back in the queue and ramps
       // gently from there. Passed cards (rel < 0) stay sharp.
-      const BLUR_START = 0.6;   // rel units of fully-sharp range around focus
       const blurPx = rel > BLUR_START ? Math.min((rel - BLUR_START) * 1.7, 6) : 0;
-      el.style.setProperty('--card-blur', `${blurPx.toFixed(2)}px`);
+      const blurR = Math.round(blurPx * 100) / 100;
+      if (blurR !== st.blur) {
+        st.blur = blurR;
+        el.style.setProperty('--card-blur', `${blurR}px`);
+      }
 
       // Label reads in only as the card settles into focus.
       logo.style.opacity = (focusAmt * focusAmt).toFixed(3);

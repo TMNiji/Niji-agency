@@ -16,7 +16,11 @@ const LOGO_MAP = {
   perplexity: 'perplexity',
 };
 
-const NIJI_PROMPT = 'I want to understand what Niji is and what they do. They are a French digital agency specialising in UX/UI design, custom development, digital transformation, e-commerce, and data & AI services. They work with major enterprise accounts across retail, banking, luxury, and public sector, with over 1,400 people across France. Summarise their capabilities, notable clients, and what makes them stand out: https://www.niji.fr/';
+// Reference page hosted on this site (see public/llm/index.html). The prompt
+// cites it as context so the LLM pulls from it without an explicit "use this
+// source" instruction — see docs/llm/niji-llm-prompt.md for the editorial notes.
+const PAGE_URL = 'https://niji.agency/llm';
+const NIJI_PROMPT = `I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: ${PAGE_URL}`;
 
 export const DEFAULT_AI_LINKS = {
   label: 'Explore with AI',
@@ -26,6 +30,57 @@ export const DEFAULT_AI_LINKS = {
     { label: 'Perplexity', url: `https://www.perplexity.ai/search?q=${encodeURIComponent(NIJI_PROMPT)}` },
   ],
 };
+
+// Copy the prompt to the clipboard as a fallback: the anchor's ?q= param
+// pre-fills the chat, but some platforms ignore it — a clipboard copy lets the
+// user paste manually. Returns true on success.
+async function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) { /* fall through to legacy path */ }
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+let toastTimer = null;
+function showToast(message) {
+  let toast = document.querySelector('.niji-ai-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.className = 'niji-ai-toast';
+    toast.setAttribute('role', 'status');
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  // Force reflow so the transition runs even when re-using the element.
+  void toast.offsetWidth;
+  toast.classList.add('is-visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 4000);
+}
+
+// The prompt to copy lives in the anchor's ?q= param, so this works for both
+// the default buttons and any Sanity-driven ones.
+function promptFromHref(href) {
+  try {
+    return new URL(href).searchParams.get('q') ?? NIJI_PROMPT;
+  } catch (_) {
+    return NIJI_PROMPT;
+  }
+}
 
 function safeExternalUrl(url) {
   if (typeof url !== 'string') return null;
@@ -73,7 +128,7 @@ export function createAiLinks({ data = DEFAULT_AI_LINKS, baseClass = 'thinking__
     btn.className = 'thinking__ai-btn';
     btn.href = href;
     btn.target = '_blank';
-    btn.rel = 'noopener';
+    btn.rel = 'noopener noreferrer';
     btn.setAttribute('aria-label', text);
 
     const key = LOGO_MAP[text.toLowerCase()] ?? null;
@@ -85,6 +140,17 @@ export function createAiLinks({ data = DEFAULT_AI_LINKS, baseClass = 'thinking__
       t.textContent = text;
       btn.appendChild(t);
     }
+
+    // Let the anchor open the chat (target=_blank); on top of that, copy the
+    // prompt to the clipboard and confirm with a toast so the user can paste if
+    // the platform drops the ?q= param.
+    btn.addEventListener('click', async () => {
+      const copied = await copyToClipboard(promptFromHref(href));
+      showToast(copied
+        ? `Prompt copied — opening ${text}. If the chat is empty, paste with ⌘V / Ctrl+V.`
+        : `Opening ${text} with the prompt pre-filled.`);
+    });
+
     buttons.appendChild(btn);
   });
 

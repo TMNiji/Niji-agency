@@ -136,7 +136,7 @@ export function createDesignSprintCard({
   el.querySelector('.bcard__body').innerHTML = `
     <ul class="ds">
       ${STEPS.map((_, i) => `
-        <li class="ds__item${i < 1 ? ' is-done' : ''}" style="--i:${i}">
+        <li class="ds__item${i < 1 ? ' is-done' : ''}" style="--i:${i}" role="checkbox" tabindex="0" aria-checked="${i < 1 ? 'true' : 'false'}">
           <span class="ds__box"></span>
           <span class="ds__label"></span>
         </li>`).join('')}
@@ -159,10 +159,17 @@ export function createDesignSprintCard({
     count.textContent = `${done}/${items.length} terminé${done > 1 ? 's' : ''}`;
     el.classList.toggle('is-ready', done === items.length);
   };
-  items.forEach((it) => it.addEventListener('click', () => {
-    it.classList.toggle('is-done');
+  const toggle = (it) => {
+    const done = it.classList.toggle('is-done');
+    it.setAttribute('aria-checked', done ? 'true' : 'false');
     update();
-  }));
+  };
+  items.forEach((it) => {
+    it.addEventListener('click', () => toggle(it));
+    it.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(it); }
+    });
+  });
   update();
 
   return {
@@ -306,7 +313,14 @@ export function createBenchmarkStack({ stage, sites } = {}) {
     layer.innerHTML = '';
 
     const reduced  = prefersReducedMotion();
-    const picks    = [...SITE_LIST].sort(() => Math.random() - 0.5).slice(0, 5);
+    // Fisher-Yates — an unbiased shuffle. (`sort(() => Math.random() - 0.5)` is
+    // biased: comparator results aren't consistent, so some orders are favoured.)
+    const pool = [...SITE_LIST];
+    for (let k = pool.length - 1; k > 0; k--) {
+      const j = Math.floor(Math.random() * (k + 1));
+      [pool[k], pool[j]] = [pool[j], pool[k]];
+    }
+    const picks = pool.slice(0, 5);
     const sw = stage.offsetWidth  || window.innerWidth;
     const sh = stage.offsetHeight || window.innerHeight;
     const baseX = sw / 2 - 150; // windows are 300px wide

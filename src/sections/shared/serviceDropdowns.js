@@ -7,7 +7,7 @@
 /**
  * @param {Object} opts
  * @param {Array<{tag:string, items?:string[]}>} [opts.services] Dropdown data.
- * @returns {{ el: HTMLElement, items: Array<{item:HTMLElement, setState:(open:boolean)=>void}> }}
+ * @returns {{ el: HTMLElement }}
  */
 export function createServiceDropdowns({ services = [] } = {}) {
   const el = document.createElement('div');
@@ -18,7 +18,9 @@ export function createServiceDropdowns({ services = [] } = {}) {
     item.className = 'thinking__service';
 
     const tagBtn = document.createElement('button');
+    tagBtn.type = 'button';
     tagBtn.className = 'thinking__service-tag';
+    tagBtn.setAttribute('aria-expanded', 'false');
 
     const subEl = document.createElement('div');
     subEl.className = 'thinking__service-sub';
@@ -35,6 +37,7 @@ export function createServiceDropdowns({ services = [] } = {}) {
 
     const setState = (open) => {
       tagBtn.textContent = (open ? '>' : '/') + s.tag;
+      tagBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       item.classList.toggle('is-open', open);
     };
     setState(false); // closed by default; open only on click
@@ -50,5 +53,5 @@ export function createServiceDropdowns({ services = [] } = {}) {
     });
   });
 
-  return { el, items };
+  return { el };
 }

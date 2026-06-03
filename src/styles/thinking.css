@@ -628,3 +628,20 @@
 
 .bwin__grid { display: flex; gap: 6px; }
 .bwin__grid span { flex: 1; height: 22px; border-radius: 4px; background: rgba(0, 0, 0, 0.07); }
+
+/* ── Mobile ───────────────────────────────────────────────────────────────
+   Fixed-width cards (240px) and benchmark windows (300px) overflow narrow
+   phones, and the bottom-right panel needs to hug the edge. Cap widths to the
+   viewport and tighten the panel so nothing spills off-screen or clips. */
+@media (max-width: 600px) {
+  .thinking__right-panel {
+    right: 16px;
+    bottom: 20px;
+    gap: 14px;
+  }
+  .thinking__services { max-width: 60vw; }
+  .thinking__service-tag,
+  .thinking__service-sub-item { font-size: 13px; }
+  .bcard { width: min(240px, 80vw); }
+  .bwin  { width: min(300px, 84vw); }
+}

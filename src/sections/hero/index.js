@@ -105,6 +105,8 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
 
   requestAnimationFrame(() => requestAnimationFrame(() => title.play()));
 
+  // Last-written values so we skip redundant style writes when scroll stalls.
+  let lastMove = NaN, lastFade = NaN, lastPE = '';
   orchestrator?.onProgress('hero', ({ progress }) => {
     facePack.setProgress(progress);
     webgl?.shaderPlane?.setProgress(progress);
@@ -116,18 +118,26 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     // pop-off (driven by CSS --exit + --exit-t) and pumps an aggressive glitch
     // burst so the title visibly shatters apart on scroll exit. Same curve as
     // the previous fade so the timing relative to the facepack dive is unchanged.
-    const fade = ease.smoothstep(Math.max(0, Math.min(1, (progress - 0.40) / 0.55)));
-    const move = ease.smoothstep(progress);
-    title.setExit(fade);
-    title.el.style.transform = `scale(${(1 + move * 0.05).toFixed(4)}) translateY(${(-move * 28).toFixed(1)}px)`;
-    // Subtitle fades in lockstep with the title's shatter — same `fade` curve
-    // so the descriptor never lingers after the title has come apart.
-    subtitle.style.opacity = (1 - fade).toFixed(3);
-    subtitle.style.transform = `translateY(${(-move * 22).toFixed(1)}px)`;
-    // Once shattered the title is invisible but, with pointer-events:auto, it
-    // still sits above the thinking section (hero z-index:2 > thinking:1) and
-    // would swallow clicks meant for the orbital dots behind it.
-    title.el.style.pointerEvents = (1 - fade) > 0.02 ? 'auto' : 'none';
+    const fade = Math.round(ease.smoothstep(Math.max(0, Math.min(1, (progress - 0.40) / 0.55))) * 1000) / 1000;
+    const move = Math.round(ease.smoothstep(progress) * 1000) / 1000;
+
+    if (fade !== lastFade) {
+      lastFade = fade;
+      title.setExit(fade);
+      subtitle.style.opacity = (1 - fade).toFixed(3);
+      // Once shattered the title is invisible but, with pointer-events:auto, it
+      // still sits above the thinking section (hero z-index:2 > thinking:1) and
+      // would swallow clicks meant for the orbital dots behind it.
+      const pe = (1 - fade) > 0.02 ? 'auto' : 'none';
+      if (pe !== lastPE) { lastPE = pe; title.el.style.pointerEvents = pe; }
+    }
+
+    if (move !== lastMove) {
+      lastMove = move;
+      title.el.style.transform = `scale(${(1 + move * 0.05).toFixed(4)}) translateY(${(-move * 28).toFixed(1)}px)`;
+      // Subtitle slides in lockstep with the title's shatter.
+      subtitle.style.transform = `translateY(${(-move * 22).toFixed(1)}px)`;
+    }
   });
 
   return { section, header, timeline, title, facePack };

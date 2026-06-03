@@ -122,6 +122,8 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
   // Camera at distance such that 1 world-unit = 1 viewport-pixel at z=0
   let H = window.innerHeight;
   let camZ = H / (2 * Math.tan(FOV_RAD / 2));
+  // Cached in onResize so applyTransforms never reads window dimensions per frame.
+  let reach = Math.max(window.innerWidth, window.innerHeight);
 
   const camera = new THREE.PerspectiveCamera(FOV, window.innerWidth / H, 1, camZ * 20);
   camera.position.z = camZ;
@@ -229,13 +231,10 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     const oy = ( PACK_H / 2 - f.top  - f.h / 2) * SCALE;
     const oz = 0;
 
-    const initRz = ((f.rz ?? 0) * Math.PI) / 180;
     mesh.position.set(ox, oy, oz);
     // Reserve renderOrder bands of 2 per fragment so the shadow can sit just
     // BEFORE its main mesh (lower renderOrder = drawn first behind).
     mesh.renderOrder = f.z * 2;
-    if (f.flipX) mesh.scale.x = -1;
-    mesh.rotation.z = initRz;
 
     // Shadow plane — mirrors the face's geometry; the shader produces a soft
     // dark silhouette from the texture's alpha (sampled at high mip LOD).
@@ -262,21 +261,14 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     const shadowGeo = new THREE.PlaneGeometry(w * SHADOW_PAD, h * SHADOW_PAD);
     const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
     shadowMesh.renderOrder = f.z * 2 - 1; // drawn just before its face
-    shadowMesh.scale.set(
-      SHADOW_SCALE * (f.flipX ? -1 : 1),
-      SHADOW_SCALE,
-      1,
-    );
-    shadowMesh.rotation.z = initRz;
+    shadowMesh.scale.set(SHADOW_SCALE, SHADOW_SCALE, 1);
 
     mesh.userData = {
       ox, oy, oz,
-      initRz,
       vx: f.vx, vy: f.vy, speed: f.speed,
       px: f.px, py: f.py,
       depth: maxZ ? f.z / maxZ : 0,
       shadow: shadowMesh,
-      flipX: !!f.flipX,
     };
     return mesh;
   });
@@ -293,6 +285,7 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
   const onResize = (w, h) => {
     H = h;
     camZ = h / (2 * Math.tan(FOV_RAD / 2));
+    reach = Math.max(w, h);
     camera.aspect = w / h;
     camera.position.z = camZ;
     camera.far = camZ * 20;
@@ -354,7 +347,6 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     // Reduced motion: fragments stay put and only cross-fade into the cell.
     const move = reduced ? 0 : ease.smoothstep(p);
 
-    const reach   = Math.max(window.innerWidth, window.innerHeight);
     // Distance the stack travels toward the camera (which sits at z=camZ).
     const dive    = camZ * move;
     // Parallax fades out as the pack flies past.
@@ -385,7 +377,7 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
       // so they don't read as dead-flat sprites.
       const rotY = d.vx * Math.PI * 0.12 * move;
       const rotX = d.vy * Math.PI * 0.08 * move;
-      const rotZ = d.initRz + d.vx * 0.10 * move;
+      const rotZ = d.vx * 0.10 * move;
       mesh.rotation.set(rotX, rotY, rotZ);
 
       // Shadow mirrors the face's position + rotation with a small

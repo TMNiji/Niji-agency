@@ -90,7 +90,7 @@ export function mountVideo({
   // ── Preload the sequence ──────────────────────────────────────────────────
   // `start`/`end` are 1-based, inclusive frame numbers. This mount only loads
   // its own slice of the full clip, so DESIGN and CODE never double up.
-  const { base = '/video/frames/frame_', pad = 4, ext = 'jpg', start = 1, end = start } = frames || {};
+  const { base = '/video/frames/frame_', pad = 4, ext = 'webp', start = 1, end = start } = frames || {};
   const count = Math.max(0, end - start + 1);
   const imgs = new Array(count);
   let settled = 0;
