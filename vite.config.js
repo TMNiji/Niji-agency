@@ -4,7 +4,7 @@ import glsl from 'vite-plugin-glsl';
 import { resolve } from 'path';
 
 export default defineConfig({
-  base: '/Niji-agency/',
+  base: '/',
   plugins: [
     glsl({
       include: ['**/*.glsl', '**/*.vert', '**/*.frag'],
@@ -23,7 +23,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // No production sourcemaps — they'd ship the full readable source in dist/.
+    sourcemap: false,
     target: 'es2020',
     assetsInlineLimit: 4096,
     chunkSizeWarningLimit: 600,
