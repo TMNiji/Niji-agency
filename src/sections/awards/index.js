@@ -80,6 +80,25 @@ function makePlaceholderGeometry(i) {
   }
 }
 
+// Free every GPU resource an object subtree holds: geometries, materials, and
+// any textures the materials reference (material.dispose() does NOT free its
+// own textures). Used both when swapping placeholders for GLBs and on teardown.
+function disposeObject(root) {
+  root.traverse((n) => {
+    if (!n.isMesh) return;
+    n.geometry?.dispose();
+    const mats = Array.isArray(n.material) ? n.material : [n.material];
+    mats.forEach((m) => {
+      if (!m) return;
+      for (const key in m) {
+        const val = m[key];
+        if (val && val.isTexture) val.dispose();
+      }
+      m.dispose();
+    });
+  });
+}
+
 const FOV   = 45;
 const CAM_Z = 4.6;
 
@@ -124,6 +143,21 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   if (!section) return null;
   section.classList.add('awards');
 
+  // The trophies and their stats render only in WebGL/canvas, invisible to
+  // assistive tech. Mirror the same content as a visually-hidden list so screen
+  // readers get the headings and each award's tally.
+  const srSummary = document.createElement('div');
+  srSummary.className = 'sr-only';
+  srSummary.innerHTML = `
+    <h2>${headingBottom} ${headingTop}</h2>
+    <ul>
+      ${awards.map((a) => `
+        <li>${a.title}${(a.details ?? []).map((d) => ` — ${d}`).join('')}</li>
+      `).join('')}
+    </ul>
+  `;
+  section.appendChild(srSummary);
+
   // Body-level stage so its z-index:9995 sits above the #noise overlay (9990).
   const stage = document.createElement('div');
   stage.className = 'awards__stage';
@@ -152,6 +186,7 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   // setHovered() fills these from the focused award's data.
   const tooltip = document.createElement('div');
   tooltip.className = 'awards__tooltip';
+  tooltip.setAttribute('aria-hidden', 'true');
   tooltip.innerHTML = `
     <span class="awards__tooltip-title"></span>
     <span class="awards__tooltip-detail awards__tooltip-detail--1"></span>
@@ -206,6 +241,28 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   // parallax-drifts (cloud.position updates per frame in update()).
   spot.target = cloud;
 
+  // ── Hover hitboxes ─────────────────────────────────────────────────────────
+  // Each trophy gets an invisible, solid box sized to the displayed model's
+  // extent, and hover raycasts ONLY these. Picking the real GLB mesh directly
+  // is both finicky (it's a concave ~90k-tri shape, so the pointer falls through
+  // interior gaps and flickers as the trophy sways) and expensive. A snug box
+  // tracks the trophy (it's parented to the same group, so it sways/scales with
+  // it) and matches its silhouette per-axis. Re-fit from placeholder to GLB on load.
+  const hitProxies = [];
+  const _proxyBox    = new THREE.Box3();
+  const _proxySize   = new THREE.Vector3();
+  const _proxyCenter = new THREE.Vector3();
+  function fitHitProxy(proxy, box) {
+    box.getSize(_proxySize);
+    box.getCenter(_proxyCenter);
+    proxy.scale.set(
+      Math.max(_proxySize.x, 1e-3),
+      Math.max(_proxySize.y, 1e-3),
+      Math.max(_proxySize.z, 1e-3),
+    );
+    proxy.position.copy(_proxyCenter);
+  }
+
   // Each item is a wrapper Group so the GLB-backed slot 0 (which contains a
   // sub-tree of meshes with their own materials) animates exactly like the
   // single-mesh placeholder slots.
@@ -236,7 +293,19 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     });
     const mesh = new THREE.Mesh(makePlaceholderGeometry(i), mat);
     group.add(mesh);
-    group.userData.material = mat;
+    group.userData.material    = mat;
+    group.userData.placeholder = mesh;
+
+    // Invisible hover hitbox, fitted to the placeholder for now (see hitProxies).
+    const proxy = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
+    proxy.visible = false;          // never rendered; Raycaster still picks it
+    proxy.userData.item = group;
+    mesh.geometry.computeBoundingBox();
+    fitHitProxy(proxy, mesh.geometry.boundingBox);
+    group.add(proxy);
+    group.userData.proxy = proxy;
+    hitProxies.push(proxy);
+
     cloud.add(group);
     return group;
   });
@@ -244,6 +313,8 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   // Async-swap each slot's placeholder with its real GLB once it loads. The
   // wrapper group stays so positions/animations are unaffected; we just
   // replace its children and drop the emissive-hover effect for that slot.
+  let destroyed = false;
+  const loadedModels = []; // GLB scenes — tracked so destroy() can free their textures
   const gltfLoader = new GLTFLoader();
   glbUrls.forEach((url, i) => {
     if (!url) return;
@@ -252,12 +323,21 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     gltfLoader.load(
       asset(url),
       (gltf) => {
-        slot.userData.material?.dispose();
-        slot.clear();
+        // The section may have been torn down before this async load resolved.
+        if (destroyed) { disposeObject(gltf.scene); return; }
+        // Drop just the placeholder primitive (geometry + material), leaving the
+        // hover proxy in place — slot.clear() would also strip the proxy.
+        const placeholder = slot.userData.placeholder;
+        if (placeholder) {
+          disposeObject(placeholder);
+          slot.remove(placeholder);
+          slot.userData.placeholder = null;
+        }
         slot.userData.hasEmissive = false;
         slot.userData.material    = null;
 
         const model = gltf.scene;
+        loadedModels.push(model);
         // Normalize so the model fits the cloud's expected per-item radius.
         const box    = new THREE.Box3().setFromObject(model);
         const sphere = box.getBoundingSphere(new THREE.Sphere());
@@ -267,6 +347,12 @@ export function mountAwards({ container, webgl, content = null } = {}) {
           // Re-center on the wrapper's origin so the slot's basePos is honored.
           model.position.sub(sphere.center.multiplyScalar(s));
         }
+
+        // Re-fit the hover hitbox to the loaded trophy BEFORE parenting: while
+        // the model is still unparented its world matrix equals its slot-local
+        // transform, so setFromObject yields a snug, group-local box with no
+        // group-rotation skew.
+        fitHitProxy(slot.userData.proxy, _proxyBox.setFromObject(model));
         slot.add(model);
       },
       undefined,
@@ -307,6 +393,7 @@ export function mountAwards({ container, webgl, content = null } = {}) {
 
   let lastDustSpawn = 0;
   const DUST_THROTTLE_MS = 36; // cap spawn rate so even fast moves stay light
+  const dustTimers = new Set(); // pending self-remove timers, cleared on destroy
   function spawnDust(cx, cy) {
     // 1–2 particles per spawn so a slow move still gets the dusty cluster feel
     const count = 1 + (Math.random() < 0.55 ? 1 : 0);
@@ -330,7 +417,8 @@ export function mountAwards({ container, webgl, content = null } = {}) {
       p.style.setProperty('--dy', `${dy.toFixed(1)}px`);
       dustLayer.appendChild(p);
       // Self-remove past the keyframe duration so the layer doesn't accumulate.
-      setTimeout(() => p.remove(), 1800);
+      const t = setTimeout(() => { p.remove(); dustTimers.delete(t); }, 1800);
+      dustTimers.add(t);
     }
   }
 
@@ -423,18 +511,12 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     // background preview (rendered during clients) has no interaction.
     if (active) {
       // Raycast against the latest (un-smoothed) pointer so hover tracks 1:1.
-      // Recursive so the GLB's sub-meshes are picked; resolve the hit back to
-      // its owning top-level item group.
+      // Hit only the invisible per-trophy boxes (hitProxies), then resolve back
+      // to the owning item group via userData.item.
       ndc.set(targetX, targetY);
       raycaster.setFromCamera(ndc, camera);
-      const hits = raycaster.intersectObjects(items, true);
-      let hit = null;
-      if (hits.length) {
-        let n = hits[0].object;
-        while (n && !items.includes(n)) n = n.parent;
-        hit = n || null;
-      }
-      setHovered(hit);
+      const hits = raycaster.intersectObjects(hitProxies, false);
+      setHovered(hits.length ? hits[0].object.userData.item : null);
 
       // Tooltip follows the hovered trophy's projected screen position. It sits
       // OFFSET to the side (right or left depending on which half of the viewport
@@ -477,8 +559,15 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   }
   const materialAlpha = { v: 1 };
   function setMaterialOpacity(v) {
+    // Once fully opaque, drop transparent back to false so the renderer can use
+    // the cheaper opaque path and depth-sorting stays correct.
+    const opaque = v >= 1;
     const mats = collectMaterials();
-    mats.forEach((m) => { m.transparent = true; m.opacity = v; });
+    mats.forEach((m) => {
+      m.transparent = !opaque;
+      m.opacity = v;
+      m.needsUpdate = true;
+    });
   }
   function glitchInTrophies(duration = 0.55) {
     gsap.killTweensOf(materialAlpha);
@@ -575,19 +664,16 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     setPreviewApproach,
     setScrollProgress,
     destroy() {
+      destroyed = true; // any GLB still loading will dispose itself on arrival
       setActive(false);
       stage.removeEventListener('pointermove',  onPointerMove);
       stage.removeEventListener('pointerleave', onPointerLeave);
       webgl.removeOverlay(scene);
-      items.forEach((item) => {
-        item.traverse((n) => {
-          if (n.isMesh) {
-            n.geometry?.dispose();
-            const mats = Array.isArray(n.material) ? n.material : [n.material];
-            mats.forEach((mat) => mat?.dispose());
-          }
-        });
-      });
+      dustTimers.forEach((t) => clearTimeout(t));
+      dustTimers.clear();
+      // Placeholders still in their slots + any GLB models that finished loading.
+      items.forEach((item) => disposeObject(item));
+      loadedModels.forEach((model) => disposeObject(model));
       stage.remove();
     },
   };
