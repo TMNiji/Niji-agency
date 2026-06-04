@@ -76,34 +76,20 @@ export function mountVideo({
   stage.appendChild(canvas);
   const ctx = canvas.getContext('2d');
 
-  const placeholder = document.createElement('div');
-  placeholder.className = 'video__placeholder';
-  placeholder.innerHTML = `
-    <div class="video__placeholder-frame">
-      <div class="video__placeholder-icon" aria-hidden="true">▶</div>
-      <div class="video__placeholder-label">Loading frames…</div>
-      <div class="video__placeholder-hint">Scroll to scrub</div>
-    </div>
-  `;
-  stage.appendChild(placeholder);
-
   // ── Preload the sequence ──────────────────────────────────────────────────
   // `start`/`end` are 1-based, inclusive frame numbers. This mount only loads
   // its own slice of the full clip, so DESIGN and CODE never double up.
   const { base = '/video/frames/frame_', pad = 4, ext = 'webp', start = 1, end = start } = frames || {};
   const count = Math.max(0, end - start + 1);
   const imgs = new Array(count);
-  let settled = 0;
   let firstReady = false;
 
   const onSettle = (i) => {
-    settled++;
     if (!firstReady && imgs[i].naturalWidth) {
       firstReady = true;
       resize();        // size the backing store, draw the first frame
       drawIndex(lastIdx >= 0 ? lastIdx : 0, true);
     }
-    if (settled >= count) placeholder.classList.add('is-hidden');
   };
 
   // Frames are fetched lazily: each section's slice only starts downloading when

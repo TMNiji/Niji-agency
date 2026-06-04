@@ -81,7 +81,7 @@
 
 /* Narrow screens — same lift as the awards/clients headings. */
 @media (max-width: 860px) {
-  .video__title { top: clamp(80px, 10vh, 140px); }
+  .video__title { top: clamp(120px, 15vh, 165px); }
 }
 
 /* Phones — constrain the centred title to the viewport minus 16px gutters and
@@ -100,48 +100,4 @@
   height: 100%;
   background: transparent;
   pointer-events: none;
-}
-
-/* Placeholder — visible until a real video loads */
-.video__placeholder {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 300ms ease;
-}
-
-.video__placeholder.is-hidden { opacity: 0; }
-
-.video__placeholder-frame {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: clamp(28px, 4vw, 56px) clamp(40px, 6vw, 88px);
-  border: 1px dashed rgba(255, 255, 255, 0.22);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.video__placeholder-icon {
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.55);
-  line-height: 1;
-}
-
-.video__placeholder-label {
-  font-family: var(--font);
-  font-size: 0.875rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.video__placeholder-hint {
-  font-family: var(--font);
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.32);
 }

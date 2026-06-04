@@ -57,10 +57,9 @@
   color: rgba(255, 255, 255, 0.50);
   /* Left-aligned on desktop; re-centred on phones (see @600 below). */
   text-align: left;
-  /* Wide enough to fit the longest hard-coded line ("25 ans à construire ce
-     qui se regarde, s'utilise" ≈ 48 chars) without re-wrapping over the
-     <br>-driven 4-line layout. */
-  max-width: 52ch;
+  /* Fill the heading container width so the left-aligned text spans the full
+     title block instead of hugging the right edge as a narrow measure. */
+  width: 100%;
   margin: 0;
   pointer-events: none;
   will-change: opacity, transform;
@@ -482,6 +481,17 @@
   /* Drop the timeline ruler entirely on phones — it overlaps the centred cell
      and adds clutter on the small viewport. */
   .hero-timeline { display: none; }
+
+  /* Orbital dot labels sit centred BELOW each dot on phones (desktop anchors
+     them to the right). A right-anchored label on a narrow viewport runs off
+     the screen edge for the side dots; centring it under the dot keeps every
+     label fully on-screen. */
+  .hero-orbital__dot-label {
+    top: calc(100% + 7px);
+    left: 50%;
+    transform: translate(-50%, 0);
+    font-size: 13px;
+  }
 
   /* 16px horizontal gutters on phones — header pinned to the left edge, the
      right-anchored hero title held off the right edge by the same amount. */
