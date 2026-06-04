@@ -81,7 +81,7 @@
 
 /* Narrow screens — same lift as the awards/clients headings. */
 @media (max-width: 860px) {
-  .video__title { top: clamp(120px, 15vh, 165px); }
+  .video__title { top: clamp(150px, 19vh, 200px); }
 }
 
 /* Phones — constrain the centred title to the viewport minus 16px gutters and

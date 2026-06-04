@@ -167,7 +167,7 @@ body.is-contact .awards__stage {
 
 /* ── Narrow screens ─────────────────────────────────────────────────────── */
 @media (max-width: 860px) {
-  .awards__head { top: clamp(120px, 15vh, 165px); }
+  .awards__head { top: clamp(150px, 19vh, 200px); }
 }
 
 /* Phones — constrain to the viewport minus 16px gutters and let the heading

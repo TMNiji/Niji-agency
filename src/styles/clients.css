@@ -95,7 +95,7 @@
 
 /* Narrow screens — same lift as the awards/video headings. */
 @media (max-width: 860px) {
-  .clients__title { top: clamp(120px, 15vh, 165px); }
+  .clients__title { top: clamp(150px, 19vh, 200px); }
 }
 
 /* Phones — constrain to the viewport minus 16px gutters and let the long
