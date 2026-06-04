@@ -4,10 +4,10 @@
    @import in main.css). The JS module (modules/preloader.js) only hooks in to
    drive the real progress counter and the glitch-out exit once boot finishes.
 
-   Aesthetic: dark Niji backdrop, pixel-font (DotGothic16) techy readout, an
-   RGB-split glitching wordmark, scanlines + a thin progress rail. All baseline
-   motion is pure CSS so it animates even before the module runs; the global
-   reduced-motion guard in main.css freezes it for users who opt out. */
+   Aesthetic: dark Niji backdrop, pixel-font (DotGothic16) techy readout, a
+   monochrome animated signal-bar pulse, scanlines + a thin progress rail. All
+   baseline motion is pure CSS so it animates even before the module runs; the
+   global reduced-motion guard in main.css freezes it for users who opt out. */
 
 #preloader {
   position: fixed;
@@ -47,37 +47,38 @@
   width: min(440px, 72vw);
 }
 
-/* ── Glitching wordmark ─────────────────────────────────────────────────────
-   The element renders "NIJI"; the two clipped pseudo-copies (cyan / magenta)
-   slide a few px on alternating frames for an RGB-split chromatic tear. */
-.preloader__glitch {
-  position: relative;
-  font-family: var(--font);
-  font-weight: 700;
-  font-size: clamp(48px, 9vw, 96px);
-  letter-spacing: -0.03em;
-  line-height: 1;
-  color: var(--fg);
-  user-select: none;
+/* ── Signal-bar visual ──────────────────────────────────────────────────────
+   A row of monochrome bars whose heights jump on a stepped timeline (steps(1)
+   holds each keyframe then snaps to the next, for a digital readout feel rather
+   than a smooth musical bounce). Bars run out of phase via per-bar duration +
+   negative delay. Resting transform (scaleY .55) is what shows when the global
+   reduced-motion guard clamps the animation to a standstill. */
+.preloader__viz {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(5px, 0.7vw, 9px);
+  height: clamp(40px, 7vh, 72px);
 }
-.preloader__glitch::before,
-.preloader__glitch::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
+.preloader__viz span {
+  width: clamp(3px, 0.45vw, 5px);
+  height: 100%;
+  background: rgba(255, 255, 255, 0.85);
+  transform: scaleY(0.55);
+  animation: preloader-viz 1.1s steps(1, end) infinite;
 }
-.preloader__glitch::before {
-  color: #00eaff;
-  clip-path: inset(0 0 55% 0);
-  animation: preloader-glitch-top 2.4s steps(2, end) infinite;
-}
-.preloader__glitch::after {
-  color: #ff0064;
-  clip-path: inset(55% 0 0 0);
-  animation: preloader-glitch-bottom 3.1s steps(2, end) infinite;
-}
+.preloader__viz span:nth-child(1)  { animation-duration: 1.30s; animation-delay: -0.20s; }
+.preloader__viz span:nth-child(2)  { animation-duration: 0.90s; animation-delay: -0.70s; }
+.preloader__viz span:nth-child(3)  { animation-duration: 1.15s; animation-delay: -0.35s; }
+.preloader__viz span:nth-child(4)  { animation-duration: 0.80s; animation-delay: -0.55s; }
+.preloader__viz span:nth-child(5)  { animation-duration: 1.40s; animation-delay: -0.10s; }
+.preloader__viz span:nth-child(6)  { animation-duration: 1.00s; animation-delay: -0.85s; }
+.preloader__viz span:nth-child(7)  { animation-duration: 1.25s; animation-delay: -0.45s; }
+.preloader__viz span:nth-child(8)  { animation-duration: 0.85s; animation-delay: -0.30s; }
+.preloader__viz span:nth-child(9)  { animation-duration: 1.35s; animation-delay: -0.60s; }
+.preloader__viz span:nth-child(10) { animation-duration: 0.95s; animation-delay: -0.15s; }
+.preloader__viz span:nth-child(11) { animation-duration: 1.20s; animation-delay: -0.75s; }
+.preloader__viz span:nth-child(12) { animation-duration: 1.05s; animation-delay: -0.40s; }
 
 /* ── Progress rail ──────────────────────────────────────────────────────────*/
 .preloader__bar {
@@ -142,17 +143,14 @@
   animation: preloader-scan 8s linear infinite;
 }
 
-@keyframes preloader-glitch-top {
-  0%, 64%, 100% { transform: translate(0, 0); }
-  66%  { transform: translate(-3px, -1px); }
-  72%  { transform: translate(2px, 1px); }
-  78%  { transform: translate(-2px, 0); }
-}
-@keyframes preloader-glitch-bottom {
-  0%, 54%, 100% { transform: translate(0, 0); }
-  56%  { transform: translate(3px, 1px); }
-  62%  { transform: translate(-2px, -1px); }
-  68%  { transform: translate(2px, 0); }
+@keyframes preloader-viz {
+  0%   { transform: scaleY(0.16); }
+  16%  { transform: scaleY(0.85); }
+  33%  { transform: scaleY(0.38); }
+  50%  { transform: scaleY(1); }
+  66%  { transform: scaleY(0.28); }
+  83%  { transform: scaleY(0.62); }
+  100% { transform: scaleY(0.20); }
 }
 @keyframes preloader-flicker {
   0%, 88%, 100% { opacity: 0.55; }

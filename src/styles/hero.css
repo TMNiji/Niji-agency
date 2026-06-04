@@ -40,18 +40,17 @@
   gap: clamp(18px, 1.8vw, 30px);
 }
 
-/* Small agency descriptor — pinned bottom-centre of the hero section, muted
-   colour, line-wraps within a comfortable measure. Opacity + Y are driven from
-   JS (hero/index.js) so it tracks the title's shatter exit. The base transform
-   carries translateX(-50%) so JS only appends the scroll-driven translateY. */
+/* Small agency descriptor — stacked directly under the title inside the
+   right-anchored heading on desktop (re-pinned bottom-centre on phones, see
+   @600), muted colour, line-wraps within a comfortable measure.
+   Opacity + Y are driven from JS (hero/index.js): the scroll-driven lift is
+   written to --sub-y so CSS keeps full ownership of the horizontal placement
+   (which differs desktop vs mobile) instead of the JS transform clobbering it. */
 .hero__subtitle {
-  position: absolute;
-  left: 50%;
-  bottom: clamp(32px, 6vh, 72px);
-  transform: translateX(-50%);
+  transform: translateY(var(--sub-y, 0));
   font-family: var(--font);
-  /* Base-8 type scale — 12px floor, 16px ceiling. */
-  font-size: clamp(12px, 0.9vw, 16px);
+  /* Base-8 type scale — bumped a step up from the title-block sizing. */
+  font-size: clamp(14px, 1.05vw, 19px);
   font-weight: 400;
   line-height: 1.55;
   letter-spacing: 0.005em;
@@ -479,9 +478,16 @@
   .hero-header { left: 16px; }
   .hero__overlay { padding-right: 16px; }
 
-  /* Bump the agency descriptor on phones — the desktop clamp bottoms out at
-     12px, which reads too small on a handset. Base-8 step up to 16px. Also
-     re-centre the text (desktop left-aligns it) so the compact reflowed block
-     sits balanced under the centred cell. */
-  .hero__subtitle { font-size: 16px; text-align: center; }
+  /* Re-pin the agency descriptor bottom-centre on phones (desktop stacks it
+     under the title inside the heading). Absolute within the full-viewport
+     overlay; translateX(-50%) centres it and --sub-y carries the JS scroll
+     lift on top. Fixed 16px reads better than the desktop clamp on a handset. */
+  .hero__subtitle {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(32px, 6vh, 72px);
+    transform: translateX(-50%) translateY(var(--sub-y, 0));
+    font-size: 16px;
+    text-align: center;
+  }
 }

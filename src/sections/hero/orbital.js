@@ -91,6 +91,13 @@ export function createOrbital({ stage, cards = {} } = {}) {
   function updatePositions() {
     const cellPx = cellRadiusPx();
 
+    // On phones the cell radius is width-capped (≈0.18·width), which squeezes
+    // all five dots into a small circle that the central glow swallows and the
+    // labels collide in. The viewport is tall though, so push the dots out
+    // along their radii to use that vertical room and separate them. Labels
+    // sit below each dot on mobile (hero.css), so the extra spread reads clean.
+    const dotSpread = window.innerWidth <= 600 ? 1.5 : 1;
+
     ringEls.forEach((ring, i) => {
       const diameter = RING_FACTORS[i] * cellPx * 2;
       ring.style.width  = `${diameter}px`;
@@ -98,7 +105,7 @@ export function createOrbital({ stage, cards = {} } = {}) {
     });
 
     dotEls.forEach((dot) => {
-      const r   = dot.def.rFactor * cellPx;
+      const r   = dot.def.rFactor * cellPx * dotSpread;
       const rad = (dot.def.angle * Math.PI) / 180;
       dot.x = Math.cos(rad) * r;
       dot.y = Math.sin(rad) * r;

@@ -74,29 +74,37 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   // Non-breaking spaces glue numbers to their units ("115 designers" stays as
   // one block) and a non-breaking hyphen (‑, U+2011) keeps "AI-native"
   // together if the line happens to break right at the dash.
+  //
+  // Each line ends with a real space *before* its <br>. On desktop the <br>
+  // forces the 5-line editorial layout (the trailing space is invisible); on
+  // phones the <br> is hidden (hero.css @600) so the text reflows into a
+  // compact 3-line block and the spaces keep the words apart.
   const DEFAULT_SUBTITLE =
-    "Agence de product design AI‑native.<br>"
-    + "115 designers&nbsp;|&nbsp;9 bureaux<br>"
-    + "25 ans à construire<br>"
-    + "ce qui se regarde, s'utilise<br>"
+    "Agence de product design AI‑native. <br>"
+    + "115 designers&nbsp;|&nbsp;9 bureaux <br>"
+    + "25 ans à construire <br>"
+    + "ce qui se regarde, s'utilise <br>"
     + "et maintenant se parle.";
   const cmsSubtitle = content?.hero?.subtitle;
   // CMS value is plain multiline text — render one line per row, escaped, so a
-  // visitor can't inject markup. Falls back to the designed default above.
+  // visitor can't inject markup. Falls back to the designed default above. The
+  // space before each <br> mirrors the default so the mobile reflow keeps its
+  // word spacing when the breaks are hidden.
   subtitle.innerHTML = cmsSubtitle
     ? cmsSubtitle.split('\n').map((line) => {
         const div = document.createElement('div');
         div.textContent = line;
         return div.innerHTML;
-      }).join('<br>')
+      }).join(' <br>')
     : DEFAULT_SUBTITLE;
+
+  // Subtitle stacks directly under the title inside the right-anchored heading
+  // on desktop (see hero.css). On phones CSS re-pins it bottom-centre of the
+  // full-viewport overlay (@600), so the DOM placement is unchanged there.
+  heading.appendChild(subtitle);
 
   overlay.appendChild(heading);
   section.appendChild(overlay);
-
-  // Subtitle is pinned bottom-centre of the section (see hero.css), so it lives
-  // on the full-viewport stage rather than inside the right-anchored heading.
-  stage.appendChild(subtitle);
 
   // Hoist the timeline AND the header outside #app's stacking context (z-index:1)
   // so their z-index can beat the body-level section stages (clients/awards
@@ -138,9 +146,10 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     if (move !== lastMove) {
       lastMove = move;
       title.el.style.transform = `scale(${(1 + move * 0.05).toFixed(4)}) translateY(${(-move * 28).toFixed(1)}px)`;
-      // Subtitle slides in lockstep with the title's shatter. translateX(-50%)
-      // keeps it horizontally centred (it's bottom-anchored at left:50%).
-      subtitle.style.transform = `translateX(-50%) translateY(${(-move * 22).toFixed(1)}px)`;
+      // Subtitle slides in lockstep with the title's shatter. Write only the Y
+      // lift to --sub-y so CSS owns the horizontal placement (bottom-left on
+      // desktop, centred on phones — see hero.css .hero__subtitle).
+      subtitle.style.setProperty('--sub-y', `${(-move * 22).toFixed(1)}px`);
     }
   });
 

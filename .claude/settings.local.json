@@ -223,7 +223,32 @@
       "Bash(cp \"/Users/titouan.mazurier/Downloads/files \\(41\\)/niji-llm-source.html\" \"/Users/titouan.mazurier/Downloads/files \\(41\\)/niji-llm-relecture.pdf\" \"/Users/titouan.mazurier/Downloads/files \\(41\\)/niji-llm-prompt.md\" \"/Users/titouan.mazurier/Downloads/files \\(41\\)/niji-llm-buttons-by-llm.html\" \"/Users/titouan.mazurier/Downloads/files \\(41\\)/niji-llm-buttons.html\" docs/llm/)",
       "Bash(find . -maxdepth 2 -name \"vercel.json\" -not -path \"*/node_modules/*\")",
       "Bash(ls -la .vercel)",
-      "Bash(cat .vercel/project.json)"
+      "Bash(cat .vercel/project.json)",
+      "Bash(vercel --prod)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}  size=%{size_download}\\\\n\" --max-time 20 https://niji.agency/llm)",
+      "Bash(curl -s --max-time 20 https://niji.agency/llm)",
+      "WebFetch(domain:niji.agency)",
+      "Bash(dig +short niji.agency @ns-15-a.gandi.net)",
+      "Bash(dig +short www.niji.agency @ns-15-a.gandi.net)",
+      "Bash(dig +short niji.agency @1.1.1.1)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code} | final: %{url_effective}\\\\n\" -L https://niji.agency)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code} | final: %{url_effective}\\\\n\" -L https://www.niji.agency)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code} | %{redirect_url}\\\\n\" http://niji.agency)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code} | %{redirect_url}\\\\n\" http://www.niji.agency)",
+      "Bash(dig +short niji.agency CAA)",
+      "Bash(vercel certs *)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" -L https://niji.agency)",
+      "Bash(ls src/modules src/lib)",
+      "Bash(find src *)",
+      "Bash(sed -i '' -e 's/font-size: clamp\\(20px, 1.7vw, 26px\\);/font-size: clamp\\(1.125rem, 1.7vw, 1.5rem\\);/g' -e 's/font-size: clamp\\(36px, 4vw, 60px\\);/font-size: clamp\\(1.5rem, 4vw, 2.125rem\\);/g' -e 's/font-size: clamp\\(13px, 1vw, 16px\\);/font-size: clamp\\(0.875rem, 1vw, 1rem\\);/g' -e 's/font-size: 11px;/font-size: 0.75rem;/g' src/styles/clients.css)",
+      "Bash(sed -i '' -e 's/font-size: 13px;/font-size: 0.875rem;/g' src/styles/main.css)",
+      "Bash(sed -i '' -e 's/font-size: clamp\\(36px, 4vw, 60px\\);/font-size: clamp\\(1.5rem, 4vw, 2.125rem\\);/g' -e 's/font-size: clamp\\(20px, 1.7vw, 26px\\);/font-size: clamp\\(1.125rem, 1.7vw, 1.5rem\\);/g' -e 's/font-size: 28px;/font-size: 1.5rem;/g' -e 's/font-size: 14px;/font-size: 0.875rem;/g' -e 's/font-size: 11px;/font-size: 0.75rem;/g' src/styles/video.css)",
+      "Bash(sed -i '' -e 's/font-size: clamp\\(20px, 1.7vw, 26px\\);/font-size: clamp\\(1.125rem, 1.7vw, 1.5rem\\);/g' -e 's/font-size: clamp\\(36px, 4vw, 60px\\);/font-size: clamp\\(1.5rem, 4vw, 2.125rem\\);/g' -e 's/font-size: clamp\\(14px, 0.95vw, 17px\\);/font-size: clamp\\(0.875rem, 0.95vw, 1.125rem\\);/g' -e 's/font-size: clamp\\(13px, 0.8vw, 15px\\);/font-size: clamp\\(0.875rem, 0.8vw, 1rem\\);/g' src/styles/awards.css)",
+      "Bash(sed -i '' -e 's/font-size: clamp\\(11px, 0.82vw, 14px\\);/font-size: clamp\\(0.75rem, 0.82vw, 0.875rem\\);/g' -e 's/font-size: clamp\\(34px, 4.2vw, 74px\\);/font-size: clamp\\(1.5rem, 4.2vw, 2.125rem\\);/g' -e 's/font-size: 12px;/font-size: 0.75rem;/g' -e 's/font-size: 16px;/font-size: 1rem;/g' -e 's/font-size: 14px;/font-size: 0.875rem;/g' src/styles/hero.css)",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts||{},null,2\\)\\)\")",
+      "Bash(git checkout *)",
+      "Bash(rm -rf src/styles/tokens src/styles/base src/styles/components src/styles/sections)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }
