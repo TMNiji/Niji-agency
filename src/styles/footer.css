@@ -31,15 +31,10 @@
   pointer-events: auto;
 }
 
-/* Loop exit — the seamless loop in main.js adds `is-leaving` to drive the
-   headline up + columns down before instantly resetting scroll to the top. The
-   class is removed when the user scrolls back into contact so the next visit
-   starts clean. */
-.footer__stage.is-leaving .footer__headline {
-  opacity: 0;
-  transform: translateY(-40px);
-  transition: opacity 480ms ease, transform 680ms cubic-bezier(0.7, 0, 0.84, 0);
-}
+/* Loop exit — the seamless loop in main.js adds `is-leaving` to slide the
+   columns down before instantly resetting scroll to the top. The class is
+   removed when the user scrolls back into contact so the next visit starts
+   clean. */
 .footer__stage.is-leaving .footer__columns {
   opacity: 0;
   transform: translateY(28px);
@@ -47,10 +42,9 @@
               transform 660ms cubic-bezier(0.7, 0, 0.84, 0) 80ms;
 }
 
-/* The headline and columns have implicit transitions on entry too, so a brief
-   fade-in plays when the user lands on contact (whether by scrolling down the
-   first time or coming back around through the loop). */
-.footer__headline,
+/* Columns have an implicit transition on entry too, so a brief fade-in plays
+   when the user lands on contact (whether by scrolling down the first time or
+   coming back around through the loop). */
 .footer__columns {
   transition: opacity 480ms ease, transform 680ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -63,7 +57,7 @@
   /* Matched to .clients-title__line--large (and .awards-title__line--large)
      so the clients/contact section titles share the same size + weight. */
   font-weight: 700;
-  font-size: clamp(36px, 4vw, 60px);
+  font-size: clamp(1.5rem, 4vw, 3.75rem);
   line-height: 1.05;
   letter-spacing: -0.02em;
   color: #fff;
@@ -85,6 +79,15 @@
    The footer keeps the per-letter blink only — no font swap. */
 .footer-headline__char.is-glitch {
   animation: hero-title-glitch 560ms steps(1, end);
+}
+
+/* Column heading — each half of the split title sits atop its own column, so
+   it's sized down from the old single full-width headline. Overrides the
+   .footer-headline base size (declared after it so the cascade wins). */
+.footer__col-title {
+  font-size: clamp(1.125rem, 2.4vw, 2.125rem);
+  line-height: 1.1;
+  max-width: 100%;
 }
 
 /* ── Two-column row under the headline ──────────────────────────────────────
@@ -114,22 +117,26 @@
 .footer__col {
   display: flex;
   flex-direction: column;
+  align-items: center;
   flex: 1 1 0;
+  min-width: 0;
+  gap: clamp(20px, 3vh, 36px);
 }
 
 .footer__col--ai {
-  align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 @media (max-width: 720px) {
   .footer__columns {
     flex-direction: column;
     align-items: center;
-    gap: clamp(28px, 6vh, 48px);
+    /* 16px between the stacked containers */
+    gap: 16px;
   }
   .footer__columns::before { display: none; }
-  .footer__col { width: 100%; align-items: center; }
+  /* 8px between each column's title and its elements */
+  .footer__col { width: 100%; align-items: center; gap: 8px; }
 }
 
 /* ── "Explore with AI" bar — centred inside the contact stage ───────────────
@@ -140,12 +147,11 @@
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  pointer-events: auto;
 }
 
 .footer__ai-links-label {
   font-family: 'DotGothic16', monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -161,7 +167,6 @@
 /* ── Named contacts — topic line above a mailto address, stacked. ─────────── */
 .footer__contacts {
   gap: clamp(18px, 3vh, 28px);
-  pointer-events: auto;
 }
 
 .footer__contact {
@@ -174,7 +179,7 @@
 
 .footer__contact-topic {
   font-family: 'DotGothic16', monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -189,7 +194,7 @@
   max-width: 100%;
   font-family: var(--font);
   font-weight: 600;
-  font-size: clamp(18px, 1.6vw, 24px);
+  font-size: clamp(1.125rem, 1.6vw, 1.5rem);
   letter-spacing: -0.01em;
   color: #fff;
 }
@@ -216,6 +221,11 @@
   .footer__contact { align-items: center; text-align: center; }
 }
 
+/* Phones — 16px horizontal gutters on the contact stage. */
+@media (max-width: 600px) {
+  .footer__stage { padding-left: 16px; padding-right: 16px; }
+}
+
 /* ── Loop hint — bottom-centre CTA signalling the seamless wrap to the top.
    Anchored to the stage edge (not the flex flow) so it sits below the AI bar
    regardless of viewport height. */
@@ -233,13 +243,12 @@
   align-items: center;
   gap: 6px;
   font-family: 'DotGothic16', monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.45);
   cursor: pointer;
-  pointer-events: auto;
   transition: color 220ms ease;
 }
 
@@ -247,7 +256,7 @@
 .footer__loop-cta:focus-visible { color: #fff; outline: none; }
 
 .footer__loop-cta-arrow {
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1;
   animation: footer-loop-bob 1.6s ease-in-out infinite;
 }

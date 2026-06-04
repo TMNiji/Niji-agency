@@ -67,6 +67,23 @@ const CLOUD_POSITIONS = [
   { x:  0.00, y: -0.70, z:  0.2 },
 ];
 
+// Phone layout — the horizontal spread above runs the outer trophies off a
+// narrow screen, so stack the trio vertically (x≈0) down the centre instead.
+const CLOUD_POSITIONS_MOBILE = [
+  { x: 0, y:  1.00, z:  0.0 },
+  { x: 0, y: -0.20, z:  0.25 },
+  { x: 0, y: -1.40, z:  0.0 },
+];
+
+// Matches the CSS phone breakpoint (600px) so the 3D layout flips in step with
+// the title/gutter mobile rules.
+const isMobileLayout = () => window.innerWidth <= 600;
+const cloudPositions = () => (isMobileLayout() ? CLOUD_POSITIONS_MOBILE : CLOUD_POSITIONS);
+
+// Touch devices have no hover, so the per-frame hover raycast is replaced by a
+// tap: the tooltip appears when a trophy is tapped and clears on tapping away.
+const isTouchDevice = () => window.matchMedia('(hover: none)').matches;
+
 // Placeholder geometries — one shape per award slot. Real trophy GLBs replace
 // these one-for-one once the assets are available.
 function makePlaceholderGeometry(i) {
@@ -267,7 +284,7 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   // sub-tree of meshes with their own materials) animates exactly like the
   // single-mesh placeholder slots.
   const items = awards.map((award, i) => {
-    const pos = CLOUD_POSITIONS[i % CLOUD_POSITIONS.length];
+    const pos = cloudPositions()[i % cloudPositions().length];
     const group = new THREE.Group();
     group.position.set(pos.x, pos.y, pos.z);
     // Fixed resting angle (per-slot) so every award always shows the same face.
@@ -365,8 +382,21 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   const onResize = (w, h) => {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    // Re-apply the layout so crossing the phone breakpoint (or rotating the
+    // device) swaps between the horizontal cluster and the vertical stack. Only
+    // basePos + x/z are set here; y is driven per-frame from basePos.y by the
+    // bob in the render loop.
+    const layout = cloudPositions();
+    items.forEach((item, i) => {
+      const pos = layout[i % layout.length];
+      item.userData.basePos.set(pos.x, pos.y, pos.z);
+      item.position.x = pos.x;
+      item.position.z = pos.z;
+    });
   };
-  webgl.addOverlay(scene, camera, onResize);
+  // Top overlay → renders on the canvas above the #noise layer so the trophies
+  // stay crisp (ungrained) while the shader backdrop keeps the same film grain.
+  webgl.addTopOverlay(scene, camera, onResize);
 
   // ── Pointer state ────────────────────────────────────────────────────────
   const raycaster = new THREE.Raycaster();
@@ -445,8 +475,22 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     webgl?.shaderPlane?.setMouseTarget(0, 0);
     setHovered(null);
   }
+  // Tap-to-reveal on touch devices: raycast at the tapped point and toggle the
+  // hit trophy's tooltip (tapping empty space dismisses it). No-op on
+  // hover-capable devices, where the per-frame hover raycast already runs.
+  function onTap(e) {
+    if (!active || !isTouchDevice()) return;
+    const nx =  (e.clientX / window.innerWidth)  * 2 - 1;
+    const ny = -((e.clientY / window.innerHeight) * 2 - 1);
+    ndc.set(nx, ny);
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObjects(hitProxies, false);
+    const item = hits.length ? hits[0].object.userData.item : null;
+    setHovered(hovered === item ? null : item);
+  }
   stage.addEventListener('pointermove',  onPointerMove);
   stage.addEventListener('pointerleave', onPointerLeave);
+  stage.addEventListener('click',        onTap);
 
   function setHovered(mesh) {
     if (hovered === mesh) return;
@@ -510,35 +554,51 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     // Hover/tooltip only while the section is fully active — the far-away
     // background preview (rendered during clients) has no interaction.
     if (active) {
-      // Raycast against the latest (un-smoothed) pointer so hover tracks 1:1.
-      // Hit only the invisible per-trophy boxes (hitProxies), then resolve back
-      // to the owning item group via userData.item.
-      ndc.set(targetX, targetY);
-      raycaster.setFromCamera(ndc, camera);
-      const hits = raycaster.intersectObjects(hitProxies, false);
-      setHovered(hits.length ? hits[0].object.userData.item : null);
+      // On hover-capable devices, raycast against the latest (un-smoothed)
+      // pointer so hover tracks 1:1. Touch devices skip this — the selection is
+      // driven by tap (onTap) and stays sticky until the next tap.
+      if (!isTouchDevice()) {
+        ndc.set(targetX, targetY);
+        raycaster.setFromCamera(ndc, camera);
+        const hits = raycaster.intersectObjects(hitProxies, false);
+        setHovered(hits.length ? hits[0].object.userData.item : null);
+      }
 
       // Tooltip follows the hovered trophy's projected screen position. It sits
       // OFFSET to the side (right or left depending on which half of the viewport
       // the trophy is in) and slightly BELOW the trophy so the text never sits
       // on top of the 3D mesh and stays readable.
       if (hovered) {
-        hovered.getWorldPosition(worldPos);
-        worldPos.project(camera);
-        const sx = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
-        const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
-        const OFFSET_X = 70;  // px from trophy centre to tooltip nearest edge
-        const OFFSET_Y = 40;  // px down from trophy centre
-        const onLeftHalf = sx < window.innerWidth / 2;
-        // Trophies on the left half → tooltip to the RIGHT (anchored at its left).
-        // Trophies on the right half → tooltip to the LEFT  (anchored at its right).
-        const tx = onLeftHalf ? sx + OFFSET_X : sx - OFFSET_X;
-        const ty = sy + OFFSET_Y;
-        const anchorX = onLeftHalf ? '0%' : '-100%';
-        tooltip.classList.toggle('is-right', onLeftHalf);
-        tooltip.classList.toggle('is-left',  !onLeftHalf);
-        tooltip.style.transform =
-          `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) translate(${anchorX}, 0)`;
+        if (isMobileLayout()) {
+          // Phones: pin the label to the horizontal centre of the screen with
+          // centred text, just below the trophy, rather than offsetting it to
+          // the side (no room for a side label on a narrow, centre-stacked cloud).
+          hovered.getWorldPosition(worldPos);
+          worldPos.project(camera);
+          const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
+          tooltip.classList.remove('is-right', 'is-left');
+          tooltip.classList.add('is-center');
+          tooltip.style.transform =
+            `translate(${(window.innerWidth / 2).toFixed(1)}px, ${(sy + 60).toFixed(1)}px) translate(-50%, 0)`;
+        } else {
+          hovered.getWorldPosition(worldPos);
+          worldPos.project(camera);
+          const sx = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
+          const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
+          const OFFSET_X = 70;  // px from trophy centre to tooltip nearest edge
+          const OFFSET_Y = 40;  // px down from trophy centre
+          const onLeftHalf = sx < window.innerWidth / 2;
+          // Trophies on the left half → tooltip to the RIGHT (anchored at its left).
+          // Trophies on the right half → tooltip to the LEFT  (anchored at its right).
+          const tx = onLeftHalf ? sx + OFFSET_X : sx - OFFSET_X;
+          const ty = sy + OFFSET_Y;
+          const anchorX = onLeftHalf ? '0%' : '-100%';
+          tooltip.classList.remove('is-center');
+          tooltip.classList.toggle('is-right', onLeftHalf);
+          tooltip.classList.toggle('is-left',  !onLeftHalf);
+          tooltip.style.transform =
+            `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) translate(${anchorX}, 0)`;
+        }
       }
     }
   }
@@ -668,6 +728,7 @@ export function mountAwards({ container, webgl, content = null } = {}) {
       setActive(false);
       stage.removeEventListener('pointermove',  onPointerMove);
       stage.removeEventListener('pointerleave', onPointerLeave);
+      stage.removeEventListener('click',        onTap);
       webgl.removeOverlay(scene);
       dustTimers.forEach((t) => clearTimeout(t));
       dustTimers.clear();

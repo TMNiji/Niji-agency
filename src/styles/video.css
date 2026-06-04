@@ -30,7 +30,7 @@
    awards.css). Large/bold line on top, small/muted line below. */
 .video__title {
   position: absolute;
-  top: clamp(110px, 12vh, 160px);
+  top: calc(clamp(110px, 12vh, 160px) + 12px);
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -51,13 +51,13 @@
 .video-title__line + .video-title__line { margin-top: 6px; }
 
 .video-title__line--large {
-  font-size: clamp(36px, 4vw, 60px);
+  font-size: clamp(1.5rem, 4vw, 3.75rem);
   font-weight: 700;
   color: #fff;
 }
 
 .video-title__line--small {
-  font-size: clamp(20px, 1.7vw, 26px);
+  font-size: clamp(1.125rem, 1.7vw, 1.5rem);
   color: rgba(255, 255, 255, 0.55);
 }
 
@@ -82,6 +82,15 @@
 /* Narrow screens — same lift as the awards/clients headings. */
 @media (max-width: 860px) {
   .video__title { top: clamp(80px, 10vh, 140px); }
+}
+
+/* Phones — constrain the centred title to the viewport minus 16px gutters and
+   let the lines wrap so a long heading never overflows the screen edge
+   (down to 340px). The per-letter spans break at word spaces, so wrapping
+   keeps the glitch layout intact. */
+@media (max-width: 600px) {
+  .video__title { width: calc(100vw - 32px); }
+  .video-title__line { white-space: normal; }
 }
 
 .video__canvas {
@@ -116,14 +125,14 @@
 }
 
 .video__placeholder-icon {
-  font-size: 28px;
+  font-size: 1.5rem;
   color: rgba(255, 255, 255, 0.55);
   line-height: 1;
 }
 
 .video__placeholder-label {
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 0.875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.7);
@@ -131,7 +140,7 @@
 
 .video__placeholder-hint {
   font-family: var(--font);
-  font-size: 11px;
+  font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.32);

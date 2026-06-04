@@ -366,10 +366,12 @@ async function boot() {
     awards?.setPreviewApproach((progress - 0.66) / 0.34);
   });
 
-  // Awards — share the clients backdrop exactly (hero_grain shader with cell
-  // hidden) so the two sections read as one continuous dark stage; the
-  // previous bespoke `awards` shader carried a gold mouse-halo + a black
-  // crossfade tween that the user wanted dropped.
+  // Awards — swap to the `awards` shader: the exact same charcoal backdrop as
+  // the clients section (awardsBackdrop, cell hidden, plus the body-level
+  // #noise overlay which stays visible here too), with one addition — a soft
+  // gold halo that follows the cursor. The backdrop base is identical to
+  // hero_grain, so the swap is invisible aside from the halo.
+  const haloFade = { v: 0 };
   orchestrator.onEnter('awards', ({ direction }) => {
     awards?.setActive(true, direction);
     // Fresh downward entry: reset scroll-driven depth so the cloud always
@@ -377,16 +379,38 @@ async function boot() {
     // reverse entry (scrolling back up from contact) skip the reset so the
     // trophies glide back from where they exited instead of snapping far.
     if (direction === 'down') awards?.setScrollProgress(0);
-    webgl.shaderPlane.setShader('hero_grain');
-    webgl.shaderPlane.setProgress(0);
+    webgl.shaderPlane.setShader('awards');
     webgl.shaderPlane.setCellGrow(0);
     document.body.classList.add('is-awards');
+    // Gold cursor halo (awards.glsl multiplies it by uProgress): fade it in on
+    // desktop, but keep it off on touch devices — there's no cursor to track,
+    // so the glow would just sit frozen wherever the last tap landed.
+    gsap.killTweensOf(haloFade);
+    if (window.matchMedia('(hover: none)').matches) {
+      haloFade.v = 0;
+      webgl.shaderPlane.setProgress(0);
+    } else {
+      haloFade.v = 0;
+      webgl.shaderPlane.setProgress(0);
+      gsap.to(haloFade, {
+        v: 1,
+        duration: 0.9,
+        ease: 'power2.out',
+        onUpdate: () => webgl.shaderPlane.setProgress(haloFade.v),
+      });
+    }
   });
   orchestrator.onProgress('awards', ({ progress }) => {
     awards?.setScrollProgress(progress);
   });
+  // Restore the plain hero_grain backdrop on leave so neither clients (up) nor
+  // contact (down) inherits the awards gold halo. Clients.onEnter also sets
+  // hero_grain, but contact has no shader handler and relies on this reset.
   orchestrator.onLeave('awards', () => {
     awards?.setActive(false);
+    gsap.killTweensOf(haloFade);
+    webgl.shaderPlane.setShader('hero_grain');
+    webgl.shaderPlane.setProgress(0);
     document.body.classList.remove('is-awards');
   });
 

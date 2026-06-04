@@ -90,10 +90,13 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
         return div.innerHTML;
       }).join('<br>')
     : DEFAULT_SUBTITLE;
-  heading.appendChild(subtitle);
 
   overlay.appendChild(heading);
   section.appendChild(overlay);
+
+  // Subtitle is pinned bottom-centre of the section (see hero.css), so it lives
+  // on the full-viewport stage rather than inside the right-anchored heading.
+  stage.appendChild(subtitle);
 
   // Hoist the timeline AND the header outside #app's stacking context (z-index:1)
   // so their z-index can beat the body-level section stages (clients/awards
@@ -135,8 +138,9 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     if (move !== lastMove) {
       lastMove = move;
       title.el.style.transform = `scale(${(1 + move * 0.05).toFixed(4)}) translateY(${(-move * 28).toFixed(1)}px)`;
-      // Subtitle slides in lockstep with the title's shatter.
-      subtitle.style.transform = `translateY(${(-move * 22).toFixed(1)}px)`;
+      // Subtitle slides in lockstep with the title's shatter. translateX(-50%)
+      // keeps it horizontally centred (it's bottom-anchored at left:50%).
+      subtitle.style.transform = `translateX(-50%) translateY(${(-move * 22).toFixed(1)}px)`;
     }
   });
 

@@ -1,10 +1,11 @@
 #include common.glsl;
 
-// Awards backdrop — the shared dark radial + grain field (see awardsBackdrop in
-// common.glsl), plus a soft gold halo that follows the cursor so the user
-// visibly "warms" the dark stage as they explore the trophy cloud.
-// uProgress crossfades it in from black on section enter, so the
-// clients→awards hand-off is a smooth bg morph rather than a hard shader swap.
+// Awards backdrop — IDENTICAL to the clients section's field (the shared
+// awardsBackdrop + the body-level #noise overlay, which is left visible here),
+// plus one addition: a soft gold halo that follows the cursor so the user
+// visibly "warms" the dark stage as they explore the trophy cloud. No extra
+// grain and no uProgress fade — anything beyond the halo would make the
+// backdrop diverge from clients.
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
@@ -20,21 +21,12 @@ void main() {
 
   // Two stacked exponential falloffs — a tight warm core and a wide diffuse
   // bleed — additive so the gold lives on top of the charcoal backdrop without
-  // washing it out where the cursor isn't. Toned down from 0.45/0.20: at the
-  // peak the gold was washing the trophy cloud and the noise underneath.
-  float halo = exp(-dM * 2.4) * 0.20 + exp(-dM * 5.2) * 0.09;
+  // washing it out where the cursor isn't. uProgress ramps 0→1 on section
+  // enter so the halo fades in rather than snapping to full strength; on phones
+  // it's held at 0 (no cursor → no hover glow).
+  float halo = exp(-dM * 2.4) * 0.10 + exp(-dM * 5.2) * 0.05;
   vec3 gold  = vec3(0.85, 0.62, 0.24);
-  col += gold * halo;
-
-  // Extra film grain — added on top of the shared backdrop's subtle base grain
-  // so the awards background reads textured even with the body-level #noise
-  // overlay hidden during this section (it would otherwise crosshatch the
-  // gold trophies, which the user wants kept clean).
-  float gExtra = hash21(gl_FragCoord.xy + fract(uTime) * 213.7);
-  col += (gExtra - 0.5) * 0.060;
-
-  // uProgress fades the whole field in from black on section enter.
-  col *= uProgress;
+  col += gold * halo * uProgress;
 
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }

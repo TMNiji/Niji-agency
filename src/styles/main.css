@@ -31,6 +31,20 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Per-word wrapper inside every glitch title (see createTitle in title.js).
+   Each letter is its own inline-block, so a wrapping line would otherwise break
+   between any two letters and split words mid-glyph. Keeping each word as a
+   nowrap inline-block means a wrapping title only ever breaks at word spaces. */
+.hero-title__word,
+.video-title__word,
+.clients-title__word,
+.awards-title__word,
+.footer-headline__word {
+  display: inline-block;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
 /* Visually hidden but exposed to assistive tech — for content rendered only
    in WebGL/canvas (e.g. the awards trophy stats). */
 .sr-only {
@@ -68,6 +82,18 @@ html, body {
   pointer-events: none;
 }
 
+/* Transparent overlay canvas for the awards trophy cloud (see webgl.js).
+   Sits ABOVE the #noise overlay (9990) so the trophies render ungrained, but
+   below the section stages (9995) so titles/tooltips stay on top. */
+#webgl-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9991;
+  pointer-events: none;
+}
+
 #app {
   position: relative;
   z-index: 1;
@@ -94,13 +120,6 @@ section {
   transition: opacity 350ms ease;
 }
 
-/* Awards section — hide the body-level grain so the 3D trophies stay crisp
-   (the overlay's mix-blend-mode:overlay textures everything in front of the
-   webgl canvas, trophies included). The awards backdrop shader (awards.glsl)
-   adds its own grain pass on the background so the section still reads
-   textured — just under the trophies, not over them. */
-body.is-awards #noise { opacity: 0; }
-
 /* ── AI-links toast — confirms the prompt was copied to the clipboard ────
    Shared by the thinking + footer "Explore with AI" bars (see aiLinks.js).
    Light pill inverts cleanly against the dark page. */
@@ -113,7 +132,7 @@ body.is-awards #noise { opacity: 0; }
   padding: 12px 20px;
   background: var(--fg);
   color: var(--bg);
-  font-size: 13px;
+  font-size: 0.875rem;
   line-height: 1.4;
   text-align: center;
   border-radius: 6px;

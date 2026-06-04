@@ -76,6 +76,16 @@ export class ShaderPlane {
 }
 
 export function initWebGL({ canvas, initialShader = 'hero_grain' } = {}) {
+  // Size the drawing buffers from the canvas's CSS display box, NOT the window.
+  // The canvas is 100vw/100vh; on mobile `100vh` (large/dynamic viewport) diverges
+  // from window.innerHeight (which shrinks with the URL bar). Sizing from the
+  // displayed box keeps buffer aspect == display aspect, so the cell + trophies
+  // stay round instead of stretching. No-op on desktop (client == inner).
+  const sizeOf = () => ({
+    w: canvas.clientWidth  || window.innerWidth,
+    h: canvas.clientHeight || window.innerHeight,
+  });
+
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: false,
@@ -83,13 +93,42 @@ export function initWebGL({ canvas, initialShader = 'hero_grain' } = {}) {
     powerPreference: 'high-performance',
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  {
+    const { w, h } = sizeOf();
+    renderer.setSize(w, h, false);
+  }
   renderer.autoClear = false;
 
   const shaderPlane = new ShaderPlane({ renderer, initialShader });
 
-  // Overlay scenes rendered after the background (depth-cleared between each).
+  // Overlay scenes (the awards trophy cloud) render to a SECOND, transparent
+  // canvas layered ABOVE the #noise overlay (z-index 9991 vs noise's 9990) —
+  // see #webgl-overlay in main.css. The shader background stays on the base
+  // canvas UNDER the noise, so the awards backdrop keeps the same film grain as
+  // the clients section while the trophies themselves render crisp on top,
+  // ungrained — mirroring how the clients cards (DOM, z 9995) sit above noise.
+  const overlayCanvas = document.createElement('canvas');
+  overlayCanvas.id = 'webgl-overlay';
+  document.body.appendChild(overlayCanvas);
+  const overlayRenderer = new THREE.WebGLRenderer({
+    canvas: overlayCanvas,
+    antialias: false,
+    alpha: true,
+    powerPreference: 'high-performance',
+  });
+  overlayRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  {
+    const { w, h } = sizeOf();
+    overlayRenderer.setSize(w, h, false);
+  }
+  overlayRenderer.autoClear = false;
+
+  // Base overlays (e.g. the hero facepack) render on the BASE canvas, behind the
+  // #noise overlay and behind the DOM #app, so the hero title sits in front of
+  // them. Top overlays (the awards trophy cloud) render on the overlay canvas
+  // ABOVE the noise — see addOverlay vs addTopOverlay.
   const overlays = [];
+  const topOverlays = [];
 
   // One render pass per frame. Driven by gsap.ticker (the single frame loop) —
   // main.js registers this LAST, after every section's transform callback, so
@@ -101,16 +140,29 @@ export function initWebGL({ canvas, initialShader = 'hero_grain' } = {}) {
       renderer.clearDepth();
       renderer.render(o.scene, o.camera);
     }
+    if (topOverlays.length) {
+      overlayRenderer.clear();
+      for (const o of topOverlays) {
+        overlayRenderer.clearDepth();
+        overlayRenderer.render(o.scene, o.camera);
+      }
+    }
   };
 
   const handleResize = () => {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const { w, h } = sizeOf();
     renderer.setSize(w, h, false);
+    overlayRenderer.setSize(w, h, false);
     shaderPlane.resize(w, h);
-    for (const o of overlays) o.onResize?.(w, h);
+    for (const o of overlays)    o.onResize?.(w, h);
+    for (const o of topOverlays) o.onResize?.(w, h);
   };
   window.addEventListener('resize', handleResize, { passive: true });
+  // Correct the initial sizing now that the canvas has been laid out: the
+  // ShaderPlane constructor seeds uResolution from window.innerWidth/Height,
+  // which can disagree with the display box on mobile. One pass aligns
+  // buffers, uResolution, and any already-registered overlay cameras.
+  handleResize();
 
   // Subtle pointer parallax — feed normalised coords to the shader plane. Skip
   // entirely under reduced-motion (the pointer stays centred, so no drift).
@@ -128,10 +180,26 @@ export function initWebGL({ canvas, initialShader = 'hero_grain' } = {}) {
     shaderPlane,
     /** Start rendering on gsap.ticker. main.js calls this LAST so overlays render fresh. */
     startRenderLoop() { gsap.ticker.add(renderTick); },
-    addOverlay(scene, camera, onResize) { overlays.push({ scene, camera, onResize }); },
+    /** Render on the base canvas (behind the DOM + noise) — used by the hero facepack. */
+    addOverlay(scene, camera, onResize) {
+      overlays.push({ scene, camera, onResize });
+      // Seed the camera aspect from the display box immediately — overlays mount
+      // lazily, so without this they'd use the window-based aspect until the next
+      // resize and read stretched on mobile.
+      const { w, h } = sizeOf();
+      onResize?.(w, h);
+    },
+    /** Render on the overlay canvas above the noise — used by the awards trophy cloud. */
+    addTopOverlay(scene, camera, onResize) {
+      topOverlays.push({ scene, camera, onResize });
+      const { w, h } = sizeOf();
+      onResize?.(w, h);
+    },
     removeOverlay(scene) {
       const i = overlays.findIndex((o) => o.scene === scene);
-      if (i !== -1) overlays.splice(i, 1);
+      if (i !== -1) { overlays.splice(i, 1); return; }
+      const j = topOverlays.findIndex((o) => o.scene === scene);
+      if (j !== -1) topOverlays.splice(j, 1);
     },
     destroy() {
       gsap.ticker.remove(renderTick);
@@ -139,6 +207,8 @@ export function initWebGL({ canvas, initialShader = 'hero_grain' } = {}) {
       if (mouseEnabled) window.removeEventListener('mousemove', handleMouse);
       shaderPlane.dispose();
       renderer.dispose();
+      overlayRenderer.dispose();
+      overlayCanvas.remove();
     },
   };
 }

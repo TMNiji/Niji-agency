@@ -70,9 +70,9 @@
   transition: opacity 600ms ease, transform 700ms var(--ease-out-expo);
 }
 
-.thinking__services.is-on .thinking__service                    { opacity: 0.32; transform: scale(1); }
-.thinking__services.is-on .thinking__service.is-open             { opacity: 1; }
-.thinking__services.is-on .thinking__service:not(.is-open):hover { opacity: 0.75; transition: opacity 150ms ease-out, transform 700ms var(--ease-out-expo); }
+/* Titles stay full white at all times for readability — the dim/open hierarchy
+   is dropped. Hover greys the tag slightly (see .thinking__service-tag:hover). */
+.thinking__services.is-on .thinking__service { opacity: 1; transform: scale(1); }
 .thinking__services.is-on .thinking__service:nth-child(1)  { transition-delay: 100ms; }
 .thinking__services.is-on .thinking__service:nth-child(2)  { transition-delay: 220ms; }
 .thinking__services.is-on .thinking__service:nth-child(3)  { transition-delay: 340ms; }
@@ -87,7 +87,7 @@
   border: none;
   padding: 4px 0;
   font-family: 'DotGothic16', monospace;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -95,6 +95,9 @@
   cursor: pointer;
   transition: color 200ms ease;
 }
+
+/* Hover greys the tag a touch — affordance without dimming the whole block. */
+.thinking__service-tag:hover { color: rgba(255, 255, 255, 0.65); }
 
 /* Dropdown sub-items — collapsed by default, expand on hover or is-open */
 .thinking__service-sub {
@@ -117,7 +120,7 @@
 
 .thinking__service-sub-item {
   font-family: 'DotGothic16', monospace;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.50);
   letter-spacing: 0.01em;
@@ -147,7 +150,7 @@
 
 .thinking__ai-links-label {
   font-family: 'DotGothic16', monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -167,10 +170,11 @@
   width: 40px;
   height: 40px;
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #000;
+  background: #fff;
+  border: 1px solid transparent;
   border-radius: 8px;
-  transition: color 220ms ease, border-color 220ms ease, background 220ms ease;
+  transition: color 220ms ease, background 220ms ease, opacity 220ms ease;
   flex-shrink: 0;
   /* Clip any fallback text that exceeds the square so an unmapped logo label
      can't spill over into neighbouring buttons. */
@@ -185,15 +189,14 @@
 }
 
 .thinking__ai-btn:hover {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.06);
+  color: #000;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 /* Fallback text label (if no logo matched) */
 .thinking__ai-btn-text {
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -220,7 +223,7 @@
 
 .bcard__title {
   font-family: 'DotGothic16', monospace;
-  font-size: 13px;
+  font-size: 0.875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #000;
@@ -235,7 +238,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: 1.5rem;
   line-height: 1;
   color: #000;
   cursor: pointer;
@@ -287,7 +290,7 @@
 
 .st-flip__tag {
   font-family: 'DotGothic16', monospace;
-  font-size: 10px;
+  font-size: 0.75rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgba(0, 0, 0, 0.45);
@@ -296,7 +299,7 @@
 .st-flip__text {
   margin: 0;
   font-family: var(--font);
-  font-size: 17px;
+  font-size: 1.125rem;
   font-weight: 500;
   line-height: 1.30;
   color: #000;
@@ -305,7 +308,7 @@
 .st-flip__hint {
   align-self: flex-end;
   font-family: 'DotGothic16', monospace;
-  font-size: 10px;
+  font-size: 0.75rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgba(0, 0, 0, 0.40);
@@ -326,7 +329,7 @@
   top: -4px;
   left: 0;
   font-family: 'DotGothic16', monospace;
-  font-size: 26px;
+  font-size: 1.5rem;
   line-height: 1;
   color: #0065FF;
   opacity: 0;
@@ -339,7 +342,7 @@
 
 /* "LCV" KPI label — smaller and muted next to the big +38 % delta */
 .bv__delta-tag {
-  font-size: 12px;
+  font-size: 0.75rem;
   letter-spacing: 0.18em;
   color: rgba(0, 101, 255, 0.55);
 }
@@ -409,7 +412,7 @@
 
 .ds__label {
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 0.875rem;
   color: #000;
   transition: color 160ms ease, opacity 160ms ease;
 }
@@ -441,7 +444,7 @@
 .ds__count {
   display: block;
   font-family: 'DotGothic16', monospace;
-  font-size: 11px;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
   color: rgba(0, 0, 0, 0.50);
   transition: opacity 180ms ease;
@@ -456,7 +459,7 @@
   align-items: center;
   gap: 6px;
   font-family: 'DotGothic16', monospace;
-  font-size: 11px;
+  font-size: 0.75rem;
   letter-spacing: 0.12em;
   color: #0065FF;
   font-weight: 700;
@@ -497,7 +500,7 @@
   padding: 8px 11px;
   border-radius: 14px;
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 0.875rem;
   line-height: 1.3;
   animation: bs-pop 260ms var(--ease-out-expo);
 }
@@ -583,7 +586,7 @@
   border-radius: 6px;
   background: #fff;
   font-family: 'DotGothic16', monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #333;
   text-align: center;
   white-space: nowrap;
@@ -598,7 +601,7 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1;
   color: #666;
   cursor: pointer;
@@ -641,7 +644,7 @@
   }
   .thinking__services { max-width: 60vw; }
   .thinking__service-tag,
-  .thinking__service-sub-item { font-size: 13px; }
+  .thinking__service-sub-item { font-size: 0.875rem; }
   .bcard { width: min(240px, 80vw); }
   .bwin  { width: min(300px, 84vw); }
 }

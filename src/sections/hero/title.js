@@ -47,16 +47,29 @@ export function createTitle({
   // Each line is a block span; letters within are width-locked inline-block
   // spans (set on play) so a font swap changes only the glyph, never the
   // layout. A leading "&" gets the raised-ampersand modifier.
+  //
+  // Letters are grouped into per-word wrapper spans. Since each char is its own
+  // inline-block, a wrapping line (mobile) would otherwise break BETWEEN any two
+  // letters — splitting words mid-glyph. The word wrapper is `display:inline-
+  // block; white-space:nowrap` (see CSS), so a line that wraps only ever breaks
+  // at the spaces between words, never inside one.
   const charSpans = [];
   for (const item of lines) {
     const text = typeof item === 'string' ? item : item.text;
     const cls  = typeof item === 'string' ? '' : (item.cls ?? '');
     const line = document.createElement('span');
     line.className = cls ? `${baseClass}__line ${cls}` : `${baseClass}__line`;
+    let word = null;
+    const flushWord = () => { if (word) { line.appendChild(word); word = null; } };
     for (const ch of text) {
       if (ch === ' ') {
+        flushWord();
         line.appendChild(document.createTextNode(' '));
         continue;
+      }
+      if (!word) {
+        word = document.createElement('span');
+        word.className = `${baseClass}__word`;
       }
       const span = document.createElement('span');
       span.className = `${baseClass}__char`;
@@ -72,9 +85,10 @@ export function createTitle({
       const h = ((charSpans.length * 2654435761 + 374761393) >>> 0) % 1000;
       const exitT = 0.1 + (h / 1000) * 0.85;
       span.style.setProperty('--exit-t', exitT.toFixed(3));
-      line.appendChild(span);
+      word.appendChild(span);
       charSpans.push(span);
     }
+    flushWord();
     el.appendChild(line);
   }
 

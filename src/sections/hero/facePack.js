@@ -19,8 +19,14 @@ const FOV     = 45;
 const FOV_RAD = (FOV * Math.PI) / 180;
 
 // Uniform scale on the resting pack — lets the composition breathe at the
-// viewport edges without rewriting Figma-native pixel coords.
-const SCALE   = 0.68;
+// viewport edges without rewriting Figma-native pixel coords. Phones get a
+// tighter scale so the pack doesn't crowd the small viewport; the dive math
+// uses camZ (not SCALE), so shrinking the rest pose leaves the explosion intact.
+const SCALE_DESKTOP = 0.82;
+const SCALE_MOBILE  = 0.46;
+const SCALE = window.matchMedia('(max-width: 600px)').matches
+  ? SCALE_MOBILE
+  : SCALE_DESKTOP;
 
 // `left/top/w/h` are pack-local pixel coords (PACK_W×PACK_H space).
 // `srcW/srcH`    are the real pixel dimensions of the source PNG — used to

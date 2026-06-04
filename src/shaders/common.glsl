@@ -84,6 +84,9 @@ const float CELL_R        = 0.075;  // bright body
 const float CELL_GLOW_R   = 0.16;   // inner atmospheric halo
 const float CELL_FIELD_R  = 0.40;   // outer faint field
 const float NUCLEOLUS_R   = 0.018;  // central bright dot
+// Global on-screen size multiplier for the whole cell (rings, body, bloom).
+// <1 shrinks it uniformly without touching the growth dynamics.
+const float CELL_SIZE     = 0.72;
 
 // Soft disk — value in [0,1] across a smooth fall-off from `inner` to `outer`.
 float softDisk(float d, float inner, float outer) {
@@ -108,7 +111,7 @@ vec3 drawCell(vec2 cUv, float growth, float energize) {
   // Inverse scale — coords compressed as growth rises, so the same CELL_R etc.
   // map to a larger on-screen radius. All features (rings, body, nucleolus)
   // scale together, so nothing reads as floating in space ahead of the rest.
-  float scale = 1.0 / max(growth, 0.001);
+  float scale = 1.0 / (max(growth, 0.001) * CELL_SIZE);
   cUv *= scale;
   float dc = length(cUv);
 
