@@ -11,6 +11,7 @@ import { mountFooter }        from './sections/footer/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
 import { createPreloader }   from '@modules/preloader.js';
+import { pixelReveal }       from '@modules/pixelReveal.js';
 import { prefersReducedMotion } from '@modules/motion.js';
 
 // All sections share the same 200vh height so each occupies one full section of
@@ -306,34 +307,50 @@ async function boot() {
     clients?.setPreviewProgress((progress - 0.88) / 0.12);
   });
 
-  // Frame-44 magnet — softly settle the DESIGN scrub onto a key frame when the
-  // user stops scrolling near it (from either direction). The DESIGN trigger's
-  // progress 0→1 maps to frame index 0→159 (frames 1-160), so frame 44 lives at
-  // (44-1)/(160-1). We only snap on scroll-settle (a short quiet window after
-  // the last scroll event), never mid-scroll, so it reads as a gentle magnet
-  // rather than a sticky wall. Skipped under reduced-motion.
+  // Soft scroll-magnets — when the user stops scrolling near a section's resting
+  // point, glide the scroll onto it (from either direction). We only snap on
+  // scroll-settle (a short quiet window after the last scroll event), never
+  // mid-scroll, so each reads as a gentle magnet rather than a sticky wall.
+  // Skipped under reduced-motion.
   if (!prefersReducedMotion()) {
-    const MAGNET_PROGRESS = (44 - 1) / (160 - 1); // ≈ 0.270
-    const MAGNET_WINDOW   = 22 / (160 - 1);       // ± ~22 frames of capture range
-    const SETTLE_MS       = 140;                  // quiet time that counts as "stopped"
+    const MAGNETS = [
+      // THINKING — settle onto the resting point where the orbital is fully
+      // revealed so its five dots are always cleanly clickable. The cards/dots
+      // are static across the viewing phase (only the cell swells), so any spot
+      // below PRISM_THRESHOLD (0.6) is valid; we pull to a low progress so the
+      // dots sit clear of the swelling cell. The capture window stays under 0.6
+      // so it never reaches into the rainbow → DESIGN cross-fade — scrubbing
+      // toward DESIGN is left untouched.
+      { section: 'thinking', progress: 0.14, window: 0.22 },
+      // DESIGN — settle the frame scrub onto key frame 44. The DESIGN trigger's
+      // progress 0→1 maps to frame index 0→159 (frames 1-160), so frame 44 lives
+      // at (44-1)/(160-1) with a ±22-frame capture range.
+      { section: 'video', progress: (44 - 1) / (160 - 1), window: 22 / (160 - 1) },
+    ];
+    const SETTLE_MS = 140; // quiet time that counts as "stopped"
     let settleTimer = 0;
     let snapping = false;
 
     const tryMagnet = () => {
-      const st = orchestrator.getTrigger('video');
-      if (!st) return;
-      if (Math.abs(st.progress - MAGNET_PROGRESS) > MAGNET_WINDOW) return;
-      const targetY = st.start + (st.end - st.start) * MAGNET_PROGRESS;
-      if (Math.abs(window.scrollY - targetY) < 2) return;
-      snapping = true;
-      lenis.scrollTo(targetY, {
-        duration: 0.6,
-        easing: (t) => 1 - Math.pow(1 - t, 3), // easeOutCubic
-        onComplete: () => { snapping = false; },
-      });
-      // Fallback release in case the glide is interrupted before completing.
-      clearTimeout(settleTimer);
-      settleTimer = setTimeout(() => { snapping = false; }, 800);
+      for (const m of MAGNETS) {
+        const st = orchestrator.getTrigger(m.section);
+        // isActive guards against a non-active trigger reporting clamped
+        // progress (0/1), which would otherwise false-trigger a wide window.
+        if (!st || !st.isActive) continue;
+        if (Math.abs(st.progress - m.progress) > m.window) continue;
+        const targetY = st.start + (st.end - st.start) * m.progress;
+        if (Math.abs(window.scrollY - targetY) < 2) return;
+        snapping = true;
+        lenis.scrollTo(targetY, {
+          duration: 0.6,
+          easing: (t) => 1 - Math.pow(1 - t, 3), // easeOutCubic
+          onComplete: () => { snapping = false; },
+        });
+        // Fallback release in case the glide is interrupted before completing.
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => { snapping = false; }, 800);
+        return; // one magnet at a time
+      }
     };
 
     lenis.on('scroll', () => {
@@ -472,15 +489,23 @@ async function boot() {
   // ── Dismiss the boot overlay ───────────────────────────────────────────────
   // Wait for the webfonts (so the hero title doesn't pop in after reveal) and a
   // couple of frames (so the first WebGL render lands behind the overlay), then
-  // glitch the preloader out and hand scroll control back. document.fonts.ready
+  // ramp the preloader to 100% and reveal its ENTER button. document.fonts.ready
   // is raced with a timeout so a stalled font load can't trap the visitor here.
   const fontsReady = Promise.race([
     document.fonts?.ready ?? Promise.resolve(),
     new Promise((resolve) => setTimeout(resolve, 2500)),
   ]);
   fontsReady.then(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      preloader.finish(() => lenis.start());
+    requestAnimationFrame(() => requestAnimationFrame(async () => {
+      await preloader.finish();          // ramp to 100%, show ENTER, await click
+      // Re-fire the title's intro flicker so it lands fresh behind the cover as
+      // the grid-dissolve reveals it (the hero is already assembled at rest).
+      hero?.title?.replay?.();
+      // Dissolve the boot cover into a grid of pixel-squares to reveal the live
+      // page (Codrops pixel-image effect). Drops the cover on the first (fully
+      // covered) frame for a flash-free handoff.
+      await pixelReveal({ cover: preloader.root, duration: 1.1 });
+      lenis.start();
     }));
   });
 

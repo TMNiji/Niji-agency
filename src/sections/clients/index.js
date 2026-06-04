@@ -50,7 +50,8 @@ const DEFAULT_CLIENTS = [
   // 1. Lacoste — 1ère app m-commerce / screenshot
   {
     name: 'Lacoste',
-    logo: '/logo/lacoste.png',
+    logo: '/logo/lacoste.svg',
+    logoScale: 1.5, // wide wordmark — enlarge past the default 48.6% card width
     frontLabel: '1ère app m-commerce',
     back: 'image',
     image: '/clients/screenshots/lacoste.webp',
@@ -260,6 +261,8 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
       img.src = asset(client.logo);
       img.alt = brandName;
       img.loading = 'lazy';
+      // Optional per-client size override (base width is 48.6% — see clients.css).
+      if (client.logoScale) img.style.width = `${(48.6 * client.logoScale).toFixed(1)}%`;
       front.appendChild(img);
     }
 

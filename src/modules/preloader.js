@@ -1,25 +1,28 @@
-// Preloader controller — drives the real progress counter and the glitch-out
-// exit for the boot overlay defined in index.html (styled in styles/preloader.css).
+// Preloader controller — drives the real progress counter for the boot overlay
+// defined in index.html (styled in styles/preloader.css).
 //
 // The DOM already paints (and the CSS glitch already runs) during the JS-bundle
 // download, so this module's only jobs are: ramp a smoothed 0→100 counter that
-// real boot milestones nudge forward, then glitch the overlay out once the page
-// is ready and hand scroll control back to the caller.
+// real boot milestones nudge forward, then — once the page is ready — reveal the
+// ENTER button and resolve when the visitor clicks it. The page reveal itself
+// (the pixel-grid dissolve) is handed off to modules/pixelReveal.js by the
+// caller, which also tears this overlay down.
 import { prefersReducedMotion } from '@modules/motion.js';
 
 export function createPreloader() {
   const root = document.getElementById('preloader');
   // No markup (e.g. unexpected DOM) → return a no-op so boot never depends on it.
-  if (!root) return { to() {}, finish() {} };
+  if (!root) return { to() {}, finish: () => Promise.resolve(), root: null };
 
-  const fill   = root.querySelector('.preloader__bar-fill');
-  const pct     = root.querySelector('.preloader__pct');
-  const status = root.querySelector('.preloader__status');
+  const fill     = root.querySelector('.preloader__bar-fill');
+  const pct      = root.querySelector('.preloader__pct');
+  const status   = root.querySelector('.preloader__status');
+  const enterBtn = root.querySelector('.preloader__enter');
 
   let target    = 0.08;   // seed so the bar starts with a little life
   let current   = 0;
   let finishing = false;
-  let onDone    = null;
+  let ready     = false;
   let raf       = 0;
 
   // Status phase is driven by the *displayed* percentage (not the milestone
@@ -51,27 +54,21 @@ export function createPreloader() {
     if (status) status.textContent = phaseFor(n);
     root.setAttribute('aria-valuenow', String(n));
 
-    if (finishing && p >= 1) { exit(); return; }
+    // Reaching 100% stops the rAF loop and reveals the ENTER button; the overlay
+    // then waits for the visitor's click (resolved by finish()).
+    if (finishing && p >= 1) { reveal(); return; }
     raf = requestAnimationFrame(frame);
   }
 
-  function exit() {
+  function reveal() {
     cancelAnimationFrame(raf);
-    root.classList.add('is-done');
-    let removed = false;
-    const remove = () => {
-      if (removed) return;
-      removed = true;
-      root.remove();
-      onDone?.();
-    };
-    // Fade is a CSS transition on opacity; remove once it lands. The timeout is
-    // a fallback in case transitionend never fires (e.g. reduced-motion clamps
-    // the duration so low the event is skipped).
-    root.addEventListener('transitionend', (e) => {
-      if (e.propertyName === 'opacity') remove();
-    });
-    setTimeout(remove, 900);
+    if (ready) return;
+    ready = true;
+    root.classList.add('is-ready');
+    if (enterBtn) enterBtn.disabled = false;
+    // Focus the button so keyboard users can press Enter/Space immediately;
+    // preventScroll keeps the locked page from jumping.
+    enterBtn?.focus?.({ preventScroll: true });
   }
 
   // Advance the target to `value` (0..1). The status label tracks the eased
@@ -80,11 +77,18 @@ export function createPreloader() {
     target = Math.max(target, value);
   }
 
-  // Snap to 100% and glitch out. `done` runs after the overlay is removed.
-  function finish(done) {
-    onDone = done;
+  // Ramp to 100%, reveal the ENTER button, and resolve when it's clicked. The
+  // caller owns the page reveal + overlay teardown from there.
+  function finish() {
     finishing = true;
     target = 1;
+    return new Promise((resolve) => {
+      enterBtn?.addEventListener('click', () => {
+        if (enterBtn.disabled) return;
+        enterBtn.disabled = true; // guard against a double-fire
+        resolve();
+      }, { once: true });
+    });
   }
 
   // Reduced motion: skip the smoothed ramp; the counter still updates per
@@ -92,5 +96,5 @@ export function createPreloader() {
   if (prefersReducedMotion()) current = target;
   raf = requestAnimationFrame(frame);
 
-  return { to, finish };
+  return { to, finish, root };
 }

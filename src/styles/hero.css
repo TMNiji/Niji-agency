@@ -407,7 +407,17 @@
      permanently promoted to their own layers while off-screen. */
   cursor: pointer;
   pointer-events: auto;
-  transition: box-shadow 400ms ease, width 250ms ease, height 250ms ease;
+  transition: box-shadow 400ms ease, width 250ms ease, height 250ms ease, opacity 200ms ease;
+}
+
+/* Dots are only clickable while the orbital is (near) fully revealed. The moment
+   it dims — the prism cross-fade on leave, or hide() — snap the dots out and
+   drop their pointer-events so no faint, half-faded ghost stays interactive
+   (the rings keep fading gracefully with the wrap opacity). Toggled from
+   orbital.js setOpacity()/show()/hide(). */
+.hero-orbital.is-dots-hidden .hero-orbital__dot {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Expanded hitbox — invisible padding around the visual dot */

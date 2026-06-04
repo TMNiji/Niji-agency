@@ -363,10 +363,15 @@ export function createOrbital({ stage, cards = {} } = {}) {
     dotEls.forEach(({ el }) => { el.style.willChange = ''; });
   }
 
+  // Below this opacity the dots are too faint to reliably aim at, so they're
+  // hidden + made non-interactive (see .is-dots-hidden in hero.css).
+  const DOT_CLICK_MIN = 0.9;
+
   function show() {
     wrap.style.removeProperty('transition'); // Re-enable CSS transitions after setOpacity suppressed them
     wrap.style.setProperty('--orbital-opacity', '1');
     wrap.style.setProperty('--orbital-scale', '1');
+    wrap.classList.remove('is-dots-hidden');
     startFollow();
   }
   function hide() {
@@ -375,6 +380,8 @@ export function createOrbital({ stage, cards = {} } = {}) {
     // Collapse to a point so the rings + dots grow outward from the cell's
     // centre on show(), instead of just fading in at their final size.
     wrap.style.setProperty('--orbital-scale', '0');
+    // Drop the dots immediately so they never linger as invisible click targets.
+    wrap.classList.add('is-dots-hidden');
     stopFollow();
   }
 
@@ -383,6 +390,8 @@ export function createOrbital({ stage, cards = {} } = {}) {
   function setOpacity(v) {
     wrap.style.transition = 'none';
     wrap.style.setProperty('--orbital-opacity', String(v.toFixed(3)));
+    // Hide the dots as soon as the orbital leaves its fully-revealed state.
+    wrap.classList.toggle('is-dots-hidden', v < DOT_CLICK_MIN);
   }
 
   hide(); // start hidden — follow loop starts on first show()
