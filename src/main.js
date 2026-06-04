@@ -10,6 +10,7 @@ import { mountAwards }        from './sections/awards/index.js';
 import { mountFooter }        from './sections/footer/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
+import { createPreloader }   from '@modules/preloader.js';
 import { prefersReducedMotion } from '@modules/motion.js';
 
 // All sections share the same 200vh height so each occupies one full section of
@@ -96,16 +97,24 @@ const PRISM_THRESHOLD = 0.6;
 initNoise();
 
 async function boot() {
+  // Glitchy boot overlay — already painted from index.html. Drive its real
+  // progress as each heavy step lands, and lock scroll until it's dismissed so
+  // the visitor always starts at the top once the page is ready.
+  const preloader = createPreloader();
+
   // Fetch CMS content and init scroll concurrently — neither blocks the other.
   const [sanityContent, lenis] = await Promise.all([
     fetchHomePage(),
     Promise.resolve(initScroll()),
   ]);
+  lenis.stop();
+  preloader.to(0.4);
 
   const webgl = initWebGL({
     canvas: document.querySelector('#webgl-canvas'),
     initialShader: 'hero_grain',
   });
+  preloader.to(0.6);
 
   const root = document.querySelector('#app');
   root.innerHTML = SECTIONS.map((s) => {
@@ -159,6 +168,7 @@ async function boot() {
   const clients  = mountClients({ container: root, orchestrator, content: sanityContent?.clients });
   const awards   = mountAwards({ container: root, webgl, content: sanityContent?.awards });
   const footer   = mountFooter({ container: root, content: sanityContent });
+  preloader.to(0.8);
 
   // ── Lazy frame prefetch ──────────────────────────────────────────────────
   // The DESIGN + CODE image sequences total ~500 WebP frames. Loading them all
@@ -458,6 +468,21 @@ async function boot() {
   // Render last on the shared gsap.ticker — after every section's transform
   // callback above has updated its meshes for this frame.
   webgl.startRenderLoop();
+
+  // ── Dismiss the boot overlay ───────────────────────────────────────────────
+  // Wait for the webfonts (so the hero title doesn't pop in after reveal) and a
+  // couple of frames (so the first WebGL render lands behind the overlay), then
+  // glitch the preloader out and hand scroll control back. document.fonts.ready
+  // is raced with a timeout so a stalled font load can't trap the visitor here.
+  const fontsReady = Promise.race([
+    document.fonts?.ready ?? Promise.resolve(),
+    new Promise((resolve) => setTimeout(resolve, 2500)),
+  ]);
+  fontsReady.then(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      preloader.finish(() => lenis.start());
+    }));
+  });
 
   // Drive the timeline ruler with Lenis's smoothed scroll position. The ruler
   // derives its own current/prev/next labels from this scroll value, so no

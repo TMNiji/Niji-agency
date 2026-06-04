@@ -12,6 +12,20 @@
     <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body>
+    <!-- Glitchy boot overlay — painted before the JS bundle loads (see
+         styles/preloader.css), then driven + dismissed by modules/preloader.js. -->
+    <div id="preloader" role="status" aria-live="polite" aria-label="Chargement du site"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="preloader__inner">
+        <div class="preloader__glitch" data-text="NIJI">NIJI</div>
+        <div class="preloader__bar"><span class="preloader__bar-fill"></span></div>
+        <div class="preloader__meta">
+          <span class="preloader__status">INITIALISATION</span>
+          <span class="preloader__pct">00</span>
+        </div>
+      </div>
+      <div class="preloader__scanlines" aria-hidden="true"></div>
+    </div>
     <canvas id="webgl-canvas"></canvas>
     <main id="app"></main>
     <script type="module" src="/src/main.js"></script>

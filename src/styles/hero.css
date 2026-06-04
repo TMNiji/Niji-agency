@@ -56,7 +56,8 @@
   line-height: 1.55;
   letter-spacing: 0.005em;
   color: rgba(255, 255, 255, 0.50);
-  text-align: center;
+  /* Left-aligned on desktop; re-centred on phones (see @600 below). */
+  text-align: left;
   /* Wide enough to fit the longest hard-coded line ("25 ans à construire ce
      qui se regarde, s'utilise" ≈ 48 chars) without re-wrapping over the
      <br>-driven 4-line layout. */
@@ -479,6 +480,8 @@
   .hero__overlay { padding-right: 16px; }
 
   /* Bump the agency descriptor on phones — the desktop clamp bottoms out at
-     12px, which reads too small on a handset. Base-8 step up to 16px. */
-  .hero__subtitle { font-size: 16px; }
+     12px, which reads too small on a handset. Base-8 step up to 16px. Also
+     re-centre the text (desktop left-aligns it) so the compact reflowed block
+     sits balanced under the centred cell. */
+  .hero__subtitle { font-size: 16px; text-align: center; }
 }

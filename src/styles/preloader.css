@@ -1,0 +1,173 @@
+/* ── Preloader — glitchy "boot sequence" overlay ─────────────────────────────
+   Painted from index.html markup so it's visible during the JS-bundle download
+   (main.css is a synchronous <link> in <head>; this file rides along via the
+   @import in main.css). The JS module (modules/preloader.js) only hooks in to
+   drive the real progress counter and the glitch-out exit once boot finishes.
+
+   Aesthetic: dark Niji backdrop, pixel-font (DotGothic16) techy readout, an
+   RGB-split glitching wordmark, scanlines + a thin progress rail. All baseline
+   motion is pure CSS so it animates even before the module runs; the global
+   reduced-motion guard in main.css freezes it for users who opt out. */
+
+#preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(28px, 4vh, 52px);
+  background: #0a0a0a;
+  /* Subtle vignette + a faint scan grid so the void reads as a "device" boot. */
+  background-image:
+    radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.6) 100%);
+  color: var(--fg);
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity 520ms var(--ease-in-out);
+  overflow: hidden;
+}
+
+/* Exit — fade the whole overlay; the inner block fires a short glitch burst on
+   the way out (decorative, safe to skip under reduced motion). */
+#preloader.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+#preloader.is-done .preloader__inner {
+  animation: preloader-out 420ms steps(2, end) forwards;
+}
+
+.preloader__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(22px, 3vh, 38px);
+  width: min(440px, 72vw);
+}
+
+/* ── Glitching wordmark ─────────────────────────────────────────────────────
+   The element renders "NIJI"; the two clipped pseudo-copies (cyan / magenta)
+   slide a few px on alternating frames for an RGB-split chromatic tear. */
+.preloader__glitch {
+  position: relative;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: clamp(48px, 9vw, 96px);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--fg);
+  user-select: none;
+}
+.preloader__glitch::before,
+.preloader__glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.preloader__glitch::before {
+  color: #00eaff;
+  clip-path: inset(0 0 55% 0);
+  animation: preloader-glitch-top 2.4s steps(2, end) infinite;
+}
+.preloader__glitch::after {
+  color: #ff0064;
+  clip-path: inset(55% 0 0 0);
+  animation: preloader-glitch-bottom 3.1s steps(2, end) infinite;
+}
+
+/* ── Progress rail ──────────────────────────────────────────────────────────*/
+.preloader__bar {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.preloader__bar-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: var(--fg);
+  /* The JS ramp writes scaleX every frame, so no CSS transition here. A faint
+     glow keeps the leading edge feeling "live". */
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+/* ── Techy readout — pixel font, monospaced digits, status phase ────────────*/
+.preloader__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  font-family: 'DotGothic16', var(--font);
+  font-size: clamp(11px, 1.1vw, 14px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.preloader__status {
+  /* Soft flicker so the status label reads as a live terminal line. */
+  animation: preloader-flicker 2.2s steps(1, end) infinite;
+}
+.preloader__pct {
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.preloader__pct::after {
+  content: '%';
+  margin-left: 0.15em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Scanlines — thin moving CRT lines over the whole overlay ───────────────*/
+.preloader__scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.04) 0,
+    rgba(255, 255, 255, 0.04) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+  animation: preloader-scan 8s linear infinite;
+}
+
+@keyframes preloader-glitch-top {
+  0%, 64%, 100% { transform: translate(0, 0); }
+  66%  { transform: translate(-3px, -1px); }
+  72%  { transform: translate(2px, 1px); }
+  78%  { transform: translate(-2px, 0); }
+}
+@keyframes preloader-glitch-bottom {
+  0%, 54%, 100% { transform: translate(0, 0); }
+  56%  { transform: translate(3px, 1px); }
+  62%  { transform: translate(-2px, -1px); }
+  68%  { transform: translate(2px, 0); }
+}
+@keyframes preloader-flicker {
+  0%, 88%, 100% { opacity: 0.55; }
+  90% { opacity: 0.2; }
+  92% { opacity: 0.7; }
+  94% { opacity: 0.35; }
+}
+@keyframes preloader-scan {
+  from { background-position: 0 0; }
+  to   { background-position: 0 256px; }
+}
+@keyframes preloader-out {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  20%  { transform: translate(-6px, 0); opacity: 0.7; }
+  40%  { transform: translate(5px, 1px); opacity: 0.9; }
+  60%  { transform: translate(-3px, -1px); opacity: 0.4; }
+  100% { transform: translate(0, 0); opacity: 0; }
+}
