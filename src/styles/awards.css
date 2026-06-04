@@ -127,7 +127,7 @@ body.is-contact .awards__stage {
 }
 .awards__tooltip-detail {
   font-family: var(--font);
-  font-size: clamp(0.875rem, 0.8vw, 1rem);
+  font-size: clamp(1rem, 0.95vw, 1.125rem);
   font-weight: 400;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.55);
