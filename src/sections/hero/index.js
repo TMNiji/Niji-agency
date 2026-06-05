@@ -106,7 +106,9 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
       : DEFAULT_SUBTITLE;
     // One intentional line break after "9 bureaux" — applied to the rendered
     // HTML so it lands whether the copy comes from the CMS or the default above.
-    subtitle.innerHTML = html.replace(/(bureaux)\s*/i, '$1<br>');
+    // The <br> is MOBILE-ONLY (hidden on desktop in hero.css, where the subtitle
+    // reflows freely within the right-aligned title block).
+    subtitle.innerHTML = html.replace(/(bureaux)\s*/i, '$1<br class="hero__subtitle-break">');
   };
   renderSubtitle(content);
 

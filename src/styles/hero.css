@@ -79,6 +79,10 @@
   word-break: normal;
 }
 
+/* The "9 bureaux" line break is mobile-only — on desktop the subtitle reflows
+   freely within the right-aligned title block (the break is re-enabled at @600). */
+.hero__subtitle-break { display: none; }
+
 /* Base size = the "Make products" line; other lines scale from it in em.
    The block shrinks to its widest line (&AGENTS) so the smaller lines can be
    aligned within that column (centre / right) for the staggered editorial look. */
@@ -516,4 +520,7 @@
     font-size: 16px;
     text-align: center;
   }
+
+  /* Re-enable the "9 bureaux" break on phones (hidden on desktop above). */
+  .hero__subtitle-break { display: revert; }
 }
