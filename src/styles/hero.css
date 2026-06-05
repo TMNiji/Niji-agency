@@ -59,7 +59,7 @@
   font-weight: 400;
   line-height: 1.55;
   letter-spacing: 0.005em;
-  color: rgba(255, 255, 255, 0.50);
+  color: #fff;
   /* Right-aligned (ferré à droite) within the heading on desktop — shares the
      title block's right edge; re-centred on phones (see @600 below). */
   text-align: right;
@@ -385,7 +385,9 @@
   width: 0;
   height: 0;
   opacity: var(--orbital-opacity, 0);
-  transform: scale(var(--orbital-scale, 0.88));
+  /* --orbital-shift-y lifts the whole orbital on phones (0 on desktop) so the
+     rings/dots track the shader's lifted cell; set from orbital.js. */
+  transform: translateY(var(--orbital-shift-y, 0)) scale(var(--orbital-scale, 0.88));
   transition: opacity 600ms ease, transform 700ms var(--ease-out-expo);
   pointer-events: none;
 }
@@ -447,7 +449,7 @@
   font-weight: 400;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: #fff;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -504,9 +506,13 @@
   }
 
   /* 16px horizontal gutters on phones — header pinned to the left edge, the
-     right-anchored hero title held off the right edge by the same amount. */
+     right-anchored hero title held off the right edge by the same amount.
+     translateY lifts the whole overlay (title + the bottom-pinned subtitle it
+     contains) so the composition sits higher — matching the facePack scene
+     lift (facePack.js, 0.08·height) so the title and the face move together,
+     and so the subtitle clears the phone browser's bottom chrome. */
   .hero-header { left: 16px; }
-  .hero__overlay { padding-right: 16px; }
+  .hero__overlay { padding-right: 16px; transform: translateY(-8vh); }
 
   /* Re-pin the agency descriptor bottom-centre on phones (desktop stacks it
      under the title inside the heading). Absolute within the full-viewport
@@ -515,7 +521,9 @@
   .hero__subtitle {
     position: absolute;
     left: 50%;
-    bottom: clamp(32px, 6vh, 72px);
+    /* Slightly raised (was 6vh); combined with the overlay's -8vh lift above
+       this clears the phone browser's bottom chrome instead of hiding behind it. */
+    bottom: clamp(40px, 7vh, 80px);
     transform: translateX(-50%) translateY(var(--sub-y, 0));
     font-size: 16px;
     text-align: center;

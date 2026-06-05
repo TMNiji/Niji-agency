@@ -30,9 +30,16 @@ const FOV_RAD = (FOV * Math.PI) / 180;
 // viewport (its intended mobile framing).
 const SCALE_MOBILE           = 0.46;
 const SCALE_DESKTOP_FRACTION = 0.96;
-const SCALE = window.matchMedia('(max-width: 600px)').matches
+const isMobileViewport = () => window.matchMedia('(max-width: 600px)').matches;
+const SCALE = isMobileViewport()
   ? SCALE_MOBILE
   : SCALE_DESKTOP_FRACTION * Math.min(window.innerWidth / PACK_W, window.innerHeight / PACK_H);
+
+// Phone-only upward lift of the whole pack, as a fraction of viewport height,
+// so the hero composition sits higher and the subtitle below clears the phone
+// browser chrome. Matches the cell lift (webgl.js CELL_OFFSET_MOBILE) so the
+// face and the cell it reveals move together.
+const PACK_LIFT_MOBILE = 0.08;
 
 // `left/top/w/h` are pack-local pixel coords (PACK_W×PACK_H space).
 // `srcW/srcH`    are the real pixel dimensions of the source PNG — used to
@@ -126,6 +133,8 @@ function applyObjectCover(tex, sw, sh, dw, dh) {
 // the static /hero/*.png paths when a key is absent or undefined.
 export function createFacePack({ webgl, imageSrcs = {} } = {}) {
   const scene  = new THREE.Scene();
+  // Lift the whole pack up on phones (0 on desktop). Re-applied on resize.
+  scene.position.y = isMobileViewport() ? window.innerHeight * PACK_LIFT_MOBILE : 0;
   const loader = new THREE.TextureLoader();
   // Front-most layer (highest render order) → depth 1; used to stagger the
   // forward dive so closer planes reach the camera sooner.
@@ -298,6 +307,7 @@ export function createFacePack({ webgl, imageSrcs = {} } = {}) {
     H = h;
     camZ = h / (2 * Math.tan(FOV_RAD / 2));
     reach = Math.max(w, h);
+    scene.position.y = w <= 600 ? h * PACK_LIFT_MOBILE : 0;
     camera.aspect = w / h;
     camera.position.z = camZ;
     camera.far = camZ * 20;

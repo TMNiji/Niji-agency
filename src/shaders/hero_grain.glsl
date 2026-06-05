@@ -13,7 +13,10 @@ void main() {
 
   // Cell emerges over the shared dark backdrop (added below, after the cell is
   // vignetted) so hero / clients / video share one textured base field.
-  vec3 col = drawCell(cUv, uCellGrow, 0.0);
+  // The cell (only) is lifted by uCellOffset on phones; the vignette stays
+  // screen-centred (dc above is computed before the offset).
+  vec2 cellUv = cUv - vec2(0.0, uCellOffset);
+  vec3 col = drawCell(cellUv, uCellGrow, 0.0);
 
   // ── Cinematic finish — grain comes from the DOM #noise overlay ───────────
   col *= vignette(dc);

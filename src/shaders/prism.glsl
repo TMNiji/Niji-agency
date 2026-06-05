@@ -63,7 +63,11 @@ void main() {
   // uCellGrow is left at its end-of-build value (≈2.3) by thinking/index.js so
   // the cell stays as huge as the user just "walked through" instead of
   // snapping back to default size when the bolt arrives.
-  col += drawCell(c - uMouse * 0.02, uCellGrow, energize) * cellFade;
+  // Lift the cell by uCellOffset (phones) to match hero_grain/cell_top so the
+  // shader swap at the thinking→prism handoff stays continuous. The cell is
+  // ballooning (uCellGrow≈2.3) and fading here, so the small offset between its
+  // centre and the bolt/rainbow origin (left at 0,0) is imperceptible.
+  col += drawCell(c - uMouse * 0.02 - vec2(0.0, uCellOffset), uCellGrow, energize) * cellFade;
 
   // ── White bolt — diagonal from off-screen bottom-left to cell centre ──────
   vec2 bFrom = vec2(-aspect * 0.54, -0.50);

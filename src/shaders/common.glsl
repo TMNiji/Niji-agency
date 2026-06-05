@@ -9,6 +9,11 @@ uniform float uProgress;
 // Cell growth — 0 = invisible point, 1 = default size, >1 = balloons past full
 // (walk-through). Drives drawCell's uniform scale from centre.
 uniform float uCellGrow;
+// Vertical offset of the cell centre, as a fraction of viewport height (cUv
+// space). 0 = screen-centred; >0 lifts the cell UP. Set to a small positive
+// value on phones so the cell + its orbital clear the bottom-right dropdown
+// (see webgl.js setCellOffset + orbital.js --orbital-shift-y, kept in sync).
+uniform float uCellOffset;
 uniform vec2  uResolution;
 // Smoothed pointer in [-1,1]² (centre = 0). Drives a subtle background parallax.
 uniform vec2  uMouse;

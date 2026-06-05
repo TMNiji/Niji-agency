@@ -58,7 +58,7 @@
 
 .video-title__line--small {
   font-size: clamp(1.125rem, 1.7vw, 1.5rem);
-  color: rgba(255, 255, 255, 0.55);
+  color: #fff;
 }
 
 /* Per-letter chrome — width locked from JS; exit-t/exit drives the glitch pop. */
@@ -89,11 +89,23 @@
    (down to 340px). The per-letter spans break at word spaces, so wrapping
    keeps the glitch layout intact. */
 @media (max-width: 600px) {
-  .video__title { width: calc(100vw - 32px); }
-  .video-title__line { white-space: normal; }
-  /* The clamps bottom out small on phones — bump both lines up for legibility. */
-  .video-title__line--large { font-size: 2rem; }
-  .video-title__line--small { font-size: 1.25rem; }
+  /* Phones — lay the heading out as a header beside the niji logo (top-left)
+     instead of a centred overlay. The logo is a 52px square at top:24px/left:16px
+     (hero.css), so the title sits to its right and centres against its height. */
+  .video__title {
+    top: 24px;
+    left: 80px;
+    transform: none;
+    width: calc(100vw - 80px - 16px);
+    text-align: left;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .video-title__line { white-space: normal; text-align: left; }
+  .video-title__line--large { font-size: 1.25rem; }
+  .video-title__line--small { font-size: 0.8125rem; }
 }
 
 .video__canvas {

@@ -14,7 +14,10 @@ void main() {
   cUv -= uMouse * 0.02;
   float dc = length(cUv);
 
-  vec3 col = drawCell(cUv, uCellGrow, 0.0) * vignette(dc);
+  // Lift the cell by uCellOffset (phones) to match hero_grain; vignette stays
+  // screen-centred via dc above.
+  vec2 cellUv = cUv - vec2(0.0, uCellOffset);
+  vec3 col = drawCell(cellUv, uCellGrow, 0.0) * vignette(dc);
 
   // Alpha tracks the cell's brightness — non-cell pixels stay transparent so
   // the underlying facepack render shows through.

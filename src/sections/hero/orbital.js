@@ -19,6 +19,11 @@ import {
 // ── Constants — all factors are relative to the shader cell radius ────────────
 const CELL_R_VH = 0.19; // fraction of innerHeight — mirrors shader `cellR`
 
+// Phone-only upward lift of the whole orbital, as a fraction of innerHeight.
+// MUST match webgl.js CELL_OFFSET_MOBILE so the rings/dots stay concentric with
+// the cell (which the shader lifts by the same fraction via uCellOffset).
+const CELL_OFFSET_VH = 0.08;
+
 // Ring diameters expressed as multiples of the cell radius (2× because diameter)
 const RING_FACTORS = [1.45, 2.00, 2.45]; // ring radius = factor * cellPx
 
@@ -105,6 +110,13 @@ export function createOrbital({ stage, cards = {} } = {}) {
     const isPhone   = window.innerWidth <= 600;
     const hSpread   = isPhone ? 1.0 : 1;  // horizontal — kept tight on phones
     const vSpread   = isPhone ? 1.5 : 1;  // vertical — uses the tall viewport
+
+    // Lift the whole orbital on phones to track the shader's lifted cell so the
+    // rings/dots stay concentric with it (and clear the bottom-right dropdown).
+    wrap.style.setProperty(
+      '--orbital-shift-y',
+      isPhone ? `${(-CELL_OFFSET_VH * window.innerHeight).toFixed(1)}px` : '0px',
+    );
 
     ringEls.forEach((ring, i) => {
       const diameter = RING_FACTORS[i] * cellPx * 2;

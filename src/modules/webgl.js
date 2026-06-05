@@ -3,6 +3,13 @@ import { gsap } from 'gsap';
 import { SHADER_PRESETS } from '@shaders/index.js';
 import { prefersReducedMotion } from '@modules/motion.js';
 
+// Phone-only upward lift of the cell, as a fraction of viewport height. MUST
+// stay in sync with orbital.js CELL_OFFSET_VH (the orbital DOM is shifted up by
+// the same fraction so the rings/dots stay concentric with the lifted cell) and
+// with the hero facePack lift in facePack.js.
+const CELL_OFFSET_MOBILE = 0.08;
+const cellOffsetFor = (w) => (w <= 600 ? CELL_OFFSET_MOBILE : 0);
+
 export class ShaderPlane {
   constructor({ renderer, initialShader = 'hero_grain' } = {}) {
     this.renderer = renderer;
@@ -18,6 +25,10 @@ export class ShaderPlane {
       // handoff can keep the giant cell on screen while uProgress drives the
       // prism's own bolt/rainbow phases independently.
       uCellGrow:   { value: 0 },
+      // Vertical lift of the cell centre as a fraction of viewport height
+      // (cUv space). Non-zero only on phones, where the cell + orbital are
+      // raised to clear the bottom-right dropdown. Seeded below + on resize.
+      uCellOffset: { value: 0 },
       // Physical drawing-buffer size — gl_FragCoord uses physical pixels,
       // so uResolution must match to keep uv in the [0,1]² range.
       uResolution: { value: new THREE.Vector2(
@@ -27,6 +38,7 @@ export class ShaderPlane {
       // Pointer in [-1,1]², eased toward mouseTarget each frame in render().
       uMouse: { value: new THREE.Vector2(0, 0) },
     };
+    this.uniforms.uCellOffset.value = cellOffsetFor(window.innerWidth);
     this.mouseTarget = new THREE.Vector2(0, 0);
     this.geometry = new THREE.PlaneGeometry(2, 2);
     this.material = null;
@@ -59,6 +71,8 @@ export class ShaderPlane {
     // Keep uResolution in physical pixels (matches gl_FragCoord)
     const dpr = this.renderer.getPixelRatio();
     this.uniforms.uResolution.value.set(w * dpr, h * dpr);
+    // Re-evaluate the phone cell-lift on resize / orientation change.
+    this.uniforms.uCellOffset.value = cellOffsetFor(w);
   }
 
   render() {

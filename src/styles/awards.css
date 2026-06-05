@@ -62,7 +62,7 @@ body.is-contact .awards__stage {
 
 .awards-title__line--small {
   font-size: clamp(1.125rem, 1.7vw, 1.5rem);
-  color: rgba(255, 255, 255, 0.55);
+  color: #fff;
 }
 
 .awards-title__line--large {
@@ -132,7 +132,7 @@ body.is-contact .awards__stage {
   font-size: clamp(1.125rem, 0.95vw, 1.25rem);
   font-weight: 400;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.55);
+  color: #fff;
   font-variant-numeric: tabular-nums;
 }
 
@@ -175,9 +175,21 @@ body.is-contact .awards__stage {
 /* Phones — constrain to the viewport minus 16px gutters and let the heading
    wrap rather than overflow the screen edge (down to 340px). */
 @media (max-width: 600px) {
-  .awards__head { width: calc(100vw - 32px); }
-  .awards-title__line { white-space: normal; }
-  /* The clamps bottom out small on phones — bump both lines up for legibility. */
-  .awards-title__line--large { font-size: 2rem; }
-  .awards-title__line--small { font-size: 1.25rem; }
+  /* Phones — lay the heading out as a header beside the niji logo (top-left)
+     instead of a centred overlay. The logo is a 52px square at top:24px/left:16px
+     (hero.css), so the title sits to its right and centres against its height. */
+  .awards__head {
+    top: 24px;
+    left: 80px;
+    transform: none;
+    width: calc(100vw - 80px - 16px);
+    text-align: left;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .awards-title__line { white-space: normal; text-align: left; }
+  .awards-title__line--large { font-size: 1.25rem; }
+  .awards-title__line--small { font-size: 0.8125rem; }
 }
