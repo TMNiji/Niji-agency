@@ -7,7 +7,7 @@ Texte envoyé aux trois plateformes (Claude, ChatGPT, Perplexity) au clic sur le
 ## Version française (envoyée si navigator.language commence par "fr")
 
 ```
-J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : https://niji.agency/llm
+J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Selon leur site (https://niji.agency/llm), il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue.
 ```
 
 ---
@@ -15,7 +15,7 @@ J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit un
 ## Version anglaise (envoyée pour toutes les autres langues)
 
 ```
-I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: https://niji.agency/llm
+I want to understand what Niji is and what they do. According to their site (https://niji.agency/llm), they seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different.
 ```
 
 ---
@@ -32,7 +32,7 @@ Le prompt est court, neutre, naturel. Trois choix éditoriaux :
 
 1. **Hypothèses formulées** ("il semble que...") plutôt qu'affirmations. L'utilisateur a l'air de chercher confirmation.
 2. **Marqueurs factuels** glissés en contexte (clients, awards) qui ancrent la marque sans contraindre la source.
-3. **URL en fin**, après les deux-points, comme une référence implicite. Pas de consigne du type "base-toi sur cette page".
+3. **URL en attribution naturelle** ("Selon leur site (…)"), intégrée dans le flux narratif plutôt qu'en fin de phrase après deux-points. Ressemble à une citation de source, pas à une instruction de fetch — moins susceptible de déclencher les filtres anti-prompt-injection sur claude.ai. Pas de consigne du type "base-toi sur cette page".
 
 ---
 

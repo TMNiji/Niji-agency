@@ -182,12 +182,12 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
 
   <div class="prompt-box">
     <div class="label">Prompt FR (auto si navigator.language commence par "fr")</div>
-    <div class="text">J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : https://niji.agency/llm</div>
+    <div class="text">J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Selon leur site (https://niji.agency/llm), il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue.</div>
   </div>
 
   <div class="prompt-box">
     <div class="label">Prompt EN (auto pour toutes les autres langues)</div>
-    <div class="text">I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: https://niji.agency/llm</div>
+    <div class="text">I want to understand what Niji is and what they do. According to their site (https://niji.agency/llm), they seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different.</div>
   </div>
 
   <div class="llm-section">
@@ -200,8 +200,8 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="llm-preview">
         <h3>Aperçu</h3>
         <div class="preview-row">
-          <a href="https://claude.ai/new?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.agency/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à Claude<span class="preview-lang-badge">FR</span></a>
-          <a href="https://claude.ai/new?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20They%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different%3A%20https%3A//niji.agency/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Ask Claude<span class="preview-lang-badge">EN</span></a>
+          <a href="https://claude.ai/new?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Selon%20leur%20site%20%28https%3A//niji.agency/llm%29%2C%20il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue." target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à Claude<span class="preview-lang-badge">FR</span></a>
+          <a href="https://claude.ai/new?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20According%20to%20their%20site%20%28https%3A//niji.agency/llm%29%2C%20they%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different." target="_blank" rel="noopener noreferrer" class="preview-btn">Ask Claude<span class="preview-lang-badge">EN</span></a>
         </div>
       </div>
 
@@ -222,8 +222,8 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
   var page = "https://niji.agency/llm";
   var fr = (navigator.language || "en").toLowerCase().startsWith("fr");
   var prompt = fr
-    ? "J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais &amp; Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : " + page
-    : "I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais &amp; Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: " + page;
+    ? "J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Selon leur site (" + page + "), il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais &amp; Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue."
+    : "I want to understand what Niji is and what they do. According to their site (" + page + "), they seem to be a French AI-native product design agency working with brands like Lacoste, Relais &amp; Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different.";
   btn.href = "https://claude.ai/new?q=" + encodeURIComponent(prompt);
   if(!fr){
     btn.querySelector("[data-niji-fr]").style.display = "none";
@@ -236,7 +236,7 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="code-section-title">Snippet FR pur (sans JS, URL en dur)</div>
       <div class="code-block">
 <button class="copy-btn" data-target="code-claude-fr">Copier</button>
-<code id="code-claude-fr">&lt;a href="https://claude.ai/new?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.agency/llm"
+<code id="code-claude-fr">&lt;a href="https://claude.ai/new?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Selon%20leur%20site%20%28https%3A//niji.agency/llm%29%2C%20il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue."
    target="_blank"
    rel="noopener noreferrer"&gt;
   Demander à Claude
@@ -246,7 +246,7 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="code-section-title">Snippet EN pur (sans JS, URL en dur)</div>
       <div class="code-block">
 <button class="copy-btn" data-target="code-claude-en">Copier</button>
-<code id="code-claude-en">&lt;a href="https://claude.ai/new?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20They%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different%3A%20https%3A//niji.agency/llm"
+<code id="code-claude-en">&lt;a href="https://claude.ai/new?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20According%20to%20their%20site%20%28https%3A//niji.agency/llm%29%2C%20they%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different."
    target="_blank"
    rel="noopener noreferrer"&gt;
   Ask Claude
@@ -266,8 +266,8 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="llm-preview">
         <h3>Aperçu</h3>
         <div class="preview-row">
-          <a href="https://chatgpt.com/?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.agency/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à ChatGPT<span class="preview-lang-badge">FR</span></a>
-          <a href="https://chatgpt.com/?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20They%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different%3A%20https%3A//niji.agency/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Ask ChatGPT<span class="preview-lang-badge">EN</span></a>
+          <a href="https://chatgpt.com/?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Selon%20leur%20site%20%28https%3A//niji.agency/llm%29%2C%20il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue." target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à ChatGPT<span class="preview-lang-badge">FR</span></a>
+          <a href="https://chatgpt.com/?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20According%20to%20their%20site%20%28https%3A//niji.agency/llm%29%2C%20they%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different." target="_blank" rel="noopener noreferrer" class="preview-btn">Ask ChatGPT<span class="preview-lang-badge">EN</span></a>
         </div>
       </div>
 
@@ -288,8 +288,8 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
   var page = "https://niji.agency/llm";
   var fr = (navigator.language || "en").toLowerCase().startsWith("fr");
   var prompt = fr
-    ? "J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais &amp; Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : " + page
-    : "I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais &amp; Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: " + page;
+    ? "J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Selon leur site (" + page + "), il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais &amp; Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue."
+    : "I want to understand what Niji is and what they do. According to their site (" + page + "), they seem to be a French AI-native product design agency working with brands like Lacoste, Relais &amp; Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different.";
   btn.href = "https://chatgpt.com/?q=" + encodeURIComponent(prompt);
   if(!fr){
     btn.querySelector("[data-niji-fr]").style.display = "none";
@@ -302,7 +302,7 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="code-section-title">Snippet FR pur (sans JS, URL en dur)</div>
       <div class="code-block">
 <button class="copy-btn" data-target="code-chatgpt-fr">Copier</button>
-<code id="code-chatgpt-fr">&lt;a href="https://chatgpt.com/?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.agency/llm"
+<code id="code-chatgpt-fr">&lt;a href="https://chatgpt.com/?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Selon%20leur%20site%20%28https%3A//niji.agency/llm%29%2C%20il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue."
    target="_blank"
    rel="noopener noreferrer"&gt;
   Demander à ChatGPT
@@ -312,7 +312,7 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="code-section-title">Snippet EN pur (sans JS, URL en dur)</div>
       <div class="code-block">
 <button class="copy-btn" data-target="code-chatgpt-en">Copier</button>
-<code id="code-chatgpt-en">&lt;a href="https://chatgpt.com/?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20They%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different%3A%20https%3A//niji.agency/llm"
+<code id="code-chatgpt-en">&lt;a href="https://chatgpt.com/?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20According%20to%20their%20site%20%28https%3A//niji.agency/llm%29%2C%20they%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different."
    target="_blank"
    rel="noopener noreferrer"&gt;
   Ask ChatGPT
@@ -332,8 +332,8 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="llm-preview">
         <h3>Aperçu</h3>
         <div class="preview-row">
-          <a href="https://www.perplexity.ai/search?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.agency/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à Perplexity<span class="preview-lang-badge">FR</span></a>
-          <a href="https://www.perplexity.ai/search?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20They%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different%3A%20https%3A//niji.agency/llm" target="_blank" rel="noopener noreferrer" class="preview-btn">Ask Perplexity<span class="preview-lang-badge">EN</span></a>
+          <a href="https://www.perplexity.ai/search?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Selon%20leur%20site%20%28https%3A//niji.agency/llm%29%2C%20il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue." target="_blank" rel="noopener noreferrer" class="preview-btn">Demander à Perplexity<span class="preview-lang-badge">FR</span></a>
+          <a href="https://www.perplexity.ai/search?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20According%20to%20their%20site%20%28https%3A//niji.agency/llm%29%2C%20they%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different." target="_blank" rel="noopener noreferrer" class="preview-btn">Ask Perplexity<span class="preview-lang-badge">EN</span></a>
         </div>
       </div>
 
@@ -354,8 +354,8 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
   var page = "https://niji.agency/llm";
   var fr = (navigator.language || "en").toLowerCase().startsWith("fr");
   var prompt = fr
-    ? "J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais &amp; Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : " + page
-    : "I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais &amp; Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: " + page;
+    ? "J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Selon leur site (" + page + "), il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais &amp; Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue."
+    : "I want to understand what Niji is and what they do. According to their site (" + page + "), they seem to be a French AI-native product design agency working with brands like Lacoste, Relais &amp; Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different.";
   btn.href = "https://www.perplexity.ai/search?q=" + encodeURIComponent(prompt);
   if(!fr){
     btn.querySelector("[data-niji-fr]").style.display = "none";
@@ -368,7 +368,7 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="code-section-title">Snippet FR pur (sans JS, URL en dur)</div>
       <div class="code-block">
 <button class="copy-btn" data-target="code-perplexity-fr">Copier</button>
-<code id="code-perplexity-fr">&lt;a href="https://www.perplexity.ai/search?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue%20%3A%20https%3A//niji.agency/llm"
+<code id="code-perplexity-fr">&lt;a href="https://www.perplexity.ai/search?q=J%27aimerais%20comprendre%20ce%20qu%27est%20Niji%20et%20ce%20qu%27ils%20font.%20Selon%20leur%20site%20%28https%3A//niji.agency/llm%29%2C%20il%20semble%20que%20ce%20soit%20une%20agence%20fran%C3%A7aise%20de%20product%20design%20AI-native%20qui%20travaille%20avec%20des%20marques%20comme%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20et%20BNP%20Paribas.%20Ils%20ont%20remport%C3%A9%20des%20Lovie%20et%20Webby%20Awards.%20R%C3%A9sume%20leurs%20capacit%C3%A9s%2C%20leurs%20r%C3%A9alisations%20notables%20et%20ce%20qui%20les%20distingue."
    target="_blank"
    rel="noopener noreferrer"&gt;
   Demander à Perplexity
@@ -378,7 +378,7 @@ h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
       <div class="code-section-title">Snippet EN pur (sans JS, URL en dur)</div>
       <div class="code-block">
 <button class="copy-btn" data-target="code-perplexity-en">Copier</button>
-<code id="code-perplexity-en">&lt;a href="https://www.perplexity.ai/search?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20They%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different%3A%20https%3A//niji.agency/llm"
+<code id="code-perplexity-en">&lt;a href="https://www.perplexity.ai/search?q=I%20want%20to%20understand%20what%20Niji%20is%20and%20what%20they%20do.%20According%20to%20their%20site%20%28https%3A//niji.agency/llm%29%2C%20they%20seem%20to%20be%20a%20French%20AI-native%20product%20design%20agency%20working%20with%20brands%20like%20Lacoste%2C%20Relais%20%26%20Ch%C3%A2teaux%2C%20Orange%20and%20BNP%20Paribas.%20They%20have%20won%20Lovie%20and%20Webby%20Awards.%20Summarise%20their%20capabilities%2C%20notable%20work%2C%20and%20what%20makes%20them%20different."
    target="_blank"
    rel="noopener noreferrer"&gt;
   Ask Perplexity

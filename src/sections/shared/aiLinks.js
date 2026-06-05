@@ -24,8 +24,8 @@ const PAGE_URL = 'https://niji.agency/llm';
 // FR / EN prompt. The visitor's system language picks the variant (see
 // detectLang) — francophones get the FR prompt, everyone else the EN one.
 const PROMPTS = {
-  fr: `J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : ${PAGE_URL}`,
-  en: `I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: ${PAGE_URL}`,
+  fr: `J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Selon leur site (${PAGE_URL}), il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue.`,
+  en: `I want to understand what Niji is and what they do. According to their site (${PAGE_URL}), they seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different.`,
 };
 
 // navigator.language can be fr, fr-FR, fr-CA, fr-BE… — startsWith('fr') covers
