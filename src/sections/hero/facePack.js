@@ -18,15 +18,21 @@ const PACK_H  = 1051;
 const FOV     = 45;
 const FOV_RAD = (FOV * Math.PI) / 180;
 
-// Uniform scale on the resting pack — lets the composition breathe at the
-// viewport edges without rewriting Figma-native pixel coords. Phones get a
-// tighter scale so the pack doesn't crowd the small viewport; the dive math
-// uses camZ (not SCALE), so shrinking the rest pose leaves the explosion intact.
-const SCALE_DESKTOP = 0.82;
-const SCALE_MOBILE  = 0.46;
+// Uniform scale on the resting pack. The dive math uses camZ (not SCALE), so
+// SCALE only sizes the RESTING pose — the explosion is unaffected.
+//
+// Desktop: the pack maps 1 pack-pixel → 1 screen-pixel, so a FIXED scale made it
+// a fixed ~1217px island that shrinks to a small fraction of a large 16:9
+// display. Instead, size it as a fraction of the viewport (contain-fit) so it
+// fills big screens the same way it fills a laptop. 0.96 lands it at ≈ the old
+// 0.82 on a 1440×900 laptop and scales up from there.
+// Phones keep a fixed, tighter scale so the face crops in close on the narrow
+// viewport (its intended mobile framing).
+const SCALE_MOBILE           = 0.46;
+const SCALE_DESKTOP_FRACTION = 0.96;
 const SCALE = window.matchMedia('(max-width: 600px)').matches
   ? SCALE_MOBILE
-  : SCALE_DESKTOP;
+  : SCALE_DESKTOP_FRACTION * Math.min(window.innerWidth / PACK_W, window.innerHeight / PACK_H);
 
 // `left/top/w/h` are pack-local pixel coords (PACK_W×PACK_H space).
 // `srcW/srcH`    are the real pixel dimensions of the source PNG — used to
