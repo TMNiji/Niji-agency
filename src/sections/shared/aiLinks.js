@@ -20,15 +20,39 @@ const LOGO_MAP = {
 // cites it as context so the LLM pulls from it without an explicit "use this
 // source" instruction — see docs/llm/niji-llm-prompt.md for the editorial notes.
 const PAGE_URL = 'https://niji.agency/llm';
-const NIJI_PROMPT = `I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: ${PAGE_URL}`;
+
+// FR / EN prompt. The visitor's system language picks the variant (see
+// detectLang) — francophones get the FR prompt, everyone else the EN one.
+const PROMPTS = {
+  fr: `J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : ${PAGE_URL}`,
+  en: `I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: ${PAGE_URL}`,
+};
+
+// navigator.language can be fr, fr-FR, fr-CA, fr-BE… — startsWith('fr') covers
+// every francophone variant; everything else falls back to English.
+function detectLang() {
+  const nav = typeof navigator !== 'undefined' ? navigator.language : '';
+  return (nav || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+}
+
+const ACTIVE_LANG = detectLang();
+const NIJI_PROMPT = PROMPTS[ACTIVE_LANG];
+
+// Per-provider chat endpoints — the URL-encoded prompt is appended as ?q=.
+const ENDPOINTS = {
+  Claude:     'https://claude.ai/new?q=',
+  GPT:        'https://chatgpt.com/?q=',
+  Perplexity: 'https://www.perplexity.ai/search?q=',
+};
+
+const LABELS = { fr: "Explorer avec l'IA", en: 'Explore with AI' };
 
 export const DEFAULT_AI_LINKS = {
-  label: 'Explore with AI',
-  buttons: [
-    { label: 'Claude', url: `https://claude.ai/new?q=${encodeURIComponent(NIJI_PROMPT)}` },
-    { label: 'GPT',    url: `https://chatgpt.com/?q=${encodeURIComponent(NIJI_PROMPT)}` },
-    { label: 'Perplexity', url: `https://www.perplexity.ai/search?q=${encodeURIComponent(NIJI_PROMPT)}` },
-  ],
+  label: LABELS[ACTIVE_LANG],
+  buttons: Object.entries(ENDPOINTS).map(([label, endpoint]) => ({
+    label,
+    url: `${endpoint}${encodeURIComponent(NIJI_PROMPT)}`,
+  })),
 };
 
 // Copy the prompt to the clipboard as a fallback: the anchor's ?q= param

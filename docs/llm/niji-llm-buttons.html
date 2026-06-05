@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Boutons LLM Niji - exemple d'intégration</title>
+<title>Boutons LLM Niji - intégration dynamique avec auto-détection langue</title>
 <style>
 body {
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -23,8 +23,6 @@ h1 { font-size: 20px; margin-bottom: 24px; }
   margin-bottom: 16px;
   color: #555;
 }
-
-/* ============ STYLES BOUTONS LLM (à adapter au design DDA) ============ */
 .llm-buttons {
   display: flex;
   align-items: center;
@@ -50,13 +48,12 @@ h1 { font-size: 20px; margin-bottom: 24px; }
   font-size: 14px;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
+  font-family: inherit;
 }
 .llm-btn:hover {
   background: #0A0A0A;
   color: #fff;
 }
-
-/* Toast de feedback */
 .llm-toast {
   position: fixed;
   bottom: 24px;
@@ -79,59 +76,86 @@ h1 { font-size: 20px; margin-bottom: 24px; }
   transform: translateX(-50%) translateY(0);
   opacity: 1;
 }
+.lang-info {
+  font-size: 12px;
+  color: #888;
+  margin-top: 16px;
+  font-style: italic;
+}
 </style>
 </head>
 <body>
 
-<h1>Boutons LLM Niji - exemple d'intégration</h1>
+<h1>Boutons LLM Niji - intégration dynamique avec auto-détection</h1>
 
 <div class="example-section">
   <h2>Rendu final</h2>
 
-  <!-- ============================================== -->
-  <!-- BLOC HTML À COPIER-COLLER DANS LE SITE DDA -->
-  <!-- ============================================== -->
+  <!-- BLOC HTML À COPIER-COLLER DANS LE SITE -->
   <div class="llm-buttons" id="niji-llm-buttons">
-    <p class="llm-intro">Des questions ? Demandez à</p>
+    <p class="llm-intro" data-i18n="intro">Des questions ? Demandez à</p>
     <button type="button" class="llm-btn" data-llm="claude">Claude</button>
     <button type="button" class="llm-btn" data-llm="chatgpt">ChatGPT</button>
     <button type="button" class="llm-btn" data-llm="perplexity">Perplexity</button>
   </div>
-  <!-- ============================================== -->
 
+  <p class="lang-info">Le label de l'intro et la langue du prompt s'adaptent automatiquement à navigator.language. FR si la langue système commence par fr, EN sinon.</p>
 </div>
 
 <div class="example-section">
   <h2>Comportement</h2>
   <p style="font-size: 13px; line-height: 1.6; color: #555;">
-    Au clic : le prompt est copié dans le presse-papier en silence, puis la plateforme cible s'ouvre dans un nouvel onglet avec le prompt pré-rempli en paramètre URL. Un toast discret confirme le succès. Si la plateforme ne lit pas le paramètre URL (cas rare), l'utilisateur n'a qu'à coller (Cmd+V ou Ctrl+V) pour utiliser le prompt déjà copié.
+    Au chargement, détection de la langue système via navigator.language. Au clic : le prompt est copié dans le presse-papier, la plateforme cible s'ouvre dans un nouvel onglet avec le prompt pré-rempli. Un toast confirme. Si la plateforme n'a pas pré-rempli, le visiteur n'a qu'à coller le prompt déjà copié.
   </p>
 </div>
 
-<!-- ============================================== -->
-<!-- SCRIPT À COPIER-COLLER (une seule fois sur la page) -->
-<!-- ============================================== -->
 <script>
 (function() {
-  // ============ CONFIGURATION ============
-  // URL de la page de référence Niji (à héberger)
-  const PAGE_URL = "https://niji.fr/llm";
+  const PAGE_URL = "https://niji.agency/llm";
 
-  // Texte du prompt envoyé au LLM
-  // Ton neutre, naturel, avec hypothèses + marqueurs factuels + URL en fin
-  // Style inspiré par l'approche OFF+BRAND : pas d'instruction explicite "base-toi sur l'URL"
-  const PROMPT_TEXT = `J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : ${PAGE_URL}`;
+  const PROMPTS = {
+    fr: `J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue : ${PAGE_URL}`,
+    en: `I want to understand what Niji is and what they do. They seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different: ${PAGE_URL}`
+  };
 
-  // Endpoints des trois LLMs (paramètre ?q= pour pré-remplir)
+  const LABELS = {
+    fr: {
+      intro: "Des questions ? Demandez à",
+      toast_ok: "Prompt copié et ouvert dans",
+      toast_paste: "Si la fenêtre est vide, collez avec Cmd+V (Ctrl+V).",
+      toast_open: "Ouverture de"
+    },
+    en: {
+      intro: "Got questions? Ask",
+      toast_ok: "Prompt copied and opened in",
+      toast_paste: "If the window is empty, paste with Cmd+V (Ctrl+V).",
+      toast_open: "Opening"
+    }
+  };
+
   const LLM_ENDPOINTS = {
     claude:     { url: "https://claude.ai/new?q=",                label: "Claude" },
     chatgpt:    { url: "https://chatgpt.com/?q=",                 label: "ChatGPT" },
     perplexity: { url: "https://www.perplexity.ai/search?q=",     label: "Perplexity" }
   };
 
-  // ============ TOAST DE FEEDBACK ============
+  function detectLang() {
+    const browserLang = (navigator.language || navigator.userLanguage || "en").toLowerCase();
+    return browserLang.startsWith("fr") ? "fr" : "en";
+  }
+  const CURRENT_LANG = detectLang();
+
+  function applyLabels() {
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+      const key = el.dataset.i18n;
+      if (LABELS[CURRENT_LANG][key]) {
+        el.textContent = LABELS[CURRENT_LANG][key];
+      }
+    });
+  }
+
   function showToast(message, duration) {
-    duration = duration || 4000;
+    duration = duration || 4500;
     let toast = document.querySelector('.llm-toast');
     if (!toast) {
       toast = document.createElement('div');
@@ -146,18 +170,13 @@ h1 { font-size: 20px; margin-bottom: 24px; }
     }, duration);
   }
 
-  // ============ COPIE DANS LE PRESSE-PAPIER ============
   async function copyToClipboard(text) {
-    // Méthode moderne (Clipboard API)
     if (navigator.clipboard && window.isSecureContext) {
       try {
         await navigator.clipboard.writeText(text);
         return true;
-      } catch (err) {
-        // Fallback méthode legacy
-      }
+      } catch (err) {}
     }
-    // Méthode legacy (textarea + execCommand)
     try {
       const textarea = document.createElement('textarea');
       textarea.value = text;
@@ -174,33 +193,34 @@ h1 { font-size: 20px; margin-bottom: 24px; }
     }
   }
 
-  // ============ HANDLER CLIC BOUTON ============
   async function handleLLMClick(llm) {
     const config = LLM_ENDPOINTS[llm];
     if (!config) return;
 
-    // 1. Copie dans le presse-papier (fallback systématique)
-    const copied = await copyToClipboard(PROMPT_TEXT);
+    const promptText = PROMPTS[CURRENT_LANG];
+    const labels = LABELS[CURRENT_LANG];
 
-    // 2. Ouverture de la plateforme avec pré-remplissage URL
-    const encodedPrompt = encodeURIComponent(PROMPT_TEXT);
+    const copied = await copyToClipboard(promptText);
+
+    const encodedPrompt = encodeURIComponent(promptText);
     const targetUrl = config.url + encodedPrompt;
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
 
-    // 3. Toast de feedback discret
     if (copied) {
-      showToast("Prompt copié et ouvert dans " + config.label + ". Si la fenêtre est vide, collez avec Cmd+V (Ctrl+V).");
+      showToast(labels.toast_ok + " " + config.label + ". " + labels.toast_paste);
     } else {
-      showToast("Ouverture de " + config.label + " avec le prompt pré-rempli.");
+      showToast(labels.toast_open + " " + config.label + ".");
     }
   }
 
-  // ============ ATTACHEMENT DES ÉVÉNEMENTS ============
-  document.querySelectorAll('.llm-btn').forEach(function(btn) {
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const llm = btn.dataset.llm;
-      handleLLMClick(llm);
+  document.addEventListener('DOMContentLoaded', function() {
+    applyLabels();
+    document.querySelectorAll('.llm-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const llm = btn.dataset.llm;
+        handleLLMClick(llm);
+      });
     });
   });
 })();
