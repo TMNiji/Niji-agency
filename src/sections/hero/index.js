@@ -71,25 +71,17 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
 
   const subtitle = document.createElement('p');
   subtitle.className = 'hero__subtitle';
-  // Non-breaking spaces glue numbers to their units ("115 designers" stays as
-  // one block) and a non-breaking hyphen (‑, U+2011) keeps "AI-native"
-  // together if the line happens to break right at the dash.
-  //
-  // No <br> — the text reflows freely within the heading width on every
-  // breakpoint (right-aligned on desktop, centred on phones; see hero.css). The
-  // single spaces between the source phrases keep the words apart as they wrap.
+  // Three explicit lines, separated by <br> on every breakpoint. Non-breaking
+  // spaces glue numbers to their units ("115 Designers", "9 bureaux") and a
+  // non-breaking hyphen (‑, U+2011) keeps "AI-native" together; the " | "
+  // separator is also made non-breaking so line 2 never splits mid-phrase.
   const DEFAULT_SUBTITLE =
-    "Agence de product design AI‑native. "
-    + "115 designers&nbsp;|&nbsp;9&nbsp;bureaux "
-    + "25 ans à construire "
-    + "ce qui se regarde, s'utilise "
-    + "et maintenant se parle.";
-  // CMS value is plain multiline text. Render it as one reflowing paragraph
-  // (the editor's line breaks become spaces), escaped so a visitor can't inject
-  // markup, then apply the same typographic glue as the designed default: a
-  // non-breaking separator around " | ", a non-breaking hyphen inside compounds
-  // like "AI-native", and a non-breaking space tying a number to its unit
-  // ("115 designers", "9 bureaux"). Falls back to the default above.
+    "Agence de Product Design AI-native.\n"
+    + "115 Designers | 9 bureaux\n"
+    + "25 ans à construire ce qui se regarde, s'utilise et maintenant se parle.";
+  // The CMS value is plain multiline text; its line breaks become <br>. Each
+  // line is escaped (so a visitor can't inject markup) before the safe
+  // typographic glue is added. Falls back to the designed default above.
   const NB_HYPHEN = '‑';
   const polishLine = (line) => {
     const div = document.createElement('div');
@@ -100,15 +92,8 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
       .replace(/(\d) +(?=\p{L})/gu, '$1&nbsp;');
   };
   const renderSubtitle = (c) => {
-    const cmsSubtitle = c?.hero?.subtitle;
-    const html = cmsSubtitle
-      ? cmsSubtitle.split('\n').map(polishLine).join(' ')
-      : DEFAULT_SUBTITLE;
-    // One intentional line break after "9 bureaux" — applied to the rendered
-    // HTML so it lands whether the copy comes from the CMS or the default above.
-    // The <br> is MOBILE-ONLY (hidden on desktop in hero.css, where the subtitle
-    // reflows freely within the right-aligned title block).
-    subtitle.innerHTML = html.replace(/(bureaux)\s*/i, '$1<br class="hero__subtitle-break">');
+    const text = c?.hero?.subtitle || DEFAULT_SUBTITLE;
+    subtitle.innerHTML = text.split('\n').map(polishLine).join('<br>');
   };
   renderSubtitle(content);
 

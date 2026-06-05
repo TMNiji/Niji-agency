@@ -171,14 +171,33 @@ async function boot() {
 
   // ── CMS content — fetched after first paint ───────────────────────────────
   // Patch the (already visible) hero with any edited copy/labels, then mount the
-  // remaining sections, which are off-screen behind the locked scroll anyway.
-  const sanityContent = await fetchHomePage();
+  // remaining sections. Crucially, a slow CMS read must NOT freeze scroll: the
+  // whole page (mount → orchestrator.refresh → lenis.start) used to sit behind
+  // this await, so a slow CDN left the visitor unable to scroll for seconds.
+  // Cap the wait — if the read loses the race the sections render from their
+  // baked-in defaults (kept in sync with the CMS) and the hero is patched in
+  // whenever the read finally lands.
+  const cmsFetch = fetchHomePage();
+  const sanityContent = await Promise.race([
+    cmsFetch,
+    new Promise((resolve) => setTimeout(() => resolve(undefined), 1500)),
+  ]);
   hero?.applyContent?.(sanityContent);
   // CMS section labels override the hardcoded defaults when present (kept
   // index-aligned with SECTIONS so the timeline order stays intact).
   const cmsLabels = sanityContent?.sectionLabels;
   const sectionLabels = SECTIONS.map((s, i) => cmsLabels?.[i] ?? s.label);
   hero?.timeline?.setLabels?.(sectionLabels);
+
+  // Slow path: the CMS read lost the race, so we mounted with defaults. Patch
+  // the hero (subtitle/logo/labels) once the real content arrives.
+  if (sanityContent === undefined) {
+    cmsFetch.then((c) => {
+      if (!c) return;
+      hero?.applyContent?.(c);
+      hero?.timeline?.setLabels?.(SECTIONS.map((s, i) => c.sectionLabels?.[i] ?? s.label));
+    });
+  }
 
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
   // DESIGN + CODE sections — one scroll-scrubbed image sequence (496 frames)
@@ -525,7 +544,13 @@ async function boot() {
   // facepack reveal is already playing). fontsReady was raced against a timeout
   // above so a stalled font load can't trap the visitor at the locked top.
   orchestrator.refresh();
-  fontsReady.then(() => lenis.start());
+  // Unlock scroll once fonts are ready. Force back to the top first so any wheel
+  // input the visitor fired during the brief boot lock can't apply as one sudden
+  // jump the instant scrolling resumes — the page always starts at the top.
+  fontsReady.then(() => {
+    lenis.scrollTo(0, { immediate: true, force: true });
+    lenis.start();
+  });
 
   // Drive the timeline ruler with Lenis's smoothed scroll position. The ruler
   // derives its own current/prev/next labels from this scroll value, so no
