@@ -245,6 +245,18 @@ async function boot() {
   ['hero', 'contact'].forEach((id) =>
     orchestrator.onEnter(id, () => setAiVisible(false)));
 
+  // The prism bolt energizes (pierces) the cell at prism-local progress ~0.45
+  // (see prism.glsl: energize = smoothstep(0.38, 0.48, uProgress)). The DESIGN
+  // title glitches in at that instant — a beat before the video section proper —
+  // and the frame canvas stays hidden until the section starts (setTitlePreview).
+  const BEAM_PIERCE = 0.45;
+  let designTitleEarly = false;
+  const setDesignTitleEarly = (on) => {
+    if (on === designTitleEarly) return;
+    designTitleEarly = on;
+    video?.setTitlePreview?.(on);
+  };
+
   orchestrator.onProgress('thinking', ({ progress }) => {
     if (progress >= PRISM_THRESHOLD) {
       const p = Math.min(1, (progress - PRISM_THRESHOLD) / (1 - PRISM_THRESHOLD));
@@ -257,11 +269,13 @@ async function boot() {
       // doesn't snap back to default when the bolt fires.
       webgl.shaderPlane.setProgress(p);
       setUIVisible(1 - p);
+      setDesignTitleEarly(p >= BEAM_PIERCE);
     } else if (prismActive) {
       webgl.shaderPlane.setShader('hero_grain');
       webgl.shaderPlane.setProgress(0);
       setUIVisible(1);
       prismActive = false;
+      setDesignTitleEarly(false);
     }
   });
 
@@ -296,8 +310,13 @@ async function boot() {
   // preview here; that's handed off in CODE, the last frame-scrub section.
   orchestrator.onEnter('video', () => {
     setActive('video', true);
+    // Reveal the frame canvas (hidden during the early title-only preview).
+    video?.section?.classList.remove('is-titling');
     video?.designServices?.classList.add('is-on');
-    video?.titleHandle?.glitchIn(0.7);
+    // The title may already be on screen from the early beam-pierce reveal —
+    // only glitch it in here if it wasn't, to avoid a double shatter.
+    if (!designTitleEarly) video?.titleHandle?.glitchIn(0.7);
+    designTitleEarly = false;
     webgl.shaderPlane.setShader('prism');
     webgl.shaderPlane.setProgress(1);
     prismActive = true;

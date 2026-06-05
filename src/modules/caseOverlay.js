@@ -3,6 +3,8 @@
 // is created lazily and reused; opening swaps the iframe source, closing clears
 // it so playback stops.
 
+import { stopScroll, startScroll } from '@modules/scroll.js';
+
 let overlay = null;
 let media = null;
 
@@ -60,6 +62,7 @@ export function openCaseOverlay(url, label = '') {
   media.innerHTML = '';
   media.appendChild(iframe);
   overlay.hidden = false;
+  stopScroll(); // freeze the page behind the overlay
   requestAnimationFrame(() => overlay.classList.add('is-open'));
 }
 
@@ -68,4 +71,5 @@ export function closeCaseOverlay() {
   overlay.classList.remove('is-open');
   overlay.hidden = true;
   media.innerHTML = ''; // unload the iframe so the video stops playing
+  startScroll(); // resume page scroll
 }

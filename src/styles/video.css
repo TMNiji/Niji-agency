@@ -23,6 +23,11 @@
 
 .video.is-visible .video__stage { opacity: 1; }
 
+/* DESIGN reveals its title a beat early (when the bolt pierces the cell, still
+   in THINKING): the stage is shown so the heading escapes the stage opacity
+   gate, but the frame canvas stays hidden until the section actually starts. */
+.video.is-titling .video__canvas { opacity: 0; }
+
 /* ── Title + subtitle — top-centre overlay, glitches in/out on enter/leave ─── */
 
 /* Shared title spec — identical sizes/colors/placement to the clients and
@@ -115,4 +120,5 @@
   height: 100%;
   background: transparent;
   pointer-events: none;
+  transition: opacity 350ms ease;
 }

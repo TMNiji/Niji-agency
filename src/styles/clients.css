@@ -430,6 +430,10 @@
   opacity: 0;
   transition: opacity 260ms ease;
 }
+/* When closed, fully remove it from the page — otherwise the `display: flex`
+   above overrides the [hidden] attribute and the invisible full-screen backdrop
+   keeps capturing every click (and scroll) after the overlay is dismissed. */
+.case-overlay[hidden] { display: none; }
 .case-overlay.is-open { opacity: 1; }
 
 .case-overlay__backdrop {

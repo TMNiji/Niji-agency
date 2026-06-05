@@ -167,5 +167,20 @@ export function mountVideo({
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
 
-  return { section, canvas, designServices, titleHandle, startPreload };
+  // Reveal ONLY the title ahead of the section — used by DESIGN so its heading
+  // glitches in the moment the light bolt pierces the cell (late in THINKING),
+  // a beat before the section itself begins. `is-titling` shows the stage (so
+  // the title escapes its opacity gate) while keeping the frame canvas hidden,
+  // so the video proper still starts at the section boundary.
+  function setTitlePreview(on) {
+    if (on) {
+      section.classList.add('is-visible', 'is-titling');
+      titleHandle.glitchIn(0.7);
+    } else {
+      titleHandle.glitchOut(0.4);
+      section.classList.remove('is-visible', 'is-titling');
+    }
+  }
+
+  return { section, canvas, designServices, titleHandle, startPreload, setTitlePreview };
 }

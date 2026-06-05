@@ -637,12 +637,27 @@
    phones, and the bottom-right panel needs to hug the edge. Cap widths to the
    viewport and tighten the panel so nothing spills off-screen or clips. */
 @media (max-width: 600px) {
+  /* Split the bottom bar: service dropdowns hug the bottom-RIGHT, the
+     "Explore with AI" block (label + buttons) sits bottom-LEFT. The panel
+     spans the full width as a row; `order` pulls the AI block ahead so it
+     lands on the left while the dropdowns stay on the right. */
   .thinking__right-panel {
+    left: 16px;
     right: 16px;
     bottom: 20px;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
     gap: 14px;
   }
-  .thinking__services { max-width: 60vw; }
+  .thinking__ai-links {
+    order: -1;            /* bottom-left */
+    align-items: flex-start;
+    transform-origin: left bottom;
+  }
+  .thinking__services {
+    max-width: 52vw;      /* bottom-right — leave room for the AI block */
+  }
   .thinking__service-tag,
   .thinking__service-sub-item { font-size: 0.875rem; }
   .bcard { width: min(240px, 80vw); }

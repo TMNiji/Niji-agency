@@ -19,9 +19,10 @@ import { asset } from '@/lib/asset.js';
 
 // Resolve the verso CTA for a client from its case URL — both the visible label
 // and whether the click opens the in-page 16:9 overlay or just leaves the site.
-//   App store links  → "Télécharger l'app", external (no overlay)
+//   App store links  → "Télécharger l'app", external redirect
 //   Vimeo cases      → "Voir le case study", overlay (embedded player)
-//   Everything else  → "Voir le site",       overlay (site preview iframe)
+//   Everything else  → "Voir le site",       external redirect (sites block
+//                       iframe embedding, so we open them in a new tab)
 function ctaConfig(caseUrl) {
   const url = safeExternalUrl(caseUrl);
   if (!url) return null;
@@ -33,7 +34,7 @@ function ctaConfig(caseUrl) {
   if (/(^|\.)vimeo\.com$/.test(host)) {
     return { url, label: 'Voir le case study', overlay: true };
   }
-  return { url, label: 'Voir le site', overlay: true };
+  return { url, label: 'Voir le site', overlay: false };
 }
 
 // Build the verso CTA — a bordered pill with a label + arrow. Replaces the old
