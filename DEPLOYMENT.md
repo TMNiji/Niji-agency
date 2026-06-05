@@ -44,23 +44,28 @@ redeploy is involved. This is why there is no deploy hook.
 
 ---
 
-## 3. Code flow (GitHub → Vercel)
+## 3. Code flow (GitHub → Vercel) — automated via GitHub Actions
 
-### Option A — Git-connected auto-deploy (recommended)
-Once the Vercel project is connected to the GitHub repo (Project → Settings → Git),
-**every push to `main` auto-deploys to production** and every PR gets a preview URL:
+**Every push to `main` auto-deploys to production**, driven by
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
 
 ```bash
 git add . && git commit -m "..." && git push origin main   # → auto-deploys
 ```
 
-One-time connection (the CLI step needs the Vercel GitHub App authorized first):
-1. Vercel dashboard → project `niji-agency-v3` → **Settings → Git → Connect Git Repository**.
-2. Choose **GitHub**, authorize the Vercel GitHub App for the `TMNiji` account, pick `Niji-agency`.
-3. Or, once authorized, from the repo root: `vercel git connect`.
+The workflow runs `vercel pull → build → deploy --prod` using:
+- repo secret **`VERCEL_TOKEN`** (a Vercel token scoped to the team),
+- the project/org IDs hardcoded in the workflow env.
 
-### Option B — Manual CLI deploy
-Without a git connection, `git push` does **not** deploy. Deploy explicitly:
+> We use GitHub Actions instead of Vercel's native Git integration because the
+> repo (`TMNiji`) and the Vercel account's GitHub login are on different GitHub
+> accounts, which the native integration couldn't link. Actions sidesteps that.
+
+To rotate the token: create a new one at vercel.com/account/settings/tokens
+(scope = team `titouan-mazuriers-projects`) and update the `VERCEL_TOKEN` secret.
+
+### Fallback — manual CLI deploy
+You can always deploy directly, bypassing CI:
 
 ```bash
 vercel --prod
