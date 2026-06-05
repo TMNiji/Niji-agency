@@ -10,8 +10,6 @@ import { mountAwards }        from './sections/awards/index.js';
 import { mountFooter }        from './sections/footer/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
 import { initNoise }         from '@modules/noise.js';
-import { createPreloader }   from '@modules/preloader.js';
-import { pixelReveal }       from '@modules/pixelReveal.js';
 import { prefersReducedMotion } from '@modules/motion.js';
 
 // All sections share the same 200vh height so each occupies one full section of
@@ -98,10 +96,8 @@ const PRISM_THRESHOLD = 0.6;
 initNoise();
 
 async function boot() {
-  // Glitchy boot overlay — already painted from index.html. Drive its real
-  // progress as each heavy step lands, and lock scroll until it's dismissed so
-  // the visitor always starts at the top once the page is ready.
-  const preloader = createPreloader();
+  // Lock scroll until the page is ready so the visitor always starts at the top,
+  // then reveal straight into the hero (facepack entry) — no boot overlay.
 
   // Fetch CMS content and init scroll concurrently — neither blocks the other.
   const [sanityContent, lenis] = await Promise.all([
@@ -109,13 +105,11 @@ async function boot() {
     Promise.resolve(initScroll()),
   ]);
   lenis.stop();
-  preloader.to(0.4);
 
   const webgl = initWebGL({
     canvas: document.querySelector('#webgl-canvas'),
     initialShader: 'hero_grain',
   });
-  preloader.to(0.6);
 
   const root = document.querySelector('#app');
   root.innerHTML = SECTIONS.map((s) => {
@@ -169,7 +163,6 @@ async function boot() {
   const clients  = mountClients({ container: root, orchestrator, content: sanityContent?.clients });
   const awards   = mountAwards({ container: root, webgl, content: sanityContent?.awards });
   const footer   = mountFooter({ container: root, content: sanityContent });
-  preloader.to(0.8);
 
   // ── Lazy frame prefetch ──────────────────────────────────────────────────
   // The DESIGN + CODE image sequences total ~500 WebP frames. Loading them all
@@ -486,25 +479,26 @@ async function boot() {
   // callback above has updated its meshes for this frame.
   webgl.startRenderLoop();
 
-  // ── Dismiss the boot overlay ───────────────────────────────────────────────
-  // Wait for the webfonts (so the hero title doesn't pop in after reveal) and a
-  // couple of frames (so the first WebGL render lands behind the overlay), then
-  // ramp the preloader to 100% and reveal its ENTER button. document.fonts.ready
-  // is raced with a timeout so a stalled font load can't trap the visitor here.
+  // ── Reveal into the hero ─────────────────────────────────────────────────
+  // No boot overlay: the page reveals straight into the facepack entry. Wait for
+  // the webfonts (so the hero title doesn't pop in mid-reveal) and a couple of
+  // frames (so the first WebGL render has landed), then play the facepack entry
+  // — the fragments converge into the resting face — and unlock scroll.
+  // document.fonts.ready is raced with a timeout so a stalled font load can't
+  // trap the visitor here.
   const fontsReady = Promise.race([
     document.fonts?.ready ?? Promise.resolve(),
     new Promise((resolve) => setTimeout(resolve, 2500)),
   ]);
   fontsReady.then(() => {
-    requestAnimationFrame(() => requestAnimationFrame(async () => {
-      await preloader.finish();          // ramp to 100%, show ENTER, await click
-      // Re-fire the title's intro flicker so it lands fresh behind the cover as
-      // the grid-dissolve reveals it (the hero is already assembled at rest).
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      // Re-fire the title's intro flicker so it lands fresh alongside the reveal.
       hero?.title?.replay?.();
-      // Dissolve the boot cover into a grid of pixel-squares to reveal the live
-      // page (Codrops pixel-image effect). Drops the cover on the first (fully
-      // covered) frame for a flash-free handoff.
-      await pixelReveal({ cover: preloader.root, duration: 1.1 });
+      // setActive(true) explicitly — ScrollTrigger's hero enter event can be
+      // missed at scroll 0, which would leave the per-frame transform loop off
+      // and freeze the pack at its mid-explosion pose.
+      hero?.facePack?.setActive?.(true);
+      hero?.facePack?.playEntry?.();
       lenis.start();
     }));
   });
