@@ -122,7 +122,7 @@
   font-family: 'DotGothic16', monospace;
   font-size: 1rem;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.50);
+  color: #fff;
   letter-spacing: 0.01em;
   /* DotGothic16 is a full-width pixel font: its space glyph carries a near-
      full-character advance, so multi-word phrases read with oversized gaps.
@@ -154,7 +154,7 @@
   font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.35);
+  color: #fff;
   white-space: nowrap;
 }
 

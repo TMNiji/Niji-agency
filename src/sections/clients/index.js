@@ -13,8 +13,54 @@
 
 import { gsap } from 'gsap';
 import { prefersReducedMotion } from '@modules/motion.js';
+import { openCaseOverlay } from '@modules/caseOverlay.js';
 import { createTitle } from '../hero/title.js';
 import { asset } from '@/lib/asset.js';
+
+// Resolve the verso CTA for a client from its case URL — both the visible label
+// and whether the click opens the in-page 16:9 overlay or just leaves the site.
+//   App store links  → "Télécharger l'app", external (no overlay)
+//   Vimeo cases      → "Voir le case study", overlay (embedded player)
+//   Everything else  → "Voir le site",       overlay (site preview iframe)
+function ctaConfig(caseUrl) {
+  const url = safeExternalUrl(caseUrl);
+  if (!url) return null;
+  let host = '';
+  try { host = new URL(url).hostname; } catch (_) {}
+  if (/(^|\.)(apps\.apple\.com|play\.google\.com)$/.test(host)) {
+    return { url, label: "Télécharger l'app", overlay: false };
+  }
+  if (/(^|\.)vimeo\.com$/.test(host)) {
+    return { url, label: 'Voir le case study', overlay: true };
+  }
+  return { url, label: 'Voir le site', overlay: true };
+}
+
+// Build the verso CTA — a bordered pill with a label + arrow. Replaces the old
+// fixed-text button.svg so the label can vary per client, and routes the click
+// to the overlay (Vimeo / site preview) unless it's a store download link.
+function makeCta(caseUrl, brandName) {
+  const cfg = ctaConfig(caseUrl);
+  if (!cfg) return null;
+  const cta = document.createElement('a');
+  cta.className = 'clients__card-cta';
+  cta.href = cfg.url;
+  cta.setAttribute('aria-label', `${cfg.label} ${brandName}`.trim());
+  cta.innerHTML = `<span class="clients__card-cta-label"></span>` +
+    `<svg class="clients__card-cta-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
+  cta.querySelector('.clients__card-cta-label').textContent = cfg.label;
+  if (cfg.overlay) {
+    cta.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openCaseOverlay(cfg.url, brandName);
+    });
+  } else {
+    cta.target = '_blank';
+    cta.rel = 'noopener noreferrer';
+  }
+  return cta;
+}
 
 // Validate an external URL before turning it into a click target. Same shape
 // as aiLinks.js — we don't export there because keeping the helper local
@@ -73,7 +119,7 @@ const DEFAULT_CLIENTS = [
     logo: '/logo/orange.png',
     frontLabel: 'Experience',
     back: 'text',
-    blurb: 'Design Partenaire depuis 10 ans',
+    blurb: 'Design, Experience, B2C, B2B\nPartenaire depuis 10 ans',
     accent: '#FF7900',
   },
   // 4. Relais & Châteaux — Plateforme de marque & Ecosystème digital / QR + Vimeo
@@ -183,7 +229,10 @@ function fromCms(c) {
 export function mountClients({ container, orchestrator, content = null } = {}) {
   const title    = content?.title    ?? DEFAULT_TITLE;
   const subtitle = content?.subtitle ?? DEFAULT_SUBTITLE;
-  const clients  = content?.list?.length ? content.list.map(fromCms) : DEFAULT_CLIENTS;
+  const clients  = (content?.list?.length ? content.list.map(fromCms) : DEFAULT_CLIENTS)
+    // Ritz is hidden for now — drop it whether the list comes from the CMS or
+    // the hardcoded defaults. Remove this filter to bring the card back.
+    .filter((c) => c.name?.toLowerCase() !== 'ritz');
   const section = container.querySelector('[data-section="clients"]');
   if (!section) return null;
   section.classList.add('clients');
@@ -289,23 +338,9 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
       qr.loading = 'lazy';
       back.appendChild(qr);
 
-      // "Voir le case study" CTA: a link wrapping the shared button SVG,
-      // targeting `caseUrl` (Vimeo / external case study).
-      const ctaUrl = safeExternalUrl(client.caseUrl);
-      if (ctaUrl) {
-        const cta = document.createElement('a');
-        cta.className = 'clients__card-cta';
-        cta.href = ctaUrl;
-        cta.target = '_blank';
-        cta.rel = 'noopener noreferrer';
-        cta.setAttribute('aria-label', `Voir le case study ${brandName}`);
-        const img = document.createElement('img');
-        img.src = asset('/clients/button.svg');
-        img.alt = '';
-        img.loading = 'lazy';
-        cta.appendChild(img);
-        back.appendChild(cta);
-      }
+      // Verso CTA — label + behaviour derived from the case URL (see makeCta).
+      const cta = makeCta(client.caseUrl, brandName);
+      if (cta) back.appendChild(cta);
     } else if (client.back === 'image' && client.image) {
       const shot = document.createElement('img');
       shot.className = 'clients__card-screenshot';
@@ -314,22 +349,10 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
       shot.loading = 'lazy';
       back.appendChild(shot);
 
-      // Same CTA button as the QR cards (Ritz etc.): an anchor wrapping the
-      // shared button SVG. When `caseUrl` is set it links to the live project;
-      // otherwise the brand label is shown instead.
-      const ctaUrl = safeExternalUrl(client.caseUrl);
-      if (ctaUrl) {
-        const cta = document.createElement('a');
-        cta.className = 'clients__card-cta';
-        cta.href = ctaUrl;
-        cta.target = '_blank';
-        cta.rel = 'noopener noreferrer';
-        cta.setAttribute('aria-label', `Voir le case study ${brandName}`);
-        const img = document.createElement('img');
-        img.src = asset('/clients/button.svg');
-        img.alt = '';
-        img.loading = 'lazy';
-        cta.appendChild(img);
+      // Verso CTA — label + behaviour derived from the case URL (see makeCta).
+      // When there's no case URL, fall back to showing the brand label.
+      const cta = makeCta(client.caseUrl, brandName);
+      if (cta) {
         back.appendChild(cta);
       } else {
         const tag = document.createElement('div');

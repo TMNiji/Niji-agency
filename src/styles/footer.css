@@ -157,7 +157,7 @@
   font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: #fff;
   white-space: nowrap;
 }
 
@@ -185,7 +185,7 @@
   font-weight: 400;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: #fff;
   transition: color 220ms ease;
 }
 
@@ -253,13 +253,13 @@
   font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+  color: #fff;
   cursor: pointer;
   transition: color 220ms ease;
 }
 
 .footer__loop-cta:hover,
-.footer__loop-cta:focus-visible { color: #fff; outline: none; }
+.footer__loop-cta:focus-visible { color: rgba(255, 255, 255, 0.6); outline: none; }
 
 .footer__loop-cta-arrow {
   font-size: 0.875rem;

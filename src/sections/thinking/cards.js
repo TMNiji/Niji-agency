@@ -40,12 +40,10 @@ export function createStrategyCard({
     <div class="st-flip" role="button" tabindex="0" aria-label="Retourner la carte">
       <div class="st-flip__inner">
         <div class="st-flip__face st-flip__face--recto">
-          <span class="st-flip__tag">Recto</span>
           <p class="st-flip__text"></p>
           <span class="st-flip__hint">Cliquer pour retourner →</span>
         </div>
         <div class="st-flip__face st-flip__face--verso">
-          <span class="st-flip__tag">Verso</span>
           <p class="st-flip__text"></p>
           <span class="st-flip__hint">← Retour</span>
         </div>
