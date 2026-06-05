@@ -204,6 +204,13 @@ export function createTimeline({ labels, loopLabel = null } = {}) {
     update,
     /** Register the function that physically scrolls the page (e.g. lenis.scrollTo). */
     setScrollHandler(fn) { scrollHandler = fn; },
+    /** Swap the section label text in place (count is fixed, so no re-layout). */
+    setLabels(next = []) {
+      next.forEach((text, i) => {
+        const span = sectionLabelEls[i]?.querySelector('.hero-timeline__section-text');
+        if (span && text != null) span.textContent = text;
+      });
+    },
     /** Remove listeners — call if the timeline is ever torn down. */
     destroy() { window.removeEventListener('resize', cacheSectionPositions); },
   };

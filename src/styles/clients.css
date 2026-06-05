@@ -104,6 +104,9 @@
 @media (max-width: 600px) {
   .clients__title { width: calc(100vw - 32px); }
   .clients-title__line { white-space: normal; }
+  /* The clamps bottom out small on phones — bump both lines up for legibility. */
+  .clients-title__line--large { font-size: 2rem; }
+  .clients-title__line--small { font-size: 1.25rem; }
 }
 
 /* ── Stack — 3D container (receives mouse-driven rotation in JS) ─────────── */

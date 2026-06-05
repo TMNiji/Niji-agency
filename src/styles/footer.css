@@ -131,12 +131,14 @@
   .footer__columns {
     flex-direction: column;
     align-items: center;
-    /* 16px between the stacked containers */
-    gap: 16px;
+    /* Generous gap between the two stacked groups so each title+content unit
+       reads as one block, clearly separated from the other. */
+    gap: 36px;
   }
   .footer__columns::before { display: none; }
-  /* 8px between each column's title and its elements */
-  .footer__col { width: 100%; align-items: center; gap: 8px; }
+  /* Tight gap between each column's title and its content so the heading packs
+     directly onto what it introduces (improves the info hierarchy on phones). */
+  .footer__col { width: 100%; align-items: center; gap: 10px; }
 }
 
 /* ── "Explore with AI" bar — centred inside the contact stage ───────────────
@@ -224,6 +226,10 @@
 /* Phones — 16px horizontal gutters on the contact stage. */
 @media (max-width: 600px) {
   .footer__stage { padding-left: 16px; padding-right: 16px; }
+  /* Section headings + content bottom out small on phones — bump them up so the
+     contact block matches the legibility of the other sections' titles. */
+  .footer__col-title { font-size: 1.5rem; }
+  .footer__contact-email { font-size: 1.25rem; }
 }
 
 /* ── Loop hint — bottom-centre CTA signalling the seamless wrap to the top.

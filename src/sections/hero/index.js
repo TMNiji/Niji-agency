@@ -75,24 +75,21 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   // one block) and a non-breaking hyphen (‑, U+2011) keeps "AI-native"
   // together if the line happens to break right at the dash.
   //
-  // Each line ends with a real space *before* its <br>. On desktop the <br>
-  // forces the 5-line editorial layout (the trailing space is invisible); on
-  // phones the <br> is hidden (hero.css @600) so the text reflows into a
-  // compact 3-line block and the spaces keep the words apart.
+  // No <br> — the text reflows freely within the heading width on every
+  // breakpoint (right-aligned on desktop, centred on phones; see hero.css). The
+  // single spaces between the source phrases keep the words apart as they wrap.
   const DEFAULT_SUBTITLE =
-    "Agence de product design AI‑native. <br>"
-    + "115 designers&nbsp;|&nbsp;9 bureaux <br>"
-    + "25 ans à construire <br>"
-    + "ce qui se regarde, s'utilise <br>"
+    "Agence de product design AI‑native. "
+    + "115 designers&nbsp;|&nbsp;9&nbsp;bureaux "
+    + "25 ans à construire "
+    + "ce qui se regarde, s'utilise "
     + "et maintenant se parle.";
-  const cmsSubtitle = content?.hero?.subtitle;
-  // CMS value is plain multiline text. Render one line per row (honouring the
-  // editor's line breaks), escaped so a visitor can't inject markup, then apply
-  // the same typographic glue as the designed default: a non-breaking separator
-  // around " | ", a non-breaking hyphen inside compounds like "AI-native", and a
-  // non-breaking space tying a number to its unit ("115 designers", "9 bureaux").
-  // The space before each <br> mirrors the default so the mobile reflow keeps its
-  // word spacing when the breaks are hidden. Falls back to the default above.
+  // CMS value is plain multiline text. Render it as one reflowing paragraph
+  // (the editor's line breaks become spaces), escaped so a visitor can't inject
+  // markup, then apply the same typographic glue as the designed default: a
+  // non-breaking separator around " | ", a non-breaking hyphen inside compounds
+  // like "AI-native", and a non-breaking space tying a number to its unit
+  // ("115 designers", "9 bureaux"). Falls back to the default above.
   const NB_HYPHEN = '‑';
   const polishLine = (line) => {
     const div = document.createElement('div');
@@ -102,9 +99,16 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
       .replace(/(\p{L})-(\p{L})/gu, `$1${NB_HYPHEN}$2`)
       .replace(/(\d) +(?=\p{L})/gu, '$1&nbsp;');
   };
-  subtitle.innerHTML = cmsSubtitle
-    ? cmsSubtitle.split('\n').map(polishLine).join(' <br>')
-    : DEFAULT_SUBTITLE;
+  const renderSubtitle = (c) => {
+    const cmsSubtitle = c?.hero?.subtitle;
+    const html = cmsSubtitle
+      ? cmsSubtitle.split('\n').map(polishLine).join(' ')
+      : DEFAULT_SUBTITLE;
+    // One intentional line break after "9 bureaux" — applied to the rendered
+    // HTML so it lands whether the copy comes from the CMS or the default above.
+    subtitle.innerHTML = html.replace(/(bureaux)\s*/i, '$1<br>');
+  };
+  renderSubtitle(content);
 
   // Subtitle stacks directly under the title inside the right-anchored heading
   // on desktop (see hero.css). On phones CSS re-pins it bottom-centre of the
@@ -161,5 +165,20 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     }
   });
 
-  return { section, header, timeline, title, facePack };
+  // Apply CMS content after the hero has already painted with defaults — keeps
+  // first paint off the network (see main.js boot). Only the cheap, in-place
+  // updates that are actually editable matter here: the subtitle copy, the logo
+  // mark, and the timeline's section labels. The facepack falls back to the
+  // static production images, so a CMS image swap isn't worth a texture reload.
+  function applyContent(c) {
+    if (!c) return;
+    renderSubtitle(c);
+    const logoUrl = c?.logo?.asset?.url;
+    if (logoUrl) {
+      const mark = header.el.querySelector('.hero-header__logo-mark');
+      if (mark) mark.src = logoUrl;
+    }
+  }
+
+  return { section, header, timeline, title, facePack, applyContent };
 }

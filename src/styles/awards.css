@@ -119,7 +119,8 @@ body.is-contact .awards__stage {
 
 .awards__tooltip-title {
   font-family: var(--font);
-  font-size: clamp(0.875rem, 0.95vw, 1.125rem);
+  /* +2px over the previous clamp (0.875–1.125rem) at both ends. */
+  font-size: clamp(1rem, 0.95vw, 1.25rem);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -127,7 +128,8 @@ body.is-contact .awards__stage {
 }
 .awards__tooltip-detail {
   font-family: var(--font);
-  font-size: clamp(1rem, 0.95vw, 1.125rem);
+  /* +2px over the previous clamp (1–1.125rem) at both ends. */
+  font-size: clamp(1.125rem, 0.95vw, 1.25rem);
   font-weight: 400;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.55);
@@ -175,4 +177,7 @@ body.is-contact .awards__stage {
 @media (max-width: 600px) {
   .awards__head { width: calc(100vw - 32px); }
   .awards-title__line { white-space: normal; }
+  /* The clamps bottom out small on phones — bump both lines up for legibility. */
+  .awards-title__line--large { font-size: 2rem; }
+  .awards-title__line--small { font-size: 1.25rem; }
 }

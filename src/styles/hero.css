@@ -32,11 +32,16 @@
   z-index: 3;
 }
 
-/* Stack title + subtitle, right-anchored against the same edge */
+/* Stack title + subtitle, right-anchored against the same edge.
+   width:min-content pins the heading to its widest line (the &AGENTS title
+   line, which never wraps), so the subtitle — which has no <br> anymore —
+   reflows and right-aligns WITHIN that title-block width instead of stretching
+   out to a single full-viewport line. */
 .hero__heading {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  width: min-content;
   gap: clamp(18px, 1.8vw, 30px);
 }
 
@@ -55,10 +60,11 @@
   line-height: 1.55;
   letter-spacing: 0.005em;
   color: rgba(255, 255, 255, 0.50);
-  /* Left-aligned on desktop; re-centred on phones (see @600 below). */
-  text-align: left;
-  /* Fill the heading container width so the left-aligned text spans the full
-     title block instead of hugging the right edge as a narrow measure. */
+  /* Right-aligned (ferré à droite) within the heading on desktop — shares the
+     title block's right edge; re-centred on phones (see @600 below). */
+  text-align: right;
+  /* Fill the heading container width so the right-aligned text spans the full
+     title block instead of hugging the edge as a narrow measure. */
   width: 100%;
   margin: 0;
   pointer-events: none;

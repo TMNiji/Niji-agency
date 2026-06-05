@@ -438,6 +438,11 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   let targetX = 0, targetY = 0;
   let curX    = 0, curY    = 0;
   let hovered = null;
+  // Which side the tooltip sits on, latched once when the hover begins (see
+  // setHovered). The cloud parallax-drifts with the cursor, so a centred trophy
+  // would otherwise straddle the viewport midline and flip the tooltip every
+  // frame; latching keeps it on one side for the whole hover.
+  let hoveredOnLeft = false;
 
   // Scroll-driven Z target — a single linear map from FAR_Z (progress 0) to
   // NEAR_Z (progress 1). Constant rate means the cloud is always moving while
@@ -620,6 +625,11 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     if (hovered === mesh) return;
     hovered = mesh;
     if (mesh) {
+      // Latch the tooltip side from the trophy's current screen position so it
+      // can't flip mid-hover as the cloud drifts with the cursor.
+      mesh.getWorldPosition(worldPos);
+      worldPos.project(camera);
+      hoveredOnLeft = (worldPos.x * 0.5 + 0.5) * window.innerWidth < window.innerWidth / 2;
       const a = mesh.userData.award;
       tooltipTitle.textContent   = a.title;
       tooltipDetail1.textContent = a.details?.[0] ?? '';
@@ -724,7 +734,9 @@ export function mountAwards({ container, webgl, content = null } = {}) {
           const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
           const OFFSET_X = 70;  // px from trophy centre to tooltip nearest edge
           const OFFSET_Y = 40;  // px down from trophy centre
-          const onLeftHalf = sx < window.innerWidth / 2;
+          // Side is latched in setHovered (not recomputed here) so it can't flip
+          // as the cloud parallax-drifts the trophy across the viewport midline.
+          const onLeftHalf = hoveredOnLeft;
           // Trophies on the left half → tooltip to the RIGHT (anchored at its left).
           // Trophies on the right half → tooltip to the LEFT  (anchored at its right).
           const tx = onLeftHalf ? sx + OFFSET_X : sx - OFFSET_X;

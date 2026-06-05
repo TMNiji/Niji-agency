@@ -37,6 +37,10 @@ const CARD_BUILDERS = [
 // and three radius bands (inner / mid / outer) for visual depth.
 // All rFactor values > 1.0 so every dot is OUTSIDE the cell membrane ring.
 const R_BANDS    = [1.22, 1.60, 1.96]; // inner / mid / outer
+// Downward nudge for the /Design Sprint dot, as a multiple of the cell radius
+// (scales with the viewport). Its golden-angle slot sits too near the top of
+// the orbit otherwise. Applied on desktop + mobile (see updatePositions).
+const DESIGN_SPRINT_DROP = 0.45;
 const DOT_COUNT  = DOT_LABELS.length;
 const DOTS_DEF = Array.from({ length: DOT_COUNT }, (_, i) => {
   const angle   = (i * 137.508) % 360; // golden angle — no clustering
@@ -106,11 +110,20 @@ export function createOrbital({ stage, cards = {} } = {}) {
       ring.style.height = `${diameter}px`;
     });
 
-    dotEls.forEach((dot) => {
+    dotEls.forEach((dot, i) => {
       const r   = dot.def.rFactor * cellPx;
       const rad = (dot.def.angle * Math.PI) / 180;
       dot.x = Math.cos(rad) * r * hSpread;
       dot.y = Math.sin(rad) * r * vSpread;
+
+      // Per-dot hand-tuned nudges (px). Indices match DOT_LABELS:
+      // 0 = /Stratégie, 2 = /Design Sprint.
+      // — /Stratégie sits dead-centre-right; nudge it 10px further right on phones.
+      if (i === 0 && isPhone) dot.x += 10;
+      // — /Design Sprint lands too high (its golden-angle slot is near the top of
+      //   the orbit); drop it on every viewport so it clears the heading above.
+      if (i === 2) dot.y += DESIGN_SPRINT_DROP * cellPx;
+
       dot.el.style.left = `${dot.x}px`;
       dot.el.style.top  = `${dot.y}px`;
     });

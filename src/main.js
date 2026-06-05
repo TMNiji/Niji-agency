@@ -98,12 +98,7 @@ initNoise();
 async function boot() {
   // Lock scroll until the page is ready so the visitor always starts at the top,
   // then reveal straight into the hero (facepack entry) — no boot overlay.
-
-  // Fetch CMS content and init scroll concurrently — neither blocks the other.
-  const [sanityContent, lenis] = await Promise.all([
-    fetchHomePage(),
-    Promise.resolve(initScroll()),
-  ]);
+  const lenis = initScroll();
   lenis.stop();
 
   const webgl = initWebGL({
@@ -131,13 +126,60 @@ async function boot() {
     webgl.shaderPlane.setCellGrow(1);
   });
 
+  // ── Hero-first paint ─────────────────────────────────────────────────────
+  // The Sanity CDN read used to block the WHOLE boot — the screen stayed black
+  // for as long as the network took (and the full 6s timeout when it failed).
+  // Instead, mount the hero with its baked-in defaults and start rendering NOW,
+  // so the facepack + backdrop paint immediately. The CMS fetch then runs while
+  // the hero is already on screen and patches in any edited content (below).
+  const defaultLabels = SECTIONS.map((s) => s.label);
+  const hero = mountHero({
+    container: root, orchestrator, webgl, sectionLabels: defaultLabels, content: null,
+  });
+
+  // Section-label clicks navigate the page. Use a smooth, eased scroll (not an
+  // instant jump) so the user sees the sections animate on the way there.
+  hero?.timeline?.setScrollHandler((y) =>
+    lenis.scrollTo(y, { duration: 1.1, easing: (t) => 1 - Math.pow(1 - t, 3) }));
+
+  // The face pack only matters while hero is on screen; stop ticking it once it
+  // has exploded away (re-arms when scrolling back up into hero). Only deactivate
+  // when leaving DOWNWARD — leaving back UP happens at scroll 0 where the pack
+  // should stay at rest and visible.
+  orchestrator.onEnter('hero', () => hero?.facePack?.setActive(true));
+  orchestrator.onLeave('hero', ({ direction }) => {
+    if (direction === 'down') hero?.facePack?.setActive(false);
+  });
+
+  // Start rendering + reveal the hero straight away. Wait for the webfonts (so
+  // the title doesn't pop in mid-reveal) and a couple of frames (so the first
+  // WebGL render has landed), then play the facepack entry. Scroll stays locked
+  // until the rest of the page has mounted (lenis.start at the end of boot).
+  orchestrator.refresh();
+  webgl.startRenderLoop();
+  const fontsReady = Promise.race([
+    document.fonts?.ready ?? Promise.resolve(),
+    new Promise((resolve) => setTimeout(resolve, 2500)),
+  ]);
+  fontsReady.then(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      hero?.title?.replay?.();
+      hero?.facePack?.setActive?.(true);
+      hero?.facePack?.playEntry?.();
+    }));
+  });
+
+  // ── CMS content — fetched after first paint ───────────────────────────────
+  // Patch the (already visible) hero with any edited copy/labels, then mount the
+  // remaining sections, which are off-screen behind the locked scroll anyway.
+  const sanityContent = await fetchHomePage();
+  hero?.applyContent?.(sanityContent);
   // CMS section labels override the hardcoded defaults when present (kept
   // index-aligned with SECTIONS so the timeline order stays intact).
   const cmsLabels = sanityContent?.sectionLabels;
   const sectionLabels = SECTIONS.map((s, i) => cmsLabels?.[i] ?? s.label);
-  const hero     = mountHero({
-    container: root, orchestrator, webgl, sectionLabels, content: sanityContent,
-  });
+  hero?.timeline?.setLabels?.(sectionLabels);
+
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
   // DESIGN + CODE sections — one scroll-scrubbed image sequence (496 frames)
   // split at frame 160. Each mount preloads + scrubs only its own slice.
@@ -174,13 +216,10 @@ async function boot() {
   orchestrator.onEnter('thinking', () => video?.startPreload?.());
   orchestrator.onEnter('video',    () => code?.startPreload?.());
 
-  // Section-label clicks navigate the page. Use a smooth, eased scroll (not an
-  // instant jump) so the user sees the sections animate on the way there.
-  hero?.timeline?.setScrollHandler((y) =>
-    lenis.scrollTo(y, { duration: 1.1, easing: (t) => 1 - Math.pow(1 - t, 3) }));
-
   // The timeline's active index is derived from scroll position below (single
   // source of truth) rather than from bouncy ScrollTrigger enter/leave edges.
+  // (Its click-to-scroll handler + the hero facepack toggles are wired during
+  // the hero-first paint above.)
 
   // ── Rainbow transition — driven by thinking's last quarter ─────────────────
   // Below PRISM_THRESHOLD: hero_grain @ uProgress=1 (cell + dots).
@@ -461,47 +500,13 @@ async function boot() {
     document.body.classList.remove('is-contact');
   });
 
-  // ── Pause offscreen per-frame work ───────────────────────────────────────
-  // The face pack only matters while hero is on screen; stop ticking it once
-  // it has exploded away (re-arms when scrolling back up into hero).
-  orchestrator.onEnter('hero', () => hero?.facePack?.setActive(true));
-  // Only deactivate when leaving DOWNWARD (past the bottom of hero) — setActive
-  // (false) snaps the pack to its post-dive (off-screen) pose so it doesn't
-  // cover the next section. Leaving BACK UP happens at the very top (scroll 0)
-  // where the pack should stay at rest and visible, so skip the snap there.
-  orchestrator.onLeave('hero', ({ direction }) => {
-    if (direction === 'down') hero?.facePack?.setActive(false);
-  });
-
+  // Re-measure now that every section has mounted — the hero already booted and
+  // started rendering during the hero-first paint above, so this only settles
+  // the downstream triggers. Then unlock scroll once the webfonts are ready (the
+  // facepack reveal is already playing). fontsReady was raced against a timeout
+  // above so a stalled font load can't trap the visitor at the locked top.
   orchestrator.refresh();
-
-  // Render last on the shared gsap.ticker — after every section's transform
-  // callback above has updated its meshes for this frame.
-  webgl.startRenderLoop();
-
-  // ── Reveal into the hero ─────────────────────────────────────────────────
-  // No boot overlay: the page reveals straight into the facepack entry. Wait for
-  // the webfonts (so the hero title doesn't pop in mid-reveal) and a couple of
-  // frames (so the first WebGL render has landed), then play the facepack entry
-  // — the fragments converge into the resting face — and unlock scroll.
-  // document.fonts.ready is raced with a timeout so a stalled font load can't
-  // trap the visitor here.
-  const fontsReady = Promise.race([
-    document.fonts?.ready ?? Promise.resolve(),
-    new Promise((resolve) => setTimeout(resolve, 2500)),
-  ]);
-  fontsReady.then(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      // Re-fire the title's intro flicker so it lands fresh alongside the reveal.
-      hero?.title?.replay?.();
-      // setActive(true) explicitly — ScrollTrigger's hero enter event can be
-      // missed at scroll 0, which would leave the per-frame transform loop off
-      // and freeze the pack at its mid-explosion pose.
-      hero?.facePack?.setActive?.(true);
-      hero?.facePack?.playEntry?.();
-      lenis.start();
-    }));
-  });
+  fontsReady.then(() => lenis.start());
 
   // Drive the timeline ruler with Lenis's smoothed scroll position. The ruler
   // derives its own current/prev/next labels from this scroll value, so no

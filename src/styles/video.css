@@ -91,6 +91,9 @@
 @media (max-width: 600px) {
   .video__title { width: calc(100vw - 32px); }
   .video-title__line { white-space: normal; }
+  /* The clamps bottom out small on phones — bump both lines up for legibility. */
+  .video-title__line--large { font-size: 2rem; }
+  .video-title__line--small { font-size: 1.25rem; }
 }
 
 .video__canvas {
