@@ -75,10 +75,11 @@ const QUERY = /* groq */ `*[_type == "homePage"][0]{
 // CDN-backed read — typically resolves in well under a second. We still race a
 // timeout so a network stall can't hold the (WebGL-heavy) boot indefinitely;
 // on timeout the page paints with the hardcoded defaults baked into each
-// section. Kept generous enough that a normal CDN response always wins (the
-// previous 400ms ceiling lost the race on cold loads, silently discarding
-// every CMS edit).
-const TIMEOUT_MS = 2500;
+// section. The ceiling has to clear the SLOW tail, not the median: a 400ms
+// then a 2500ms cap both still lost the race on cold/throttled loads and
+// silently discarded every CMS edit. 6s gives the CDN room to win even on a
+// bad connection; only a genuinely dead network now falls back to defaults.
+const TIMEOUT_MS = 6000;
 
 export async function fetchHomePage() {
   try {

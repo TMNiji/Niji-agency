@@ -86,16 +86,24 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
     + "ce qui se regarde, s'utilise <br>"
     + "et maintenant se parle.";
   const cmsSubtitle = content?.hero?.subtitle;
-  // CMS value is plain multiline text — render one line per row, escaped, so a
-  // visitor can't inject markup. Falls back to the designed default above. The
-  // space before each <br> mirrors the default so the mobile reflow keeps its
-  // word spacing when the breaks are hidden.
+  // CMS value is plain multiline text. Render one line per row (honouring the
+  // editor's line breaks), escaped so a visitor can't inject markup, then apply
+  // the same typographic glue as the designed default: a non-breaking separator
+  // around " | ", a non-breaking hyphen inside compounds like "AI-native", and a
+  // non-breaking space tying a number to its unit ("115 designers", "9 bureaux").
+  // The space before each <br> mirrors the default so the mobile reflow keeps its
+  // word spacing when the breaks are hidden. Falls back to the default above.
+  const NB_HYPHEN = '‑';
+  const polishLine = (line) => {
+    const div = document.createElement('div');
+    div.textContent = line; // escape first — everything below only adds safe glue
+    return div.innerHTML
+      .replace(/ \| /g, '&nbsp;|&nbsp;')
+      .replace(/(\p{L})-(\p{L})/gu, `$1${NB_HYPHEN}$2`)
+      .replace(/(\d) +(?=\p{L})/gu, '$1&nbsp;');
+  };
   subtitle.innerHTML = cmsSubtitle
-    ? cmsSubtitle.split('\n').map((line) => {
-        const div = document.createElement('div');
-        div.textContent = line;
-        return div.innerHTML;
-      }).join(' <br>')
+    ? cmsSubtitle.split('\n').map(polishLine).join(' <br>')
     : DEFAULT_SUBTITLE;
 
   // Subtitle stacks directly under the title inside the right-anchored heading
