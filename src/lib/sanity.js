@@ -1,11 +1,13 @@
-import { createClient } from '@sanity/client';
-
-const client = createClient({
-  projectId: import.meta.env.VITE_SANITY_PROJECT_ID ?? 'kpguac1f',
-  dataset: import.meta.env.VITE_SANITY_DATASET ?? 'production',
-  apiVersion: '2024-01-01',
-  useCdn: true,
-});
+// The home page does exactly one public, CDN-cached GROQ read, so we hit the
+// Sanity query API directly with fetch instead of pulling in @sanity/client
+// (~33KB gzip on the first-paint critical path). The write side
+// (scripts/populate-sanity.mjs) still uses the client — it needs auth + uploads.
+const PROJECT_ID = import.meta.env.VITE_SANITY_PROJECT_ID ?? 'kpguac1f';
+const DATASET    = import.meta.env.VITE_SANITY_DATASET ?? 'production';
+const API_VERSION = '2024-01-01';
+// apicdn.* is the CDN-backed (cached) host — matches the old useCdn: true.
+const QUERY_URL = (groq) =>
+  `https://${PROJECT_ID}.apicdn.sanity.io/v${API_VERSION}/data/query/${DATASET}?query=${encodeURIComponent(groq)}`;
 
 // Fetch all editable content for the home page.
 // Returns null on failure — callers fall back to hardcoded defaults.
@@ -82,13 +84,17 @@ const QUERY = /* groq */ `*[_type == "homePage"][0]{
 const TIMEOUT_MS = 6000;
 
 export async function fetchHomePage() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Sanity fetch timeout')), TIMEOUT_MS)
-    );
-    return await Promise.race([client.fetch(QUERY), timeout]);
+    const res = await fetch(QUERY_URL(QUERY), { signal: controller.signal });
+    if (!res.ok) throw new Error(`Sanity query HTTP ${res.status}`);
+    const { result } = await res.json();
+    return result ?? null;
   } catch (err) {
     console.warn('[sanity] fetch failed, using defaults:', err.message);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }

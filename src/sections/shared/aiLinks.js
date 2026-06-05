@@ -47,6 +47,19 @@ const ENDPOINTS = {
 
 const LABELS = { fr: "Explorer avec l'IA", en: 'Explore with AI' };
 
+// Toast copy follows the visitor's language, like the bar label + prompt above.
+const TOASTS = {
+  fr: {
+    copied:   (name) => `Prompt copié — ouverture de ${name}. Si le chat est vide, collez avec ⌘V / Ctrl+V.`,
+    opening:  (name) => `Ouverture de ${name} avec le prompt pré-rempli.`,
+  },
+  en: {
+    copied:   (name) => `Prompt copied — opening ${name}. If the chat is empty, paste with ⌘V / Ctrl+V.`,
+    opening:  (name) => `Opening ${name} with the prompt pre-filled.`,
+  },
+};
+const TOAST = TOASTS[ACTIVE_LANG];
+
 export const DEFAULT_AI_LINKS = {
   label: LABELS[ACTIVE_LANG],
   buttons: Object.entries(ENDPOINTS).map(([label, endpoint]) => ({
@@ -170,9 +183,7 @@ export function createAiLinks({ data = DEFAULT_AI_LINKS, baseClass = 'thinking__
     // the platform drops the ?q= param.
     btn.addEventListener('click', async () => {
       const copied = await copyToClipboard(promptFromHref(href));
-      showToast(copied
-        ? `Prompt copied — opening ${text}. If the chat is empty, paste with ⌘V / Ctrl+V.`
-        : `Opening ${text} with the prompt pre-filled.`);
+      showToast(copied ? TOAST.copied(text) : TOAST.opening(text));
     });
 
     buttons.appendChild(btn);

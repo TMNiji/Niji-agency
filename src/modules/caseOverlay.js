@@ -30,6 +30,18 @@ function ensureOverlay() {
   return overlay;
 }
 
+// Only http(s) URLs may be framed. The case URL comes from the CMS, so reject
+// anything else (javascript:, data:, …) before it can reach iframe.src.
+function safeHttpUrl(url) {
+  if (typeof url !== 'string') return null;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 // https://vimeo.com/{id}/{hash}?... → https://player.vimeo.com/video/{id}?h={hash}
 // The second path segment is the unlisted-video privacy hash.
 function vimeoEmbed(url) {
@@ -46,14 +58,19 @@ function vimeoEmbed(url) {
 }
 
 export function openCaseOverlay(url, label = '') {
+  const safe = safeHttpUrl(url);
+  if (!safe) return; // reject non-http(s) (javascript:, data:, …) from the CMS
   ensureOverlay();
   const isVimeo = /(^|\.)vimeo\.com$/.test((() => {
-    try { return new URL(url).hostname; } catch (_) { return ''; }
+    try { return new URL(safe).hostname; } catch (_) { return ''; }
   })());
-  const src = isVimeo ? (vimeoEmbed(url) ?? url) : url;
+  const src = isVimeo ? (vimeoEmbed(safe) ?? safe) : safe;
 
   const iframe = document.createElement('iframe');
   iframe.className = 'case-overlay__iframe';
+  // Sandbox the framed page: allow it to run + size itself, but keep it from
+  // navigating the top window or abusing same-origin against this site.
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
   iframe.src = src;
   iframe.title = label || 'Aperçu';
   iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');

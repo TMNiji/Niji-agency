@@ -7,3 +7,6 @@ dist
 .vercel
 studio/dist
 studio/.sanity
+
+# Machine-local Claude Code permission allowlist (personal, absolute paths)
+.claude/settings.local.json

@@ -27,11 +27,12 @@ There is **no content rebuild webhook** and you don't need one — see §2.
 
 The front end fetches content client-side at runtime:
 
-- `src/lib/sanity.js` creates a `@sanity/client` with `useCdn: true` and queries the
-  `homePage` singleton. It's called from `src/main.js` on page load.
+- `src/lib/sanity.js` `fetch`es the `homePage` singleton from the Sanity CDN query API
+  (`apicdn.sanity.io`). It's called from `src/main.js` on page load.
 - `projectId` / `dataset` fall back to hardcoded `kpguac1f` / `production`, and are
   also set as Vercel env vars (`VITE_SANITY_PROJECT_ID`, `VITE_SANITY_DATASET`).
-- On fetch failure or a 2.5s timeout, each section paints from its hardcoded defaults.
+- On fetch failure (or if the CDN read loses the 1.5s boot race / a 6s hard timeout),
+  each section paints from its hardcoded defaults.
 
 **Therefore:** edit in the Studio → **Publish** → the change is live on niji.agency on
 the next page load (within the CDN's short cache window, typically seconds). No Vercel
@@ -108,7 +109,7 @@ missing, but keeping them set avoids silently relying on the fallback.
 | Issue | Cause / fix |
 |-------|-------------|
 | Content edit not showing | Did you **Publish** (not just save a draft)? Hard-refresh; CDN cache is brief. |
-| `git push` didn't deploy | Project isn't git-connected — use Option A above, or deploy with `vercel --prod`. |
+| `git push` didn't deploy | Check the GitHub Actions run (§3); a failed/cancelled workflow won't deploy. Verify the `VERCEL_TOKEN` secret is set. As a fallback, deploy manually with `vercel --prod`. |
 | `vercel git connect` fails on a public repo | Authorize the Vercel GitHub App for the `TMNiji` account in the dashboard first (§3). |
 | Build can't reach Sanity | Confirm `VITE_SANITY_*` env vars (§4); code falls back to defaults otherwise. |
 | Studio 404 | Run `npm run studio:deploy`. |
