@@ -1,193 +1,109 @@
-# Deployment Guide: GitHub → Vercel + Sanity Studio
+# Deployment Guide: GitHub → Vercel + Sanity
 
 ## Overview
-This project is a modern scrollytelling website with a Sanity CMS backend and Vercel hosting. The Sanity Studio allows remote editing of content without needing to run a local server.
+A Vite scrollytelling site with a Sanity CMS backend, hosted on Vercel.
+
+The single most important thing to understand:
+
+> **Content and code travel on two completely separate paths.**
+> - **Content** (Sanity) is read by the browser **at runtime** from the Sanity CDN. Publishing in the Studio is live within seconds — **no build, no deploy, nothing to push.**
+> - **Code** (this repo) must be **built and deployed to Vercel** to go live.
+
+There is **no content rebuild webhook** and you don't need one — see §2.
 
 ---
 
-## 1. GitHub Setup (✅ Already Done)
+## 1. The three platforms
 
-Repository: **https://github.com/TMNiji/Niji-agency**
+| Platform | Role | Coordinates |
+|---|---|---|
+| **GitHub** | Source of truth for code | `TMNiji/Niji-agency`, branch `main` |
+| **Vercel** | Hosting / build | Project `niji-agency-v3`, domain `niji.agency` |
+| **Sanity** | CMS (content) | Project `kpguac1f`, dataset `production`, Studio `https://kpguac1f.sanity.studio` |
 
-The code is pushed and ready. All future updates:
+---
+
+## 2. Content flow (Sanity → live site) — fully automatic
+
+The front end fetches content client-side at runtime:
+
+- `src/lib/sanity.js` creates a `@sanity/client` with `useCdn: true` and queries the
+  `homePage` singleton. It's called from `src/main.js` on page load.
+- `projectId` / `dataset` fall back to hardcoded `kpguac1f` / `production`, and are
+  also set as Vercel env vars (`VITE_SANITY_PROJECT_ID`, `VITE_SANITY_DATASET`).
+- On fetch failure or a 2.5s timeout, each section paints from its hardcoded defaults.
+
+**Therefore:** edit in the Studio → **Publish** → the change is live on niji.agency on
+the next page load (within the CDN's short cache window, typically seconds). No Vercel
+redeploy is involved. This is why there is no deploy hook.
+
+### Editing content
+- **Studio:** `https://kpguac1f.sanity.studio` — log in with your Sanity account, no local server needed.
+- **Local studio dev:** `npm run studio:dev`
+- **Re-deploy the Studio app** (only after schema/UI changes): `npm run studio:deploy`
+
+---
+
+## 3. Code flow (GitHub → Vercel)
+
+### Option A — Git-connected auto-deploy (recommended)
+Once the Vercel project is connected to the GitHub repo (Project → Settings → Git),
+**every push to `main` auto-deploys to production** and every PR gets a preview URL:
+
 ```bash
-git add .
-git commit -m "Your message"
-git push origin main
+git add . && git commit -m "..." && git push origin main   # → auto-deploys
 ```
 
----
+One-time connection (the CLI step needs the Vercel GitHub App authorized first):
+1. Vercel dashboard → project `niji-agency-v3` → **Settings → Git → Connect Git Repository**.
+2. Choose **GitHub**, authorize the Vercel GitHub App for the `TMNiji` account, pick `Niji-agency`.
+3. Or, once authorized, from the repo root: `vercel git connect`.
 
-## 2. Sanity CMS Setup
-
-### What's Already Configured
-- **Project ID:** `kpguac1f` (in `studio/.env`)
-- **Dataset:** `production`
-- **Schema:** Defined in `studio/schemas/`
-- **Studio:** Built with v3 structure tool + vision tool
-
-### Access the Sanity Studio Remotely
-
-**Option A: Deploy Studio to Sanity CDN (Recommended for Login Access)**
+### Option B — Manual CLI deploy
+Without a git connection, `git push` does **not** deploy. Deploy explicitly:
 
 ```bash
-npm run studio:deploy
+vercel --prod
 ```
 
-This publishes your studio to a **permanent Sanity-hosted URL** you can access from any device:
+Note: `vercel --prod` builds the current working directory. Stash WIP first
+(`git stash -u`), deploy, then `git stash pop` to deploy only the committed state.
+
+---
+
+## 4. Environment variables
+
+Set on Vercel (Project → Settings → Environment Variables) for all environments:
 
 ```
-https://<project-id>.sanity.studio
+VITE_SANITY_PROJECT_ID = kpguac1f
+VITE_SANITY_DATASET     = production
 ```
 
-**Login required** — uses your Sanity account credentials.
-
-### Step-by-Step: First-Time Setup
-
-1. **Verify Sanity project exists:**
-   - Go to [manage.sanity.io](https://manage.sanity.io)
-   - Sign in with your account
-   - You should see a project called "niji-agency-v3"
-
-2. **Generate an API token (for webhook/Vercel integration):**
-   - Sanity Dashboard → Settings → API → Tokens
-   - Create a new token with **Editor** role
-   - Copy the token
-
-3. **Deploy the studio to Sanity CDN:**
-   ```bash
-   npm install
-   npm --prefix studio install
-   npm run studio:deploy
-   ```
-   - Follow prompts to select your project
-   - Studio will be live at: `https://kpguac1f.sanity.studio`
-
-4. **Access from any device:**
-   - Open `https://kpguac1f.sanity.studio` in any browser
-   - Log in with your Sanity credentials
-   - Start editing!
+These mirror `.env` locally. The code has fallbacks, so the build won't break if they're
+missing, but keeping them set avoids silently relying on the fallback.
 
 ---
 
-## 3. Vercel Setup
-
-### Initial Deploy
-
-1. **Connect GitHub repo to Vercel:**
-   - Go to [vercel.com](https://vercel.com)
-   - Sign in / Sign up
-   - Click "New Project"
-   - Import your GitHub repo: `https://github.com/TMNiji/Niji-agency`
-   - Vercel auto-detects Vite config from `vercel.json`
-   - **Deploy**
-
-2. **Configure Environment Variables:**
-   - Project Settings → Environment Variables
-   - Add these:
-     ```
-     VITE_SANITY_PROJECT_ID = kpguac1f
-     VITE_SANITY_DATASET = production
-     ```
-   - Redeploy
-
-### Auto-Rebuild on Content Changes (Webhook)
-
-When you publish content in Sanity, Vercel automatically rebuilds the site.
-
-**Setup:**
-
-1. **Create Vercel Deploy Hook:**
-   - Vercel Dashboard → Project → Settings → Git
-   - Scroll to "Deploy Hooks"
-   - Create: Name = "Sanity Publish", Branch = "main"
-   - Copy the webhook URL
-
-2. **Add webhook to Sanity:**
-   - Go to [manage.sanity.io](https://manage.sanity.io)
-   - Project → API → Webhooks
-   - Create new webhook:
-     - **URL:** (paste Vercel deploy hook URL)
-     - **Trigger:** Document published
-     - **Filter:** `!(_id in path("drafts.**"))`
-     - **Method:** POST
-
-3. **Test it:**
-   - Edit any document in Sanity Studio
-   - Publish it
-   - Vercel should auto-trigger a rebuild (check Deployments tab)
-
----
-
-## 4. Access from Any Laptop
-
-### Sanity Studio (Content Editing)
-- **URL:** `https://kpguac1f.sanity.studio`
-- **Authentication:** Your Sanity account login
-- **No local server needed** ✅
-
-### Live Website
-- **URL:** `https://niji-agency.vercel.app` (or your custom domain)
-- **Auto-rebuilds** when content is published in Sanity
-
-### Local Development (Optional)
-If you want to dev locally:
-```bash
-npm install
-npm run dev                # main site on localhost:5173
-npm run studio:dev         # studio on localhost:3333
-```
-
----
-
-## 5. Custom Domain Setup
-
-1. **Buy domain** (Namecheap, GoDaddy, etc.)
-2. **Vercel → Project Settings → Domains**
-   - Add your domain
-   - Follow instructions to update DNS records
-
----
-
-## 6. Schema & Content Types
-
-Current schemas in `studio/schemas/`:
-- `homePage.js` — Editable homepage title, face pack assets, service tags, and AI links
-
-Add more schemas as needed, then re-deploy:
-```bash
-npm run studio:deploy
-```
-
----
-
-## 7. Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "Project not found" on deploy | Check `SANITY_STUDIO_PROJECT_ID` in `studio/.env` |
-| Studio URL 404 | Run `npm run studio:deploy` |
-| Vercel rebuild doesn't trigger | Verify webhook URL and filter in Sanity settings |
-| Environment vars not applied | Redeploy Vercel after adding vars |
-
----
-
-## Quick Reference
+## 5. Quick reference
 
 | Task | Command |
 |------|---------|
-| Push code to GitHub | `git push origin main` |
-| Deploy studio to Sanity | `npm run studio:deploy` |
+| Edit content | `https://kpguac1f.sanity.studio` → Publish (live, no deploy) |
+| Deploy code (git-connected) | `git push origin main` |
+| Deploy code (manual) | `vercel --prod` |
+| Re-deploy Studio (schema/UI) | `npm run studio:deploy` |
 | Local dev (site) | `npm run dev` |
 | Local dev (studio) | `npm run studio:dev` |
-| Build for production | `npm run build` |
 
 ---
 
-## Next Steps
+## 6. Troubleshooting
 
-1. ✅ Push to GitHub (done)
-2. ⏳ Deploy Sanity Studio: `npm run studio:deploy`
-3. ⏳ Connect GitHub to Vercel: [vercel.com/import](https://vercel.com/import)
-4. ⏳ Create Vercel deploy hook and add to Sanity webhooks
-5. ✅ Access studio from anywhere: `https://kpguac1f.sanity.studio`
+| Issue | Cause / fix |
+|-------|-------------|
+| Content edit not showing | Did you **Publish** (not just save a draft)? Hard-refresh; CDN cache is brief. |
+| `git push` didn't deploy | Project isn't git-connected — use Option A above, or deploy with `vercel --prod`. |
+| `vercel git connect` fails on a public repo | Authorize the Vercel GitHub App for the `TMNiji` account in the dashboard first (§3). |
+| Build can't reach Sanity | Confirm `VITE_SANITY_*` env vars (§4); code falls back to defaults otherwise. |
+| Studio 404 | Run `npm run studio:deploy`. |
