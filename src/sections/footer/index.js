@@ -71,7 +71,9 @@ export function mountFooter({ container, content = null } = {}) {
   contactsCol.className = 'footer__col footer__contacts';
   const item = document.createElement('a');
   item.className = 'footer__contact';
-  item.href = `mailto:${EMAIL}`;
+  const MAIL_SUBJECT = 'Prise de contact';
+  const MAIL_BODY = "J'ai potentiellement un projet sur lequel vous pourriez m'aider et j'aimerais en savoir plus sur votre agence.";
+  item.href = `mailto:${EMAIL}?subject=${encodeURIComponent(MAIL_SUBJECT)}&body=${encodeURIComponent(MAIL_BODY)}`;
   const emailEl = document.createElement('span');
   emailEl.className = 'footer__contact-email';
   emailEl.textContent = EMAIL;

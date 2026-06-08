@@ -114,7 +114,17 @@ const DEFAULT_CLIENTS = [
     caseUrl: 'https://apps.apple.com/fr/app/grand-frais/id6753673412',
     accent: '#2EA84A',
   },
-  // 3. Orange — Experience / "Design Partenaire depuis 10 ans"
+  // 3. Aromazone — App & Commerce / Product & Experience
+  {
+    name: 'Aromazone',
+    logo: '/logo/aromazone.svg',
+    logoScale: 1.5, // wide wordmark — enlarge past the default 48.6% card width
+    frontLabel: 'App & Commerce',
+    back: 'text',
+    blurb: 'Product & Experience',
+    accent: '#4A3428',
+  },
+  // 4. Orange — Experience / "Design Partenaire depuis 10 ans"
   {
     name: 'Orange',
     logo: '/logo/orange.png',
@@ -123,7 +133,7 @@ const DEFAULT_CLIENTS = [
     blurb: 'Design, Experience, B2C, B2B\nPartenaire depuis 10 ans',
     accent: '#FF7900',
   },
-  // 4. Relais & Châteaux — Plateforme de marque & Ecosystème digital / QR + Vimeo
+  // 5. Relais & Châteaux — Plateforme de marque & Ecosystème digital / QR + Vimeo
   {
     name: 'Relais & Châteaux',
     logo: '/logo/relais-chateaux.png',
@@ -133,7 +143,16 @@ const DEFAULT_CLIENTS = [
     caseUrl: 'https://vimeo.com/842443761/4551f51afc?share=copy&fl=sv&fe=ci',
     accent: '#7A1A2F',
   },
-  // 5. Decathlon — Application métiers / 8 ans
+  // 6. Arte — Plateforme digitale / Product & Experience
+  {
+    name: 'Arte',
+    logo: '/logo/arte.svg',
+    frontLabel: 'Plateforme digitale',
+    back: 'text',
+    blurb: 'Product & Experience',
+    accent: '#FF4E00',
+  },
+  // 7. Decathlon — Application métiers / 8 ans
   {
     name: 'Decathlon',
     logo: '/logo/decathlon.svg',
@@ -142,7 +161,7 @@ const DEFAULT_CLIENTS = [
     blurb: 'Partenaire depuis 8 ans',
     accent: '#0082C3',
   },
-  // 6. Accor — Site Corporate / screenshot
+  // 8. Accor — Site Corporate / screenshot
   {
     name: 'Accor',
     logo: '/logo/accor.png',
@@ -152,7 +171,7 @@ const DEFAULT_CLIENTS = [
     caseUrl: 'https://group.accor.com/fr',
     accent: '#C9A14D',
   },
-  // 7. BNP Paribas — Design System / Partenaire depuis 9 ans
+  // 9. BNP Paribas — Design System / Partenaire depuis 9 ans
   {
     name: 'BNP Paribas',
     logo: '/logo/bnp-paribas.png',
@@ -161,7 +180,7 @@ const DEFAULT_CLIENTS = [
     blurb: 'Partenaire depuis 9 ans',
     accent: '#008855',
   },
-  // 8. Ritz — Ecosystème digital / QR + Vimeo
+  // 10. Ritz — Ecosystème digital / QR + Vimeo
   {
     name: 'Ritz',
     logo: '/logo/ritz.png',
@@ -171,7 +190,7 @@ const DEFAULT_CLIENTS = [
     caseUrl: 'https://vimeo.com/911295072/ad02f28185?share=copy&fl=sv&fe=ci',
     accent: '#1F2A44',
   },
-  // 9. RATP — 1er site web eco-conçu et accessible / QR + Vimeo
+  // 11. RATP — 1er site web eco-conçu et accessible / QR + Vimeo
   {
     name: 'RATP',
     logo: '/logo/ratp.webp',
@@ -181,7 +200,7 @@ const DEFAULT_CLIENTS = [
     caseUrl: 'https://vimeo.com/911295002/cabba31990?share=copy&fl=sv&fe=ci',
     accent: '#008C53',
   },
-  // 10. Groupe Bel — Site Groupe / screenshot
+  // 12. Groupe Bel — Site Groupe / screenshot
   {
     name: 'Groupe Bel',
     logo: '/logo/groupe-bel.png',
