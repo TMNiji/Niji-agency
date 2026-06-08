@@ -67,8 +67,10 @@ const FACE = {
 const CLIENTS = [
   { name: 'Lacoste',          logo: 'logo/lacoste.png',          frontLabel: '1ère app m-commerce',                         accent: '#00563F', back: 'image', image: 'clients/screenshots/lacoste.webp' },
   { name: 'Grand Frais',      logo: 'logo/grand_frais_grey.svg', frontLabel: '1ère app m-commerce',                         accent: '#2EA84A', back: 'image', image: 'clients/screenshots/grand-frais.webp', caseUrl: 'https://apps.apple.com/fr/app/grand-frais/id6753673412' },
+  { name: 'Aromazone',        logo: 'logo/aromazone.svg',        frontLabel: 'App & Commerce',                              accent: '#4A3428', back: 'text',  blurb: 'Product & Experience' },
   { name: 'Orange',           logo: 'logo/orange.png',           frontLabel: 'Experience',                                  accent: '#FF7900', back: 'text',  blurb: 'Design Partenaire depuis 10 ans' },
   { name: 'Relais & Châteaux',logo: 'logo/relais-chateaux.png',  frontLabel: 'Plateforme de marque & Ecosystème digital',   accent: '#7A1A2F', back: 'qr',    qr: 'clients/qr/relais-chateaux.svg', caseUrl: 'https://vimeo.com/842443761/4551f51afc?share=copy&fl=sv&fe=ci' },
+  { name: 'Arte',             logo: 'logo/arte.svg',             frontLabel: 'Plateforme digitale',                         accent: '#FF4E00', back: 'text',  blurb: 'Product & Experience' },
   { name: 'Decathlon',        logo: 'logo/decathlon.svg',        frontLabel: 'Application métiers',                         accent: '#0082C3', back: 'text',  blurb: 'Partenaire depuis 8 ans' },
   { name: 'Accor',            logo: 'logo/accor.png',            frontLabel: 'Site Corporate',                              accent: '#C9A14D', back: 'image', image: 'clients/screenshots/accor.webp', caseUrl: 'https://group.accor.com/fr' },
   { name: 'BNP Paribas',      logo: 'logo/bnp-paribas.png',      frontLabel: 'Design System. Partenaire depuis 9 ans.',     accent: '#008855', back: 'text',  blurb: 'Partenaire depuis 9 ans' },
