@@ -18,7 +18,7 @@ There is **no content rebuild webhook** and you don't need one — see §2.
 | Platform | Role | Coordinates |
 |---|---|---|
 | **GitHub** | Source of truth for code | `TMNiji/Niji-agency`, branch `main` |
-| **Vercel** | Hosting / build | Project `niji-agency-v3`, domain `niji.agency` |
+| **Vercel** | Hosting / build | Project `niji-agency` (team `tmn-iji-s-projects`), domain `niji.agency` |
 | **Sanity** | CMS (content) | Project `kpguac1f`, dataset `production`, Studio `https://kpguac1f.sanity.studio` |
 
 ---
@@ -45,25 +45,25 @@ redeploy is involved. This is why there is no deploy hook.
 
 ---
 
-## 3. Code flow (GitHub → Vercel) — automated via GitHub Actions
+## 3. Code flow (GitHub → Vercel) — Vercel's native Git integration
 
-**Every push to `main` auto-deploys to production**, driven by
-[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
+**Every push to `main` auto-deploys to production.** The Vercel project
+**`niji-agency`** (team `tmn-iji-s-projects`) is connected to this GitHub repo via
+Vercel's native Git integration, so a push is all it takes:
 
 ```bash
 git add . && git commit -m "..." && git push origin main   # → auto-deploys
 ```
 
-The workflow runs `vercel pull → build → deploy --prod` using:
-- repo secret **`VERCEL_TOKEN`** (a Vercel token scoped to the team),
-- the project/org IDs hardcoded in the workflow env.
+Vercel detects the framework (Vite), builds, and promotes to production. There is
+**no GitHub Actions workflow and no `VERCEL_TOKEN` secret** — both were removed; the
+native integration handles everything with no token to maintain.
 
-> We use GitHub Actions instead of Vercel's native Git integration because the
-> repo (`TMNiji`) and the Vercel account's GitHub login are on different GitHub
-> accounts, which the native integration couldn't link. Actions sidesteps that.
-
-To rotate the token: create a new one at vercel.com/account/settings/tokens
-(scope = team `titouan-mazuriers-projects`) and update the `VERCEL_TOKEN` secret.
+> Earlier this repo used a GitHub Actions workflow with a `VERCEL_TOKEN` because the
+> native integration was thought not to link cleanly across the two accounts. It does
+> link (the project is owned by the Niji Vercel account, whose GitHub login matches
+> `TMNiji`), so the workflow was redundant — and was deploying to the wrong (personal)
+> Vercel project. It has been deleted.
 
 ### Fallback — manual CLI deploy
 You can always deploy directly, bypassing CI:
