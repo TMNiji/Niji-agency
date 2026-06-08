@@ -430,6 +430,10 @@
   opacity: 0;
   pointer-events: none;
 }
+/* Label opts into pointer-events (see below), so disable it here too. */
+.hero-orbital.is-dots-hidden .hero-orbital__dot-label {
+  pointer-events: none;
+}
 
 /* Expanded hitbox — invisible padding around the visual dot */
 .hero-orbital__dot::before {
@@ -451,7 +455,9 @@
   text-transform: uppercase;
   color: #fff;
   white-space: nowrap;
-  pointer-events: none;
+  /* Part of the dot's hitbox: clicks bubble to the parent dot's handler. */
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .hero-orbital__dot.is-open,

@@ -44,16 +44,10 @@ async function upload(kind, relPath) {
 const imageRef = async (relPath) => ({ _type: 'image', asset: { _type: 'reference', _ref: await upload('image', relPath) } });
 const fileRef  = async (relPath) => ({ _type: 'file',  asset: { _type: 'reference', _ref: await upload('file',  relPath) } });
 
-// ── Shared AI-links payload (mirrors src/sections/shared/aiLinks.js) ──────────
-const NIJI_PROMPT = 'I want to understand what Niji is and what they do. They are a French digital agency specialising in UX/UI design, custom development, digital transformation, e-commerce, and data & AI services. They work with major enterprise accounts across retail, banking, luxury, and public sector, with over 1,400 people across France. Summarise their capabilities, notable clients, and what makes them stand out: https://www.niji.fr/';
-const AI_LINKS = {
-  label: 'Explore with AI',
-  buttons: [
-    { label: 'Claude',     url: `https://claude.ai/new?q=${encodeURIComponent(NIJI_PROMPT)}` },
-    { label: 'GPT',        url: `https://chatgpt.com/?q=${encodeURIComponent(NIJI_PROMPT)}` },
-    { label: 'Perplexity', url: `https://www.perplexity.ai/search?q=${encodeURIComponent(NIJI_PROMPT)}` },
-  ],
-};
+// The "Explore with AI" links are intentionally NOT written to the CMS: the
+// prompt is localized (FR/EN) and points at niji.agency at runtime, so it lives
+// in code (src/sections/shared/aiLinks.js → DEFAULT_AI_LINKS). Leaving aiLinks
+// unset here lets every consumer fall back to that localized default.
 
 const FACE = {
   bgBottomRight:   'hero/bg-bottom-right.webp',
@@ -152,7 +146,6 @@ async function main() {
         { tag: 'BUSINESS', items: ['Unit economics, cost-to-serve',     'Cadrage produit, business case, go-to-market'] },
         { tag: 'BRANDING', items: ['Plateforme et positionnement',      'Promesse, preuves, expérience'] },
       ]),
-      aiLinks: AI_LINKS,
       cards: {
         strategy:      { title: '/Stratégie', recto: 'Pas une feature à ajouter.', verso: 'Une expérience à réinventer.' },
         businessValue: { title: '/Business Value', deltaTag: 'LCV', deltaValue: '+38 %' },
@@ -222,7 +215,6 @@ async function main() {
         { _type: 'contactEntry', topic: 'Pour parler produit, branding et agents IA', email: 'chris.de-abreu@niji.fr' },
       ],
       loopLabel: 'Keep scrolling — back to start',
-      aiLinks: AI_LINKS,
     },
   };
 
