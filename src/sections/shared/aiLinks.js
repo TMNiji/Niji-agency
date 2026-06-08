@@ -38,6 +38,15 @@ function detectLang() {
 const ACTIVE_LANG = detectLang();
 const NIJI_PROMPT = PROMPTS[ACTIVE_LANG];
 
+// On touch devices (iOS/Android) we navigate in the same tab rather than
+// target=_blank: a clean top-level navigation lets the OS hand off the https
+// link to the installed Claude/GPT/Perplexity app via Universal Links / App
+// Links (which carry the ?q= prompt). A new tab can break that hand-off.
+const IS_TOUCH =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
 // Per-provider chat endpoints — the URL-encoded prompt is appended as ?q=.
 const ENDPOINTS = {
   Claude:     'https://claude.ai/new?q=',
@@ -164,8 +173,12 @@ export function createAiLinks({ data = DEFAULT_AI_LINKS, baseClass = 'thinking__
     const btn  = document.createElement('a');
     btn.className = 'thinking__ai-btn';
     btn.href = href;
-    btn.target = '_blank';
-    btn.rel = 'noopener noreferrer';
+    // Desktop: new tab so the Niji page stays open. Touch: same-tab navigation
+    // so the OS can hand the link off to the installed app (see IS_TOUCH).
+    if (!IS_TOUCH) {
+      btn.target = '_blank';
+      btn.rel = 'noopener noreferrer';
+    }
     btn.setAttribute('aria-label', text);
 
     const key = LOGO_MAP[text.toLowerCase()] ?? null;
