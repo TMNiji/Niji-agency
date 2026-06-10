@@ -448,9 +448,9 @@
   top: 50%;
   left: calc(100% + 12px);
   transform: translateY(-50%);
-  font-family: 'DotGothic16', monospace;
+  font-family: 'Pixelify Sans', monospace;
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #fff;

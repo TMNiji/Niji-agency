@@ -135,7 +135,17 @@
        reads as one block, clearly separated from the other. */
     gap: 36px;
   }
-  .footer__columns::before { display: none; }
+  /* Stacked layout — flip the splitter from vertical to a horizontal rule
+     between the two groups (the AI question and the human question). */
+  .footer__columns::before {
+    top: 50%;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 1px;
+    transform: translateY(-50%);
+  }
   /* Tight gap between each column's title and its content so the heading packs
      directly onto what it introduces (improves the info hierarchy on phones). */
   .footer__col { width: 100%; align-items: center; gap: 10px; }
@@ -152,9 +162,9 @@
 }
 
 .footer__ai-links-label {
-  font-family: 'DotGothic16', monospace;
+  font-family: 'Pixelify Sans', monospace;
   font-size: 0.75rem;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #fff;
@@ -180,9 +190,9 @@
 }
 
 .footer__contact-topic {
-  font-family: 'DotGothic16', monospace;
+  font-family: 'Pixelify Sans', monospace;
   font-size: 0.75rem;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #fff;
@@ -248,9 +258,9 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  font-family: 'DotGothic16', monospace;
+  font-family: 'Pixelify Sans', monospace;
   font-size: 0.75rem;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #fff;
@@ -270,6 +280,35 @@
 @keyframes footer-loop-bob {
   0%, 100% { transform: translateY(0); opacity: 0.55; }
   50%      { transform: translateY(4px); opacity: 1; }
+}
+
+/* Legal link — small, anchored bottom-left of the stage so it sits clear of
+   the centred loop CTA. */
+.footer__legal {
+  position: absolute;
+  left: clamp(24px, 6vw, 120px);
+  bottom: clamp(28px, 5vh, 60px);
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: color 220ms ease;
+}
+
+.footer__legal:hover,
+.footer__legal:focus-visible { color: #fff; outline: none; }
+
+/* On phones the centred loop CTA + left-anchored legal link would crowd; drop
+   the legal link to its own line, centred under the CTA. */
+@media (max-width: 600px) {
+  .footer__legal {
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+  }
 }
 
 /* Loop-exit transform — slides the CTA off-screen with the rest of the stage. */

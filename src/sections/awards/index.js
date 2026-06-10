@@ -68,11 +68,13 @@ const CLOUD_POSITIONS = [
 ];
 
 // Phone layout — the horizontal spread above runs the outer trophies off a
-// narrow screen, so stack the trio vertically (x≈0) down the centre instead.
+// narrow screen, so stack the trio down the centre instead. Small alternating
+// x offsets keep the three off a single perfect vertical line (reads as a loose
+// constellation rather than a rigid column) without pushing them off-screen.
 const CLOUD_POSITIONS_MOBILE = [
-  { x: 0, y:  1.00, z:  0.0 },
-  { x: 0, y: -0.20, z:  0.25 },
-  { x: 0, y: -1.40, z:  0.0 },
+  { x: -0.28, y:  1.00, z:  0.0 },
+  { x:  0.30, y: -0.20, z:  0.25 },
+  { x: -0.16, y: -1.40, z:  0.0 },
 ];
 
 // Matches the CSS phone breakpoint (600px) so the 3D layout flips in step with

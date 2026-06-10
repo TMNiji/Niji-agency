@@ -60,7 +60,7 @@ export function mountFooter({ container, content = null } = {}) {
   const aiData = content?.contact?.aiLinks?.buttons?.length
     ? content.contact.aiLinks
     : (content?.thinking?.aiLinks?.buttons?.length ? content.thinking.aiLinks : DEFAULT_AI_LINKS);
-  const { el: aiBar } = createAiLinks({ data: aiData, baseClass: 'footer__ai-links' });
+  const { el: aiBar } = createAiLinks({ data: aiData, baseClass: 'footer__ai-links', showLabel: false });
   const aiCol = document.createElement('div');
   aiCol.className = 'footer__col footer__col--ai';
   aiCol.append(titleAi.el, aiBar);
@@ -104,6 +104,14 @@ export function mountFooter({ container, content = null } = {}) {
     else window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
   });
   stage.appendChild(loopCta);
+
+  // Legal link — small, bottom-left of the stage, opens the static mentions
+  // légales page (public/mentions-legales/index.html → /mentions-legales).
+  const legal = document.createElement('a');
+  legal.className = 'footer__legal';
+  legal.href = '/mentions-legales';
+  legal.textContent = 'Mentions légales';
+  stage.appendChild(legal);
 
   // Fan a glitch call out to both column titles so they animate in lockstep.
   const glitchBoth = (method, dur) => { titleAi[method](dur); titleHuman[method](dur); };

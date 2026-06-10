@@ -54,7 +54,7 @@ const ENDPOINTS = {
   Perplexity: 'https://www.perplexity.ai/search?q=',
 };
 
-const LABELS = { fr: "Explorer avec l'IA", en: 'Explore with AI' };
+const LABELS = { fr: 'Des questions ?', en: 'Any questions?' };
 
 // Toast copy follows the visitor's language, like the bar label + prompt above.
 const TOASTS = {
@@ -150,16 +150,20 @@ function safeExternalUrl(url) {
  *   AI-links payload. Falls back to DEFAULT_AI_LINKS.
  * @param {string} [opts.baseClass='thinking__ai-links'] BEM block for the
  *   container. Label/buttons containers derive from it (suffix -label / -buttons).
+ * @param {boolean} [opts.showLabel=true] Render the text label above the
+ *   buttons. The contact section hides it (the headline already asks the question).
  * @returns {{ el: HTMLElement }}
  */
-export function createAiLinks({ data = DEFAULT_AI_LINKS, baseClass = 'thinking__ai-links' } = {}) {
+export function createAiLinks({ data = DEFAULT_AI_LINKS, baseClass = 'thinking__ai-links', showLabel = true } = {}) {
   const root = document.createElement('div');
   root.className = baseClass;
 
-  const label = document.createElement('span');
-  label.className = `${baseClass}-label`;
-  label.textContent = data.label;
-  root.appendChild(label);
+  if (showLabel) {
+    const label = document.createElement('span');
+    label.className = `${baseClass}-label`;
+    label.textContent = data.label;
+    root.appendChild(label);
+  }
 
   const buttons = document.createElement('div');
   buttons.className = `${baseClass}-buttons`;
