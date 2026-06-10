@@ -91,7 +91,10 @@ const SECTIONS = [
 // Below this threshold, the cell + dots are shown (hero_grain). Above it, the
 // prism shader animates; the colorful peak holds briefly and then drops back
 // to the dark grain as the user crosses into DESIGN (video.top).
-const PRISM_THRESHOLD = 0.6;
+// Lowered from 0.6 → 0.5 so the bolt/rainbow plays out over the last HALF of
+// thinking's scroll instead of the last 40% — i.e. the rainbow advances less
+// per scroll tick, so the transition feels less twitchy.
+const PRISM_THRESHOLD = 0.5;
 
 initNoise();
 

@@ -125,7 +125,10 @@
 
 .clients__stack {
   position: absolute;
-  left: 42%;
+  /* Stack origin = where the focused card (rel=0) sits, so keep it at 50% so a
+     fully-focused card is dead-centre. The receding queue trails up-and-right
+     and passed cards exit down-and-left from here (both clipped by overflow). */
+  left: 50%;
   top: 50%;
   width: 0;
   height: 0;
@@ -258,9 +261,9 @@
 }
 
 .clients__card-back-label {
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: #fff;

@@ -86,9 +86,9 @@
   background: none;
   border: none;
   padding: 4px 0;
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #fff;
@@ -119,9 +119,9 @@
 }
 
 .thinking__service-sub-item {
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   color: #fff;
   letter-spacing: 0.01em;
   padding: 2px 0;
@@ -145,9 +145,9 @@
 .thinking__right-panel.ai-on .thinking__ai-links { opacity: 1; transform: scale(1); pointer-events: auto; }
 
 .thinking__ai-links-label {
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #fff;
@@ -218,7 +218,7 @@
 }
 
 .bcard__title {
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 0.875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -285,7 +285,7 @@
 .st-flip__face--verso { transform: rotateY(180deg); }
 
 .st-flip__tag {
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 0.75rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -303,7 +303,7 @@
 
 .st-flip__hint {
   align-self: flex-end;
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 0.75rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -324,7 +324,7 @@
   position: absolute;
   top: -4px;
   left: 0;
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 1.5rem;
   line-height: 1;
   color: #0065FF;
@@ -439,7 +439,7 @@
 
 .ds__count {
   display: block;
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   color: rgba(0, 0, 0, 0.50);
@@ -454,11 +454,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 0.75rem;
   letter-spacing: 0.12em;
   color: #0065FF;
-  font-weight: 700;
+  font-weight: 400;
   opacity: 0;
   transform: translateY(2px);
   transition: opacity 220ms ease, transform 320ms var(--ease-out-expo);
@@ -581,7 +581,7 @@
   padding: 3px 8px;
   border-radius: 6px;
   background: #fff;
-  font-family: 'Pixelify Sans', monospace;
+  font-family: var(--font);
   font-size: 0.75rem;
   color: #333;
   text-align: center;

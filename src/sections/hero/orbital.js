@@ -132,8 +132,8 @@ export function createOrbital({ stage, cards = {} } = {}) {
 
       // Per-dot hand-tuned nudges (px). Indices match DOT_LABELS:
       // 0 = /Stratégie, 2 = /Design Sprint.
-      // — /Stratégie sits dead-centre-right; nudge it 10px further right on phones.
-      if (i === 0 && isPhone) dot.x += 10;
+      // — /Stratégie sits dead-centre-right; nudge it 14px further right on phones.
+      if (i === 0 && isPhone) dot.x += 14;
       // — /Design Sprint lands too high (its golden-angle slot is near the top of
       //   the orbit); drop it on every viewport so it clears the heading above
       //   (a larger drop on phones, where cellPx is much smaller).

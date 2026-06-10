@@ -467,6 +467,10 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
     // Reduced motion: no mouse-driven parallax tilt (the scroll-driven card
     // cycling stays — it's user-controlled content, not gratuitous motion).
     const tiltScale = prefersReducedMotion() ? 0 : 1;
+    // On phones the per-card label is held constant instead of fading in/out as
+    // the river cycles (it just rides the card's own opacity). Matches the 600px
+    // phone breakpoint in clients.css.
+    const phone = window.innerWidth <= 600;
     curMouseX += (targetMouseX - curMouseX) * MOUSE_LERP;
     curMouseY += (targetMouseY - curMouseY) * MOUSE_LERP;
 
@@ -533,8 +537,14 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
         el.style.setProperty('--card-blur', `${blurR}px`);
       }
 
-      // Label reads in only as the card settles into focus.
-      logo.style.opacity = (focusAmt * focusAmt).toFixed(3);
+      // Label is fully white ONLY while the card is genuinely centred. The old
+      // focusAmt² curve still read ~0.66 white at rel≈-0.2 — i.e. the card looked
+      // "fully focused" while it had already drifted bottom-left along the river.
+      // A small dead-zone (|rel| ≤ 0.06 ≈ ±11px from centre) holds full white,
+      // then a smoothstep falloff drops it fast, so "text fully white" coincides
+      // with "card centred".
+      const labelT = 1 - Math.min(1, Math.max(0, (Math.abs(rel) - 0.06) / 0.16));
+      logo.style.opacity = phone ? '1' : (labelT * labelT * (3 - 2 * labelT)).toFixed(3);
     });
   }
 
