@@ -60,10 +60,67 @@
       font-weight: 700;
       font-size: clamp(1.125rem, 2vw, 1.5rem);
       letter-spacing: -0.01em;
-      margin: 40px 0 12px;
+      margin: 56px 0 12px;
+    }
+    h3 {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.005em;
+      margin: 32px 0 8px;
+      color: #fff;
     }
     p { margin-bottom: 12px; color: rgba(255, 255, 255, 0.85); }
     a { color: #fff; }
+    strong { font-weight: 700; color: #fff; }
+    hr {
+      border: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      margin: 56px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 0.8125rem;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.85);
+    }
+    th {
+      font-weight: 700;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    td code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9em;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      tr {
+        margin-bottom: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      td { border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+      td:last-child { border-bottom: 0; }
+      td::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+    }
   </style>
   <!-- GA4 + RGPD consent banner (Consent Mode v2) — see public/consent.js -->
   <script src="/consent.js"></script>
@@ -72,29 +129,126 @@
   <main>
     <a class="back" href="/">← Retour</a>
 
-    <h1>Mentions légales</h1>
-    <p class="updated">Dernière mise à jour : juin 2026</p>
+    <h1>Mentions légales et protection des données</h1>
+    <p class="updated">Dernière mise à jour : 10 juin 2026</p>
 
-    <h2>Éditeur du site</h2>
-    <p>[Placeholder] Raison sociale, forme juridique, capital social, adresse du siège social, numéro RCS, numéro de TVA intracommunautaire.</p>
+    <h2>01. Mentions légales</h2>
 
-    <h2>Directeur de la publication</h2>
-    <p>[Placeholder] Nom du directeur de la publication.</p>
+    <h3>Éditeur du site</h3>
+    <p><strong>Niji</strong>, société par actions simplifiée au capital social de 284 903 €<br />
+    Immatriculée au Registre du Commerce et des Sociétés de Rennes sous le numéro 439 055 278<br />
+    Siège social : Identity 1, 9A rue de Châtillon, 35000 Rennes, France<br />
+    Téléphone : +33 (0)2 99 32 02 84<br />
+    N° de TVA intracommunautaire : FR 16 439 055 278</p>
+    <p><strong>Directeur de la publication</strong> : [NOM PRÉNOM, fonction, à confirmer]</p>
 
-    <h2>Hébergeur</h2>
-    <p>[Placeholder] Nom de l'hébergeur, adresse et coordonnées.</p>
+    <h3>Hébergeur</h3>
+    <p><strong>Gandi SAS</strong><br />
+    63-65 boulevard Masséna, 75013 Paris, France<br />
+    Immatriculée au Registre du Commerce et des Sociétés de Paris sous le numéro 423 093 459<br />
+    <a href="https://www.gandi.net">www.gandi.net</a></p>
 
-    <h2>Propriété intellectuelle</h2>
-    <p>[Placeholder] L'ensemble des contenus présents sur ce site (textes, images, graphismes, logo, animations) est la propriété de Niji, sauf mention contraire. Toute reproduction est interdite sans autorisation préalable.</p>
+    <h3>Propriété intellectuelle</h3>
+    <p>L'ensemble des éléments composant ce site (structure, textes, logos, marques, identité visuelle, éléments graphiques et sonores, code) est la propriété exclusive de Niji ou fait l'objet d'une autorisation d'utilisation. Toute reproduction, représentation, modification ou exploitation, totale ou partielle, de ces éléments, par quelque procédé que ce soit et sur quelque support que ce soit, est interdite sans l'accord écrit et préalable de Niji.</p>
 
-    <h2>Données personnelles</h2>
-    <p>[Placeholder] Informations relatives au traitement des données personnelles et aux droits des utilisateurs au titre du RGPD.</p>
+    <h3>Visuels</h3>
+    <p>Les visuels de ce site ne sont pas des photographies. Ce sont des créations originales, générées avec des outils d'intelligence artificielle puis retravaillées par les équipes de Niji selon des procédés qui lui sont propres. Sauf mention contraire, elles ne représentent ni personnes réelles ni lieux existants. Ces créations appartiennent à Niji et ne peuvent être réutilisées sans son autorisation écrite préalable.</p>
 
-    <h2>Cookies</h2>
-    <p>[Placeholder] Informations relatives à l'utilisation des cookies.</p>
+    <h3>Contenus</h3>
+    <p>Le contenu et les informations présents sur ce site ne sont pas contractuels. Niji se réserve le droit de modifier unilatéralement tout ou partie des mentions et contenus du présent site, à tout moment et sans notification préalable. Niji prend soin de vérifier la qualité des informations publiées mais ne saurait être tenue responsable de leur exactitude, des erreurs ou des omissions qu'elles pourraient contenir.</p>
 
-    <h2>Contact</h2>
-    <p>[Placeholder] Pour toute question relative aux présentes mentions légales : <a href="mailto:hello@niji.agency">hello@niji.agency</a>.</p>
+    <h3>Liens hypertextes</h3>
+    <p>Ce site peut contenir des liens vers des sites tiers. Niji n'exerce aucun contrôle sur ces sites et décline toute responsabilité quant à leur contenu, leur accessibilité ou leurs pratiques en matière de données personnelles.</p>
+
+    <hr />
+
+    <h2>02. Protection des données personnelles</h2>
+
+    <p>Ce site collecte peu de données, et cette page dit lesquelles, pourquoi, et pour combien de temps. Niji se conforme à la règlementation applicable en matière de protection des données : le Règlement général sur la protection des données (RGPD) du 27 avril 2016, la loi Informatique et Libertés du 6 janvier 1978 modifiée et la directive e-privacy du 12 juillet 2002. Les recommandations de la Commission nationale de l'informatique et des libertés (CNIL) servent de référence pour leur mise en oeuvre.</p>
+
+    <h3>Responsable de traitement</h3>
+    <p>Le responsable des traitements réalisés via ce site est la société Niji, dont les coordonnées figurent dans les mentions légales ci-dessus. C'est Niji qui détermine les finalités et les moyens des traitements décrits dans la présente politique.</p>
+
+    <h3>Données collectées et finalités</h3>
+    <p>Pas de création de compte sur ce site, pas de formulaire avec stockage de données. Les traitements se limitent à ceci :</p>
+    <table>
+      <thead>
+        <tr><th>Données</th><th>Finalité</th><th>Base légale</th><th>Durée de conservation</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Données">Données transmises volontairement par email lorsque vous nous contactez (nom, adresse email, contenu du message et toute information que vous choisissez de communiquer)</td>
+          <td data-label="Finalité">Traiter et répondre à votre demande, assurer le suivi de la relation commerciale ou précontractuelle</td>
+          <td data-label="Base légale">Mesures précontractuelles et intérêt légitime de Niji à répondre aux sollicitations</td>
+          <td data-label="Durée de conservation">3 ans à compter du dernier contact, puis suppression ou archivage conformément aux obligations légales</td>
+        </tr>
+        <tr>
+          <td data-label="Données">Données techniques de connexion (adresse IP, type de navigateur, horodatage) collectées dans les journaux du serveur</td>
+          <td data-label="Finalité">Garantir la sécurité, la disponibilité et le bon fonctionnement du site</td>
+          <td data-label="Base légale">Intérêt légitime de Niji à sécuriser son infrastructure</td>
+          <td data-label="Durée de conservation">12 mois maximum</td>
+        </tr>
+        <tr>
+          <td data-label="Données">Données de navigation collectées via les cookies de mesure d'audience (pages consultées, durée de visite, source de trafic, type d'appareil)</td>
+          <td data-label="Finalité">Établir des statistiques de fréquentation et améliorer les contenus du site</td>
+          <td data-label="Base légale">Consentement, recueilli via le bandeau cookies</td>
+          <td data-label="Durée de conservation">13 mois maximum (voir section Cookies)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Destinataires</h3>
+    <p>Vos données sont destinées aux seules équipes de Niji habilitées à traiter votre demande. Deux sous-traitants au sens du RGPD interviennent techniquement : Gandi SAS pour l'hébergement, sur des infrastructures situées au sein de l'Union européenne, et Google Ireland Limited pour la mesure d'audience, sous réserve de votre consentement. Aucune donnée n'est vendue, louée ou cédée à des tiers.</p>
+
+    <h3>Transferts hors Union européenne</h3>
+    <p>Les données collectées via ce site sont hébergées au sein de l'Union européenne. Une exception : les données de mesure d'audience traitées par Google Analytics peuvent être transférées vers les États-Unis. Ce transfert est encadré par le cadre de protection des données UE-États-Unis (EU-US Data Privacy Framework), auquel Google LLC a adhéré, et par les clauses contractuelles types de la Commission européenne.</p>
+
+    <h3>Absence de décision automatisée</h3>
+    <p>Aucune décision produisant des effets juridiques à votre égard n'est prise sur la base d'un traitement automatisé. Ce site ne réalise aucun profilage.</p>
+
+    <h3>Vos droits</h3>
+    <p>Conformément à la règlementation, vous disposez des droits suivants sur vos données : droit d'accès, de rectification, d'effacement, de limitation du traitement, d'opposition, de portabilité, ainsi que du droit de définir des directives relatives au sort de vos données après votre décès.</p>
+    <p>Pour les exercer, écrivez-nous à [adresse-rgpd@niji.fr] ou par courrier à l'adresse du siège social indiquée ci-dessus. Nous vous répondons dans un délai d'un mois à compter de la réception de votre demande. Ce délai peut être prolongé de deux mois si la demande est complexe, et vous en serez alors informé.</p>
+    <p>Si vous estimez, après nous avoir contactés, que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la CNIL : <a href="https://www.cnil.fr">www.cnil.fr</a>, 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.</p>
+
+    <hr />
+
+    <h2>03. Gestion des cookies</h2>
+
+    <h3>Qu'est-ce qu'un cookie</h3>
+    <p>Un cookie est un petit fichier texte déposé sur votre terminal (ordinateur, tablette, smartphone) lors de la consultation d'un site. Il permet à son émetteur de reconnaître ce terminal et de conserver certaines informations pendant sa durée de validité.</p>
+
+    <h3>Cookies déposés par ce site</h3>
+    <p>Deux catégories, pas plus.</p>
+    <p><strong>Cookies strictement nécessaires.</strong> Indispensables au fonctionnement du site. Ils sont exemptés de consentement conformément aux lignes directrices de la CNIL et ne peuvent pas être désactivés.</p>
+    <p><strong>Cookies de mesure d'audience.</strong> Ce site utilise Google Analytics 4, un service de mesure d'audience fourni par Google Ireland Limited (Gordon House, Barrow Street, Dublin 4, Irlande). Il nous sert à comprendre comment le site est consulté et à en améliorer les contenus, sur la base de statistiques anonymisées. Ces cookies ne sont déposés qu'après recueil de votre consentement, via le bandeau présenté lors de votre première visite.</p>
+    <table>
+      <thead>
+        <tr><th>Cookie</th><th>Émetteur</th><th>Finalité</th><th>Durée de vie</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Cookie"><code>_ga</code></td>
+          <td data-label="Émetteur">Google Analytics</td>
+          <td data-label="Finalité">Distinguer les visiteurs uniques</td>
+          <td data-label="Durée de vie">13 mois maximum</td>
+        </tr>
+        <tr>
+          <td data-label="Cookie"><code>_ga_&lt;ID&gt;</code></td>
+          <td data-label="Émetteur">Google Analytics</td>
+          <td data-label="Finalité">Maintenir l'état de session</td>
+          <td data-label="Durée de vie">13 mois maximum</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Votre consentement</h3>
+    <p>Lors de votre première visite, un bandeau vous permet d'accepter, de refuser ou de paramétrer le dépôt des cookies de mesure d'audience. Votre choix est conservé pendant 6 mois, puis il vous est demandé à nouveau. Tant que vous n'avez pas consenti, aucun cookie de mesure d'audience n'est déposé. Le refus ne change rien à votre navigation.</p>
+    <p>Vous pouvez modifier vos préférences à tout moment via le lien « Gérer mes cookies » présent en pied de page.</p>
+
+    <h3>Paramétrage de votre navigateur</h3>
+    <p>Vous pouvez aussi configurer votre navigateur pour accepter ou refuser les cookies, ou être averti avant tout dépôt. La marche à suivre est décrite dans la rubrique d'aide de votre navigateur : <a href="https://support.google.com/chrome/answer/95647">Chrome</a>, <a href="https://support.mozilla.org/fr/kb/protection-renforcee-contre-pistage-firefox-ordinateur">Firefox</a>, <a href="https://support.apple.com/fr-fr/guide/safari/sfri11471/mac">Safari</a>, <a href="https://support.microsoft.com/fr-fr/microsoft-edge">Edge</a>.</p>
+    <p>Pour aller plus loin sur les cookies et la protection de votre vie privée en ligne : <a href="https://www.cnil.fr/fr/cookies-et-autres-traceurs">cnil.fr/fr/cookies-et-autres-traceurs</a>.</p>
   </main>
 </body>
 </html>

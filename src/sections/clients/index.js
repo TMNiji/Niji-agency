@@ -537,13 +537,11 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
         el.style.setProperty('--card-blur', `${blurR}px`);
       }
 
-      // Label is fully white ONLY while the card is genuinely centred. The old
-      // focusAmt² curve still read ~0.66 white at rel≈-0.2 — i.e. the card looked
-      // "fully focused" while it had already drifted bottom-left along the river.
-      // A small dead-zone (|rel| ≤ 0.06 ≈ ±11px from centre) holds full white,
-      // then a smoothstep falloff drops it fast, so "text fully white" coincides
-      // with "card centred".
-      const labelT = 1 - Math.min(1, Math.max(0, (Math.abs(rel) - 0.06) / 0.16));
+      // Label stays fully white across the whole stretch where the card reads as
+      // focused, so the project text is comfortably legible rather than flashing
+      // readable for an instant at dead-centre. A wide dead-zone (|rel| ≤ 0.2)
+      // holds full white, then a smoothstep falloff fades it out by |rel| ≈ 0.45.
+      const labelT = 1 - Math.min(1, Math.max(0, (Math.abs(rel) - 0.2) / 0.25));
       logo.style.opacity = phone ? '1' : (labelT * labelT * (3 - 2 * labelT)).toFixed(3);
     });
   }
