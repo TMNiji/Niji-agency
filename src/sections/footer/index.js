@@ -105,13 +105,27 @@ export function mountFooter({ container, content = null } = {}) {
   });
   stage.appendChild(loopCta);
 
-  // Legal link — small, bottom-left of the stage, opens the static mentions
-  // légales page (public/mentions-legales/index.html → /mentions-legales).
+  // Legal + cookie controls — small links bottom-left of the stage. The legal
+  // link opens the static mentions légales page (public/mentions-legales →
+  // /mentions-legales); "Gérer mes cookies" re-opens the consent banner via the
+  // API exposed by public/consent.js so visitors can change or withdraw their
+  // choice, as the mentions légales page promises.
+  const meta = document.createElement('div');
+  meta.className = 'footer__meta';
+
   const legal = document.createElement('a');
-  legal.className = 'footer__legal';
+  legal.className = 'footer__meta-link';
   legal.href = '/mentions-legales';
   legal.textContent = 'Mentions légales';
-  stage.appendChild(legal);
+
+  const cookies = document.createElement('button');
+  cookies.type = 'button';
+  cookies.className = 'footer__meta-link';
+  cookies.textContent = 'Gérer mes cookies';
+  cookies.addEventListener('click', () => window.nijiConsent?.open());
+
+  meta.append(legal, cookies);
+  stage.appendChild(meta);
 
   // Fan a glitch call out to both column titles so they animate in lockstep.
   const glitchBoth = (method, dur) => { titleAi[method](dur); titleHuman[method](dur); };

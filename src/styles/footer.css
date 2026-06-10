@@ -282,12 +282,18 @@
   50%      { transform: translateY(4px); opacity: 1; }
 }
 
-/* Legal link — small, anchored bottom-left of the stage so it sits clear of
-   the centred loop CTA. */
-.footer__legal {
+/* Legal + cookie links — small row anchored bottom-left of the stage so it sits
+   clear of the centred loop CTA. */
+.footer__meta {
   position: absolute;
   left: clamp(24px, 6vw, 120px);
   bottom: clamp(28px, 5vh, 60px);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.footer__meta-link {
   font-family: var(--font);
   font-size: 0.75rem;
   font-weight: 400;
@@ -296,18 +302,26 @@
   color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
   transition: color 220ms ease;
+  /* the "Gérer mes cookies" control is a <button> — reset it to match the link */
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
-.footer__legal:hover,
-.footer__legal:focus-visible { color: #fff; outline: none; }
+.footer__meta-link:hover,
+.footer__meta-link:focus-visible { color: #fff; outline: none; }
 
-/* On phones the centred loop CTA + left-anchored legal link would crowd; drop
-   the legal link to its own line, centred under the CTA. */
+/* On phones the centred loop CTA + left-anchored links would crowd; drop the
+   links to their own stacked block, centred under the CTA. */
 @media (max-width: 600px) {
-  .footer__legal {
+  .footer__meta {
     left: 50%;
     bottom: 12px;
     transform: translateX(-50%);
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
   }
 }
 
