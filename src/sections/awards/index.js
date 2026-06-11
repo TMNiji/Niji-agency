@@ -84,7 +84,15 @@ const cloudPositions = () => (isMobileLayout() ? CLOUD_POSITIONS_MOBILE : CLOUD_
 
 // Touch devices have no hover, so the per-frame hover raycast is replaced by a
 // tap: the tooltip appears when a trophy is tapped and clears on tapping away.
-const isTouchDevice = () => window.matchMedia('(hover: none)').matches;
+// `(hover: none)` alone is not enough: some Android setups report `(hover: hover)`
+// — S-Pen styluses that can hover, or Chrome's "Desktop site" mode — which would
+// otherwise route them through the desktop hover raycast and fight the tap (the
+// centre trophy would sit "hovered" at rest and snap back after every tap). Fall
+// back to a coarse pointer or real touch points so those devices tap correctly.
+const isTouchDevice = () =>
+  window.matchMedia('(hover: none)').matches ||
+  window.matchMedia('(any-pointer: coarse)').matches ||
+  (navigator.maxTouchPoints ?? 0) > 0;
 // Desktop only — used to gate the hover constellation off tablet/mobile: a true
 // pointer (hover) AND a desktop-width viewport (≥1024px excludes tablets).
 const isDesktop = () =>
@@ -510,10 +518,15 @@ export function mountAwards({ container, webgl, content = null } = {}) {
       }
     }
   }
-  function onPointerLeave() {
+  function onPointerLeave(e) {
     targetX = 0;
     targetY = 0;
     webgl?.shaderPlane?.setMouseTarget(0, 0);
+    // A touch pointer fires pointerleave the instant the finger lifts. Clearing
+    // the selection here would dismiss a just-tapped tooltip and let the resting
+    // state snap back, so on touch we recentre the parallax but keep the tap
+    // selection — touch dismissal is handled by tapping empty space (onTap).
+    if (e?.pointerType === 'touch') return;
     setHovered(null);
   }
   // Tap-to-reveal on touch devices: raycast at the tapped point and toggle the

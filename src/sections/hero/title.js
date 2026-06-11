@@ -54,6 +54,7 @@ export function createTitle({
   // block; white-space:nowrap` (see CSS), so a line that wraps only ever breaks
   // at the spaces between words, never inside one.
   const charSpans = [];
+  let lineIdx = 0;
   for (const item of lines) {
     const text = typeof item === 'string' ? item : item.text;
     const cls  = typeof item === 'string' ? '' : (item.cls ?? '');
@@ -89,7 +90,20 @@ export function createTitle({
       charSpans.push(span);
     }
     flushWord();
+    // Copy/selection separator: a zero-width non-breaking space between lines so
+    // the visually stacked lines copy as space-separated words ("We Make products
+    // for humans. & Agents") instead of running together ("WeMake productsfor…")
+    // when a paste target collapses the line breaks. font-size:0 (see CSS __sep)
+    // keeps it off the layout — a normal space would be collapsed and not copy,
+    // a visible nbsp would shift the right-aligned lines.
+    if (lineIdx < lines.length - 1) {
+      const sep = document.createElement('span');
+      sep.className = `${baseClass}__sep`;
+      sep.textContent = '\u00A0';
+      line.appendChild(sep);
+    }
     el.appendChild(line);
+    lineIdx++;
   }
 
   let timer = null;

@@ -67,7 +67,11 @@
      title block instead of hugging the edge as a narrow measure. */
   width: 100%;
   margin: 0;
-  pointer-events: none;
+  /* Selectable so visitors can copy the agency descriptor. While the hero is in
+     view this is the visible state; once it fades out on scroll the JS drops
+     pointer-events to none (hero/index.js) so the invisible fixed paragraph
+     never traps clicks/selection meant for the sections behind it. */
+  pointer-events: auto;
   will-change: opacity, transform;
   /* Never auto-split a word — only break at whitespace. Combined with the
      non-breaking spaces between numbers and units in the source ("115 designers"
@@ -122,7 +126,14 @@
 .hero-title__line--we     { font-size: 0.62em; text-align: center; }
 .hero-title__line--make   { font-size: 1em; }
 .hero-title__line--humans { font-size: 0.5em; padding-right: 0.9em; }   /* right, nudged in */
-.hero-title__line--agents { font-size: 2.3em; text-align: left; line-height: 0.85; }
+/* Capitalised via CSS (source text is "&Agents") so a copy/paste of the title
+   keeps the readable casing instead of yielding all-caps "AGENTS". */
+.hero-title__line--agents { font-size: 2.3em; text-align: left; line-height: 0.85; text-transform: uppercase; }
+
+/* Zero-width copy/selection separator inserted between the stacked title lines
+   (title.js). font-size:0 keeps it off the layout while its non-breaking space
+   still lands in the clipboard, so the lines copy space-separated. */
+.hero-title__sep { font-size: 0; }
 
 .hero-title:focus { outline: 1px dashed rgba(255,255,255,0.2); outline-offset: 8px; }
 

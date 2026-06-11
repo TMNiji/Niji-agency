@@ -8,6 +8,24 @@
 
 @font-face {
   font-family: 'N27';
+  src: url('/fonts/N27-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* No N27 SemiBold ships, so weight 600 (the footer contact email) maps to Bold
+   — the nearest true face — rather than letting the UA synthesize a faux weight. */
+@font-face {
+  font-family: 'N27';
+  src: url('/fonts/N27-Bold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'N27';
   src: url('/fonts/N27-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;

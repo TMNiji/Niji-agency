@@ -11,7 +11,7 @@ const DEFAULT_LINES = [
   { text: 'We',            cls: 'hero-title__line--we' },
   { text: 'Make products', cls: 'hero-title__line--make' },
   { text: 'for humans.',   cls: 'hero-title__line--humans' },
-  { text: '&AGENTS',       cls: 'hero-title__line--agents' },
+  { text: '&Agents',       cls: 'hero-title__line--agents' },
 ];
 
 export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null } = {}) {
@@ -139,7 +139,14 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
       // still sits above the thinking section (hero z-index:2 > thinking:1) and
       // would swallow clicks meant for the orbital dots behind it.
       const pe = (1 - fade) > 0.02 ? 'auto' : 'none';
-      if (pe !== lastPE) { lastPE = pe; title.el.style.pointerEvents = pe; }
+      if (pe !== lastPE) {
+        lastPE = pe;
+        title.el.style.pointerEvents = pe;
+        // Subtitle is selectable (pointer-events:auto in CSS) while visible; gate
+        // it with the same fade so the invisible fixed paragraph stops capturing
+        // clicks/selection once the hero has scrolled away.
+        subtitle.style.pointerEvents = pe;
+      }
     }
 
     if (move !== lastMove) {
