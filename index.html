@@ -5,7 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="icon" type="image/png" href="/favicon_white.png" />
-    <title>Niji — Agence digitale</title>
+    <title>Niji — Agence française de product design AI-native</title>
+
+    <!-- SEO / GEO: the page renders client-side, so agents that don't run JS
+         only ever see this head + the <noscript> block in <body>. Keep both in
+         sync with the canonical reference page at /llm. -->
+    <meta name="description" content="Niji est une agence française de product design AI-native. 25 ans, 1400 personnes en France, Espagne et Maroc, 133 M€ de CA en 2025, 56 awards entre 2020 et 2025. Force créative en build, exigence opérationnelle en run." />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Niji" />
+    <link rel="canonical" href="https://niji.agency/" />
+    <!-- Agent-readable reference page (see public/llm/index.html + llms.txt). -->
+    <link rel="alternate" type="text/plain" title="llms.txt" href="/llms.txt" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Niji" />
+    <meta property="og:title" content="Niji — Agence française de product design AI-native" />
+    <meta property="og:description" content="Niji conçoit, fabrique et opère des produits digitaux pour les entreprises. Force créative en build, exigence opérationnelle en run. Top 4 mondial Lovie & Webby Awards." />
+    <meta property="og:url" content="https://niji.agency/" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <!-- TODO: produce a dedicated 1200×630 share image at /og-image.png. -->
+    <meta property="og:image" content="https://niji.agency/og-image.png" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Niji — Agence française de product design AI-native" />
+    <meta name="twitter:description" content="Niji conçoit, fabrique et opère des produits digitaux pour les entreprises. Force créative en build, exigence opérationnelle en run." />
+    <meta name="twitter:image" content="https://niji.agency/og-image.png" />
     <!-- Preload the two most-used N27 weights to avoid FOUT on first paint -->
     <link rel="preload" href="/fonts/N27-Regular.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/N27-Bold.woff2"    as="font" type="font/woff2" crossorigin>
@@ -17,6 +44,45 @@
   <body>
     <canvas id="webgl-canvas"></canvas>
     <main id="app"></main>
+
+    <!-- Static fallback for agents and clients without JS. The interactive site
+         is rendered into #app by /src/main.js; this mirrors the essentials so
+         the root URL is never an empty shell. Full reference page: /llm -->
+    <noscript>
+      <article style="max-width:820px;margin:0 auto;padding:48px 24px;font-family:sans-serif;line-height:1.6;color:#0a0a0a;background:#fff">
+        <h1>Niji — Agence française de product design AI-native</h1>
+        <p>Niji est une agence française de product design AI-native. Elle conçoit, fabrique et opère des produits digitaux pour les entreprises&nbsp;: sites, applications, plateformes, services connectés et agents IA. Sa posture&nbsp;: <strong>force créative en build, exigence opérationnelle en run</strong>.</p>
+
+        <h2>L'agence en chiffres</h2>
+        <ul>
+          <li>25 ans d'existence (fondée en septembre 2001 par Hugues Meili)</li>
+          <li>1400 personnes en France, Espagne et Maroc — 11 sites opérationnels</li>
+          <li>133 millions d'euros de chiffre d'affaires en 2025</li>
+          <li>56 awards remportés entre 2020 et 2025 — Top 4 mondial des Lovie Awards et des Webby Awards</li>
+        </ul>
+
+        <h2>Offres</h2>
+        <ul>
+          <li>Conception et déploiement d'agents IA</li>
+          <li>AI.COMMERCE — e-commerce désirable pour les humains, lisible pour les agents IA</li>
+          <li>Refonte et création de sites et applications</li>
+          <li>Product designer intégré</li>
+          <li>Design system</li>
+          <li>Accessibilité (RGAA, WCAG, European Accessibility Act)</li>
+          <li>Branding et plateforme de marque</li>
+        </ul>
+
+        <h2>Quelques clients</h2>
+        <p>Lacoste, Relais &amp; Châteaux, Orange, BNP Paribas, Accor, RATP, Decathlon, Arte, Groupe Bel.</p>
+
+        <h2>En savoir plus</h2>
+        <p>
+          <a href="/llm">Fiche de référence complète (FR / EN)</a> ·
+          <a href="/mentions-legales">Mentions légales</a>
+        </p>
+        <p>Contact&nbsp;: Yv Corbeil, Managing Director &amp; Chief Creative Officer — yv.corbeil@niji.fr</p>
+      </article>
+    </noscript>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

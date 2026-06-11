@@ -1,0 +1,52 @@
+# robots.txt — niji.agency
+# The homepage is client-rendered; /llm is a static, agent-readable reference
+# page. Everything here is public and we explicitly welcome AI crawlers.
+
+User-agent: *
+Allow: /
+
+# AI / LLM crawlers — explicitly allowed (listed so an accidental global
+# block is never inherited and the intent is unambiguous).
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+Sitemap: https://niji.agency/sitemap.xml
