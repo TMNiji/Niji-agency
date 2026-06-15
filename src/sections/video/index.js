@@ -16,7 +16,7 @@ import { createTitle } from '../hero/title.js';
 import { asset } from '@/lib/asset.js';
 
 // ── Dropdown copy ────────────────────────────────────────────────────────────
-// DESIGN (frames 1-160) and CODE (frames 161-end) each get their own service
+// DESIGN (frames 1-262) and CODE (frames 263-end) each get their own service
 // panel. Tags render with a leading "/" added by createServiceDropdowns.
 export const DESIGN_SERVICES = [
   { tag: 'CONCEPT',  items: ['Vision produit, direction créative',  'Concepts qui tiennent en boardroom'] },
@@ -38,6 +38,13 @@ export function mountVideo({
   title = '',
   subtitle = '',
   services = [],
+  // Title layout: 'top' is the default top-centre overlay (CODE); 'center'
+  // drops it dead-centre (DESIGN). See video.css.
+  titleVariant = 'top',
+  // Optional explicit line spec for createTitle — lets a section build a custom
+  // stack (e.g. DESIGN's Du / CHAOS / naît le produit, with `switch:true` on the
+  // CHAOS line to font-morph just that word). Falls back to title + subtitle.
+  titleLines = null,
 } = {}) {
   const section = container.querySelector(`[data-section="${sectionId}"]`);
   if (!section) return null;
@@ -49,19 +56,21 @@ export function mountVideo({
 
   // ── Title + subtitle overlay ───────────────────────────────────────────────
   // Built via the shared createTitle so it glitches in/out on section
-  // enter/leave, matching the clients/awards rhythm. The subtitle reads as the
-  // large/bold line, the title as the smaller lead-in beneath it.
+  // enter/leave, matching the clients/awards rhythm. Default stack is the
+  // large/bold lead line + a smaller line below; a section can override `lines`.
   const titleHandle = createTitle({
     baseClass: 'video-title',
     tag: 'div',
-    lines: [
+    lines: titleLines ?? [
       { text: title,    cls: 'video-title__line--large' },
       { text: subtitle, cls: 'video-title__line--small' },
     ],
+    // The whole-title shatter stays flicker-only (no font swap); any font
+    // morphing is scoped to a `switch:true` line via createTitle's word loop.
     glitchFontClasses: [],
     glitchDuration: 0,
   });
-  titleHandle.el.classList.add('video__title');
+  titleHandle.el.classList.add('video__title', `video__title--${titleVariant}`);
   stage.appendChild(titleHandle.el);
 
   // ── Service dropdowns — same panel as THINKING ─────────────────────────────
@@ -167,20 +176,5 @@ export function mountVideo({
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
 
-  // Reveal ONLY the title ahead of the section — used by DESIGN so its heading
-  // glitches in the moment the light bolt pierces the cell (late in THINKING),
-  // a beat before the section itself begins. `is-titling` shows the stage (so
-  // the title escapes its opacity gate) while keeping the frame canvas hidden,
-  // so the video proper still starts at the section boundary.
-  function setTitlePreview(on) {
-    if (on) {
-      section.classList.add('is-visible', 'is-titling');
-      titleHandle.glitchIn(0.7);
-    } else {
-      titleHandle.glitchOut(0.4);
-      section.classList.remove('is-visible', 'is-titling');
-    }
-  }
-
-  return { section, canvas, designServices, titleHandle, startPreload, setTitlePreview };
+  return { section, canvas, designServices, titleHandle, startPreload };
 }

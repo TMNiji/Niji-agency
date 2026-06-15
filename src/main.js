@@ -36,7 +36,7 @@ const SECTIONS = [
   {
     id: 'video',
     label: 'DESIGN',
-    // DESIGN scrubs frames 1-160. Height tuned so the ~160-frame slice spreads
+    // DESIGN scrubs frames 1-262. Height tuned so the ~262-frame slice spreads
     // over enough scroll that scrubbing doesn't feel twitchy.
     triggerHeight: '200vh',
     triggerStart: 'top top',
@@ -45,7 +45,7 @@ const SECTIONS = [
   {
     id: 'code',
     label: 'CODE',
-    // CODE scrubs frames 161-end (~337 frames) — taller than DESIGN so the
+    // CODE scrubs frames 263-end (~549 frames) — taller than DESIGN so the
     // larger slice keeps the same frames-per-pixel feel.
     triggerHeight: '350vh',
     triggerStart: 'top top',
@@ -203,23 +203,33 @@ async function boot() {
   }
 
   const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
-  // DESIGN + CODE sections — one scroll-scrubbed image sequence (496 frames)
-  // split at frame 160. Each mount preloads + scrubs only its own slice.
+  // DESIGN + CODE sections — one scroll-scrubbed image sequence (811 frames)
+  // split at frame 262. Each mount preloads + scrubs only its own slice.
   const FRAME_BASE = { base: '/video/frames/frame_', pad: 4, ext: 'webp' };
   const video    = mountVideo({
     container: root,
     orchestrator,
     sectionId: 'video',
-    frames: { ...FRAME_BASE, start: 1, end: 160 },
-    title: sanityContent?.design?.title ?? 'Du chaos naît le produit',
-    subtitle: sanityContent?.design?.subtitle ?? 'On juge une idée à ce qu\'elle transforme',
+    frames: { ...FRAME_BASE, start: 1, end: 262 },
+    // DESIGN heading sits dead-centre as "Du / CHAOS / naît le produit"; only
+    // CHAOS carries the hero-style flicker + Niconne/Rubik font-morph (switch).
+    titleVariant: 'center',
+    titleLines: [
+      { text: 'Du',              cls: 'video-title__line--lead video-title__line--du' },
+      { text: 'CHAOS',           cls: 'video-title__line--chaos', switch: true },
+      { text: 'naît le produit', cls: 'video-title__line--lead video-title__line--tagline' },
+    ],
     services: sanityContent?.design?.services?.length ? sanityContent.design.services : DESIGN_SERVICES,
   });
+  // DESIGN heading starts hidden — it's revealed at frame 58, not on enter.
+  video?.titleHandle?.hide();
   const code     = mountVideo({
     container: root,
     orchestrator,
     sectionId: 'code',
-    frames: { ...FRAME_BASE, start: 161, end: 496 },
+    frames: { ...FRAME_BASE, start: 263, end: 811 },
+    // CODE heading centred at top, as before (title + subtitle).
+    titleVariant: 'top',
     title: sanityContent?.code?.title ?? 'Le produit prend vie.',
     subtitle: sanityContent?.code?.subtitle ?? 'Le go-live n\'est que le début.',
     services: sanityContent?.code?.services?.length ? sanityContent.code.services : CODE_SERVICES,
@@ -231,8 +241,8 @@ async function boot() {
   // ── Lazy frame prefetch ──────────────────────────────────────────────────
   // The DESIGN + CODE image sequences total ~500 WebP frames. Loading them all
   // at boot is the dominant cause of slow first paint, so each slice only starts
-  // downloading when the user is one section away: DESIGN's 160 frames on
-  // entering THINKING, CODE's 336 frames on entering DESIGN. By the time either
+  // downloading when the user is one section away: DESIGN's 262 frames on
+  // entering THINKING, CODE's 549 frames on entering DESIGN. By the time either
   // scrubbed section is reached, its frames have had a full section of scroll to
   // arrive (and pick() degrades gracefully to the nearest loaded frame meanwhile).
   orchestrator.onEnter('thinking', () => video?.startPreload?.());
@@ -267,16 +277,27 @@ async function boot() {
   ['hero', 'contact'].forEach((id) =>
     orchestrator.onEnter(id, () => setAiVisible(false)));
 
-  // The prism bolt energizes (pierces) the cell at prism-local progress ~0.45
-  // (see prism.glsl: energize = smoothstep(0.38, 0.48, uProgress)). The DESIGN
-  // title glitches in at that instant — a beat before the video section proper —
-  // and the frame canvas stays hidden until the section starts (setTitlePreview).
-  const BEAM_PIERCE = 0.45;
-  let designTitleEarly = false;
-  const setDesignTitleEarly = (on) => {
-    if (on === designTitleEarly) return;
-    designTitleEarly = on;
-    video?.setTitlePreview?.(on);
+  // setActive toggles a section stage's is-visible (shared by video + clients).
+  const setActive = (id, on) => {
+    const el = document.querySelector(`[data-section="${id}"]`);
+    if (el) el.classList.toggle('is-visible', on);
+  };
+
+  // ── DESIGN reveal choreography ──────────────────────────────────────────────
+  // The prism's rainbow refraction peaks late in THINKING. At MERGE_POINT we
+  // cross-fade the DESIGN frame sequence in over that dissolving rainbow so the
+  // colour resolves straight into the first video frame — no dark gap, the
+  // rainbow appears to "become" the video. The heading must NOT ride in with
+  // this early stage reveal: it waits for frame 58 (onProgress 'video' below),
+  // so we snap it hidden as the stage appears.
+  const MERGE_POINT = 0.62;        // prism-local progress where the video emerges
+  let designStageEarly = false;
+  let designTitleShown = false;
+  const setDesignStageEarly = (on) => {
+    if (on === designStageEarly) return;
+    designStageEarly = on;
+    setActive('video', on);
+    if (on) video?.titleHandle?.hide();
   };
 
   orchestrator.onProgress('thinking', ({ progress }) => {
@@ -291,28 +312,21 @@ async function boot() {
       // doesn't snap back to default when the bolt fires.
       webgl.shaderPlane.setProgress(p);
       setUIVisible(1 - p);
-      setDesignTitleEarly(p >= BEAM_PIERCE);
+      setDesignStageEarly(p >= MERGE_POINT);
     } else if (prismActive) {
       webgl.shaderPlane.setShader('hero_grain');
       webgl.shaderPlane.setProgress(0);
       setUIVisible(1);
       prismActive = false;
-      setDesignTitleEarly(false);
+      setDesignStageEarly(false);
     }
   });
 
-  // ── Video — rainbow hand-off ───────────────────────────────────────────────
-  // DESIGN is left transparent on top of the prism: thinking's onProgress takes
-  // the prism to its peak (p=1) just before crossing into DESIGN, and that state
-  // is intentionally not reset here so the colourful backdrop carries through
-  // the section. Clients' onEnter takes over the next handoff to the awards
-  // backdrop, so DESIGN itself has no shader handler.
-
-  // ── Video + Clients — reveal stage when active ──────────────────────────
-  const setActive = (id, on) => {
-    const el = document.querySelector(`[data-section="${id}"]`);
-    if (el) el.classList.toggle('is-visible', on);
-  };
+  // ── Video — backdrop hand-off ───────────────────────────────────────────────
+  // DESIGN/CODE play their opaque frame sequence over the prism's now-dark
+  // backdrop (the colour was removed), so neither needs to keep a coloured
+  // shader; the frames cover it. Clients' onEnter takes over the next handoff to
+  // the awards backdrop.
 
   // Video (DESIGN/CODE) inherits the prism backdrop from BUILD's tail. Coming
   // back up from clients, that handoff hasn't happened, so the shader is still
@@ -328,29 +342,41 @@ async function boot() {
     });
   }
 
-  // DESIGN (frames 1-160) — prism backdrop, own title + dropdowns. No clients
+  // DESIGN (frames 1-262) — prism backdrop, own title + dropdowns. No clients
   // preview here; that's handed off in CODE, the last frame-scrub section.
   orchestrator.onEnter('video', () => {
     setActive('video', true);
-    // Reveal the frame canvas (hidden during the early title-only preview).
-    video?.section?.classList.remove('is-titling');
     video?.designServices?.classList.add('is-on');
-    // The title may already be on screen from the early beam-pierce reveal —
-    // only glitch it in here if it wasn't, to avoid a double shatter.
-    if (!designTitleEarly) video?.titleHandle?.glitchIn(0.7);
-    designTitleEarly = false;
     webgl.shaderPlane.setShader('prism');
     webgl.shaderPlane.setProgress(1);
     prismActive = true;
     setUIVisible(0);
+    // The heading is revealed by the frame-58 progress handler below, not on
+    // section enter, so nothing is glitched in here.
   });
   orchestrator.onLeave('video', () => {
     setActive('video', false);
     video?.designServices?.classList.remove('is-on');
     video?.titleHandle?.glitchOut(0.4);
+    designTitleShown = false;
   });
 
-  // CODE (frames 161-end) — keeps the prism backdrop, swaps in its own title +
+  // DESIGN heading is shown only across a frame window of the scrub, not the
+  // whole section: it glitches in at frame 58 (over the already-running video)
+  // and shatters out again 4 frames before the DESIGN cut (frame 258 of 262), so
+  // there's a brief title-less gap before the CODE heading appears on enter.
+  // The 262-frame slice maps frame N to (N-1)/261 progress.
+  const DESIGN_TITLE_IN  = (58 - 1) / (262 - 1);
+  const DESIGN_TITLE_OUT = (258 - 1) / (262 - 1);
+  orchestrator.onProgress('video', ({ progress }) => {
+    const show = progress >= DESIGN_TITLE_IN && progress < DESIGN_TITLE_OUT;
+    if (show === designTitleShown) return;
+    designTitleShown = show;
+    if (show) video?.titleHandle?.glitchIn(0.7);
+    else video?.titleHandle?.glitchOut(0.4);
+  });
+
+  // CODE (frames 263-end) — keeps the prism backdrop, swaps in its own title +
   // dropdowns, and runs the clients far-preview so the CODE → clients boundary
   // reads as one continuous motion.
   orchestrator.onEnter('code', () => {
@@ -395,10 +421,12 @@ async function boot() {
       // so it never reaches into the rainbow → DESIGN cross-fade — scrubbing
       // toward DESIGN is left untouched.
       { section: 'thinking', progress: 0.14, window: 0.22 },
-      // DESIGN — settle the frame scrub onto key frame 44. The DESIGN trigger's
-      // progress 0→1 maps to frame index 0→159 (frames 1-160), so frame 44 lives
-      // at (44-1)/(160-1) with a ±22-frame capture range.
-      { section: 'video', progress: (44 - 1) / (160 - 1), window: 22 / (160 - 1) },
+      // DESIGN — settle the frame scrub onto key frame 72. The DESIGN trigger's
+      // progress 0→1 maps to frame index 0→261 (frames 1-262), so frame 72 lives
+      // at (72-1)/(262-1) with a ±36-frame capture range. (72 preserves the old
+      // 44/160 relative position after the new footage swap — re-tune to the new
+      // video's actual landmark once reviewed.)
+      { section: 'video', progress: (72 - 1) / (262 - 1), window: 36 / (262 - 1) },
     ];
     const SETTLE_MS = 140; // quiet time that counts as "stopped"
     let settleTimer = 0;

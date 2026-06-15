@@ -37,12 +37,18 @@ export function createTitle({
   tag = 'h1',
   glitchDuration = GLITCH_DURATION,
   glitchFontClasses,
+  switchFontClasses,
 } = {}) {
   const el = document.createElement(tag);
   el.className = baseClass;
 
   // Decorative faces a glitched letter can flip to (CSS classes, e.g. hero.css).
   const glitchFonts = glitchFontClasses ?? [`${baseClass}__char--niconne`, `${baseClass}__char--rubik`];
+
+  // Faces used by the word-scoped glitch loop (a line flagged `switch:true`).
+  // Kept separate from glitchFonts so a title can run the shatter/flicker on
+  // every letter (glitchFonts) while morphing fonts on ONE word only.
+  const switchFonts = switchFontClasses ?? [`${baseClass}__char--niconne`, `${baseClass}__char--rubik`];
 
   // Each line is a block span; letters within are width-locked inline-block
   // spans (set on play) so a font swap changes only the glyph, never the
@@ -54,10 +60,14 @@ export function createTitle({
   // block; white-space:nowrap` (see CSS), so a line that wraps only ever breaks
   // at the spaces between words, never inside one.
   const charSpans = [];
+  // Letters belonging to a line flagged `switch:true` — the only ones the
+  // word-scoped font-morph loop touches (e.g. just "CHAOS" in the DESIGN title).
+  const switchSpans = [];
   let lineIdx = 0;
   for (const item of lines) {
     const text = typeof item === 'string' ? item : item.text;
     const cls  = typeof item === 'string' ? '' : (item.cls ?? '');
+    const doSwitch = typeof item === 'object' && !!item.switch;
     const line = document.createElement('span');
     line.className = cls ? `${baseClass}__line ${cls}` : `${baseClass}__line`;
     let word = null;
@@ -88,6 +98,7 @@ export function createTitle({
       span.style.setProperty('--exit-t', exitT.toFixed(3));
       word.appendChild(span);
       charSpans.push(span);
+      if (doSwitch) switchSpans.push(span);
     }
     flushWord();
     // Copy/selection separator: a zero-width non-breaking space between lines so
@@ -164,6 +175,49 @@ export function createTitle({
       s.classList.remove('is-glitch');
     });
     revertTimers.clear();
+  }
+
+  // ── Word-scoped font-morph ──────────────────────────────────────────────
+  // A self-contained loop that flickers + font-swaps random letters of the
+  // flagged word only (switchSpans), running independently of the shatter/exit
+  // machinery above so it can keep living while the rest of the title sits
+  // static. Used by the DESIGN heading to glitch just "CHAOS" the way the hero
+  // title glitches its whole self. No-op when no line is flagged.
+  let wordTimer = null;
+  let wordRunning = false;
+  const wordReverts = new Map();
+  function wordGlitchOne() {
+    const idle = switchSpans.filter((s) => !s.classList.contains('is-glitch'));
+    if (!idle.length) return;
+    const s = idle[(Math.random() * idle.length) | 0];
+    s.classList.remove(...switchFonts);
+    s.classList.add('is-glitch');
+    if (switchFonts.length) s.classList.add(switchFonts[(Math.random() * switchFonts.length) | 0]);
+    const id = setTimeout(() => {
+      s.classList.remove('is-glitch', ...switchFonts);
+      wordReverts.delete(s);
+    }, GLITCH_LIFE);
+    wordReverts.set(s, id);
+  }
+  function wordSpawn() {
+    if (!wordRunning) return;
+    wordGlitchOne();
+    wordTimer = setTimeout(wordSpawn, SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN));
+  }
+  function startWordGlitch() {
+    if (wordRunning || !switchSpans.length || prefersReducedMotion()) return;
+    (document.fonts?.ready ?? Promise.resolve()).then(() => {
+      if (wordRunning) return;
+      if (!locked) lockWidths();
+      wordRunning = true;
+      wordSpawn();
+    });
+  }
+  function stopWordGlitch() {
+    wordRunning = false;
+    clearTimeout(wordTimer);
+    wordReverts.forEach((id, s) => { clearTimeout(id); s.classList.remove('is-glitch', ...switchFonts); });
+    wordReverts.clear();
   }
 
   function play() {
@@ -255,6 +309,9 @@ export function createTitle({
   function glitchIn(duration = 0.7) {
     if (!locked) lockWidths();
     gsap.killTweensOf(exitVal);
+    // Kick the word-morph the moment the heading reveals (no-op without a
+    // flagged word) so the flagged word keeps glitching while the section is up.
+    startWordGlitch();
     if (prefersReducedMotion()) { setExit(0); return; }
     exitVal.v = 1;
     setExit(1);
@@ -266,8 +323,20 @@ export function createTitle({
       onUpdate: () => setExit(exitVal.v),
     });
   }
+  // Snap fully hidden (all chars off) without kicking the shatter loop — used
+  // when a section defers its reveal (the DESIGN heading waits for frame 58) so
+  // the title isn't visible at its default exit=0 while the section is already up.
+  function hide() {
+    gsap.killTweensOf(exitVal);
+    stopWordGlitch();
+    if (exitTimer) { clearTimeout(exitTimer); exitTimer = null; }
+    exitVal.v = 1;
+    el.style.setProperty('--exit', '1');
+    el.classList.remove('is-exiting');
+  }
   function glitchOut(duration = 0.5) {
     gsap.killTweensOf(exitVal);
+    stopWordGlitch();
     if (prefersReducedMotion()) { setExit(1); return; }
     gsap.to(exitVal, {
       v: 1,
@@ -286,6 +355,9 @@ export function createTitle({
     setExit,
     glitchIn,
     glitchOut,
+    hide,
+    startWordGlitch,
+    stopWordGlitch,
     destroy() {
       running = false;
       gsap.killTweensOf(exitVal);
@@ -294,6 +366,7 @@ export function createTitle({
       clearTimeout(exitTimer);
       revertTimers.forEach((id) => clearTimeout(id));
       revertTimers.clear();
+      stopWordGlitch();
       window.removeEventListener('resize', relock);
     },
   };

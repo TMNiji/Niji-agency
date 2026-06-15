@@ -23,16 +23,10 @@
 
 .video.is-visible .video__stage { opacity: 1; }
 
-/* DESIGN reveals its title a beat early (when the bolt pierces the cell, still
-   in THINKING): the stage is shown so the heading escapes the stage opacity
-   gate, but the frame canvas stays hidden until the section actually starts. */
-.video.is-titling .video__canvas { opacity: 0; }
+/* ── Title — glitches in/out on enter/leave ─────────────────────────────────── */
 
-/* ── Title + subtitle — top-centre overlay, glitches in/out on enter/leave ─── */
-
-/* Shared title spec — identical sizes/colors/placement to the clients and
-   awards headings so every section heading reads the same (see clients.css /
-   awards.css). Large/bold line on top, small/muted line below. */
+/* Default placement: top-centre overlay — CODE keeps this (matching the
+   clients/awards headings). DESIGN overrides to dead-centre via --center. */
 .video__title {
   position: absolute;
   top: calc(clamp(110px, 12vh, 160px) + 12px);
@@ -41,6 +35,22 @@
   text-align: center;
   pointer-events: none;
   z-index: 2;
+}
+
+/* DESIGN — centred hero statement (Du / CHAOS / naît le produit). Double-class
+   so it beats the responsive single-class rules below at every breakpoint.
+   max-width holds it inside the page gutters so it never touches the edges. */
+.video__title.video__title--center {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: max-content;
+  max-width: calc(100vw - 2 * clamp(24px, 6vw, 96px));
+}
+@media (max-width: 600px) {
+  .video__title.video__title--center { max-width: calc(100vw - 32px); }
 }
 
 /* Built via createTitle — each letter is a width-locked span so the glitch
@@ -65,6 +75,32 @@
   font-size: clamp(1.125rem, 1.7vw, 1.5rem);
   color: #fff;
 }
+
+/* DESIGN centred title — CHAOS is the oversized centrepiece that defines the
+   block width (the --center container is width:max-content). The two lead lines
+   nest against its edges: "Du" flush to the LEFT edge of CHAOS, "naît le produit"
+   flush to the RIGHT edge, tucked tight above/below it. */
+.video-title__line--lead {
+  font-size: clamp(1.5rem, 3.2vw, 2.75rem);
+  font-weight: 400;
+  color: #fff;
+}
+.video-title__line--chaos {
+  font-size: clamp(3.25rem, 9vw, 7.5rem);
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+/* Anchor the lead lines to CHAOS's edges and pull them in tight so the three
+   lines read as one nested block rather than a loose centred stack. */
+.video-title__line--du      { text-align: left;  margin-bottom: -0.12em; }
+.video-title__line--tagline { text-align: right; }
+
+/* Decorative faces a glitched CHAOS letter flips to — same pair the hero title
+   uses (see hero.css). Box height stays steady; only the glyph morphs. */
+.video-title__char--niconne { font-family: 'Niconne', cursive; }
+.video-title__char--rubik   { font-family: 'Rubik80sFade', var(--font); }
 
 /* Per-letter chrome — width locked from JS; exit-t/exit drives the glitch pop. */
 .video-title__char {

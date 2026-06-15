@@ -47,7 +47,6 @@ void main() {
   //   0.60 → 0.78  rainbow's sharp band fades — definition lost
   //   0.68 → 0.92  rainbow's wide glow fades — blur dissolves
   //   0.60 → 0.90  cell fades alongside the rainbow it spawned
-  //   0.55 → 0.95  three-colour atmospheric background takes over (resting state)
   float boltArrival   = smoothstep(0.00, 0.42, uProgress);
   float boltFade      = 1.0 - smoothstep(0.50, 0.75, uProgress);
   float energize      = smoothstep(0.38, 0.48, uProgress)
@@ -56,7 +55,6 @@ void main() {
   float bandFade      = 1.0 - smoothstep(0.60, 0.78, uProgress);
   float glowFade      = 1.0 - smoothstep(0.68, 0.92, uProgress);
   float cellFade      = 1.0 - smoothstep(0.60, 0.90, uProgress);
-  float bgProg        = smoothstep(0.55, 0.95, uProgress);
 
   // ── Cell — visible at start (continuity with thinking), fades into bg ─────
   // Same pointer parallax as hero_grain so the cell doesn't pop on shader swap.
@@ -103,39 +101,15 @@ void main() {
   col += rbCol * (band * 0.88 * bandFade + glow * 0.20 * glowFade)
        * fwd * rainbowAppear;
 
-  // ── Atmospheric background — DESIGN resting state ────────────────────────
-  // Dark field with a warm orange glow left-of-centre, a cool teal glow on the
-  // right that bleeds downward, and a bright warm light-leak near bottom-centre.
-  // Slow drift gives the atmosphere life without distracting from UI content.
-  // Larger falloff = tighter blob; the dark backdrop reads through everywhere
-  // the glows don't reach, keeping the field near-black like the storyboard.
-  float ta = uTime * 0.04;
-  vec2 posOrange = vec2(-0.18 * aspect + cos(ta)           * 0.03,
-                        -0.14          + sin(ta * 0.7)     * 0.04);
-  vec2 posTeal   = vec2( 0.30 * aspect + cos(ta + 2.1)     * 0.04,
-                        -0.22          + sin(ta * 0.8 + 1.5) * 0.05);
-  vec2 posLeak   = vec2(-0.04 * aspect + cos(ta + 4.2)     * 0.02,
-                        -0.46          + sin(ta * 0.6 + 3.0) * 0.03);
-
-  float dO = dot(c - posOrange, c - posOrange);
-  float dT = dot(c - posTeal,   c - posTeal);
-  float dL = dot(c - posLeak,   c - posLeak);
-
-  float fOrange = exp(-dO * 4.5);
-  float fTeal   = exp(-dT * 4.0);
-  float fLeak   = exp(-dL * 11.0) + exp(-dL * 4.0) * 0.25;
-
-  col += vec3(0.88, 0.36, 0.13) * fOrange * bgProg * 0.80; // warm orange
-  col += vec3(0.16, 0.45, 0.52) * fTeal   * bgProg * 0.65; // cool teal
-  col += vec3(1.00, 0.92, 0.80) * fLeak   * bgProg * 0.60; // warm light-leak
-
   // ── Cinematic finish — grain comes from the DOM #noise overlay ───────────
   col *= vignette(dc);
 
-  // Shared dark backdrop beneath the prism — present during build's prism phase,
-  // faded out as the colourful CONCEPTION atmosphere takes over (bgProg → 1) so
-  // chaos's resting state is unchanged.
-  col += awardsBackdrop(uv, aspect) * (1.0 - bgProg);
+  // Shared dark backdrop beneath the prism, kept at full strength through the
+  // whole phase so DESIGN/CODE resolve to a clean, uncoloured dark field — the
+  // bolt + cell pierce play over it, then it's all that remains at rest. (The
+  // former orange/teal/light-leak resting atmosphere was removed so the video
+  // frame sequence plays over a neutral backdrop.)
+  col += awardsBackdrop(uv, aspect);
 
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }
