@@ -172,7 +172,7 @@ const HOVER_EMISSIVE_B  = 0.10;
 // translucent draw calls while a single trophy is hovered.
 const GOLDEN_ANGLE              = Math.PI * (3 - Math.sqrt(5)); // ≈137.5° — even phyllotaxis spread
 const CONSTELLATION_COUNT       = 7;     // scattered award nodes around the main one
-const CONSTELLATION_BLUR        = 3;     // jittered copies per node → soft-focus blur
+const CONSTELLATION_BLUR        = 2;     // jittered copies per node → soft-focus blur
 const CONSTELLATION_JITTER      = 0.022; // blur spread (cloud units) between a node's copies
 const CONSTELLATION_MIN_DIST    = 0.38;  // nearest node distance from the trophy centre
 const CONSTELLATION_MAX_DIST    = 0.92;  // farthest node distance
@@ -301,6 +301,7 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   cloud.add(constellationGroup);
   const constellationMats = [];        // { mat, base } — base = resting opacity for that copy
   const constellationFade = { v: 0 };  // 0 → hidden, 1 → fully shown (GSAP-tweened)
+  const constellationAnchors = [];     // { group, slot } — one anchor per trophy; follows its live position
 
   // ── Hover hitboxes ─────────────────────────────────────────────────────────
   // Each trophy gets an invisible, solid box sized to the displayed model's
@@ -546,70 +547,82 @@ export function mountAwards({ container, webgl, content = null } = {}) {
   stage.addEventListener('pointerleave', onPointerLeave);
   stage.addEventListener('click',        onTap);
 
-  // Scatter a constellation of faint, blurry clones around a hovered slot. Each
-  // node is a small, randomly-oriented copy of the slot's visible trophy
-  // (placeholder primitive OR loaded GLB) placed on a sphere around the trophy
-  // centre and pushed slightly back so the real trophy stays foremost. Within a
-  // node, a few jittered overlapping copies fake a soft-focus blur. Clones reuse
-  // the source geometry/textures by reference; only the MATERIALS are cloned so
-  // each copy can fade independently.
-  function buildConstellation(slot) {
+  // Scatter a constellation of faint, blurry clones around EACH given trophy.
+  // This used to fire on hover for a single trophy; it now runs on section enter
+  // for the whole cloud (see setActive), so the award field reads as a soft halo
+  // of duplicate trophies the moment the section appears — no hover needed. Each
+  // trophy gets its own anchor group (constellationAnchors) that follows the live
+  // trophy position in update(), so its halo bobs/drifts with it. Each node is a
+  // small, randomly-oriented copy of the trophy's visible mesh (placeholder while
+  // loading, else the GLB) placed on a disc around the trophy centre and pushed
+  // back so the real trophy stays foremost; within a node a few jittered copies
+  // fake a soft-focus blur. Clones reuse the source geometry/textures by
+  // reference; only the MATERIALS are cloned so each copy can fade independently.
+  function buildConstellation(slots) {
     clearConstellation();
-    // The visible trophy: the placeholder while loading, else the GLB model
-    // (the only child that isn't the invisible hit proxy).
-    const source = slot.userData.placeholder
-      ?? slot.children.find((c) => c !== slot.userData.proxy);
-    if (!source) return;
-
     const rand = (a, b) => a + Math.random() * (b - a);
     const lerp = (a, b, t) => a + (b - a) * t;
-    for (let n = 0; n < CONSTELLATION_COUNT; n++) {
-      // Phyllotaxis (sunflower) layout: stepping the angle by the golden angle
-      // and growing the radius as sqrt fills the disc EVENLY around the trophy,
-      // so nodes never clump on one side. A touch of jitter keeps it organic.
-      // Outer nodes sit deeper, smaller and fainter; inner ones read closer and
-      // brighter — depth, size and opacity all keyed to the same radius ramp.
-      const angle  = n * GOLDEN_ANGLE + rand(-0.25, 0.25);
-      const t      = Math.sqrt((n + 0.5) / CONSTELLATION_COUNT);     // 0 (inner) → ~1 (outer)
-      const radius = lerp(CONSTELLATION_MIN_DIST, CONSTELLATION_MAX_DIST, t) * rand(0.92, 1.08);
-      const node = new THREE.Group();
-      node.position.set(
-        Math.cos(angle) * radius,
-        Math.sin(angle) * radius * 0.82,                              // vertical squash → wide halo
-        -CONSTELLATION_BACK_BIAS * (0.4 + 0.6 * t) + rand(-0.12, 0.12), // farther out = deeper
-      );
-      node.rotation.set(rand(0, Math.PI * 2), rand(0, Math.PI * 2), rand(0, Math.PI * 2));
-      node.scale.setScalar(lerp(CONSTELLATION_MAX_SCALE, CONSTELLATION_MIN_SCALE, t));
-      const base = lerp(CONSTELLATION_MAX_OPACITY, CONSTELLATION_MIN_OPACITY, t);
+    for (const slot of slots) {
+      // The visible trophy: the placeholder while loading, else the GLB model
+      // (the only child that isn't the invisible hit proxy).
+      const source = slot.userData.placeholder
+        ?? slot.children.find((c) => c !== slot.userData.proxy);
+      if (!source) continue;
+      // Anchor parents this trophy's nodes; update() copies the trophy's live
+      // position onto it each frame so the whole cluster tracks the trophy.
+      const anchor = new THREE.Group();
+      constellationGroup.add(anchor);
+      constellationAnchors.push({ group: anchor, slot });
 
-      for (let b = 0; b < CONSTELLATION_BLUR; b++) {
-        const echo = source.clone(true);
-        echo.traverse((m) => {
-          if (!m.isMesh) return;
-          const src = Array.isArray(m.material) ? m.material : [m.material];
-          const cloned = src.map((mat) => {
-            const c = mat.clone();         // shares textures; frees cheap on dispose
-            c.transparent = true;
-            c.depthWrite  = false;         // so overlapping blur copies blend, not z-fight
-            c.opacity     = 0;
-            constellationMats.push({ mat: c, base });
-            return c;
-          });
-          m.material = Array.isArray(m.material) ? cloned : cloned[0];
-        });
-        // Wrap each copy in a jitter holder so the GLB's own centring transform
-        // on `echo` is preserved (setting echo.position would clobber it).
-        const jitter = new THREE.Group();
-        jitter.position.set(
-          rand(-CONSTELLATION_JITTER, CONSTELLATION_JITTER),
-          rand(-CONSTELLATION_JITTER, CONSTELLATION_JITTER),
-          rand(-CONSTELLATION_JITTER, CONSTELLATION_JITTER),
+      for (let n = 0; n < CONSTELLATION_COUNT; n++) {
+        // Phyllotaxis (sunflower) layout: stepping the angle by the golden angle
+        // and growing the radius as sqrt fills the disc EVENLY around the trophy,
+        // so nodes never clump on one side. A touch of jitter keeps it organic.
+        // Outer nodes sit deeper, smaller and fainter; inner ones read closer and
+        // brighter — depth, size and opacity all keyed to the same radius ramp.
+        const angle  = n * GOLDEN_ANGLE + rand(-0.25, 0.25);
+        const t      = Math.sqrt((n + 0.5) / CONSTELLATION_COUNT);     // 0 (inner) → ~1 (outer)
+        const radius = lerp(CONSTELLATION_MIN_DIST, CONSTELLATION_MAX_DIST, t) * rand(0.92, 1.08);
+        const node = new THREE.Group();
+        node.position.set(
+          Math.cos(angle) * radius,
+          Math.sin(angle) * radius * 0.82,                              // vertical squash → wide halo
+          -CONSTELLATION_BACK_BIAS * (0.4 + 0.6 * t) + rand(-0.12, 0.12), // farther out = deeper
         );
-        jitter.add(echo);
-        node.add(jitter);
+        node.rotation.set(rand(0, Math.PI * 2), rand(0, Math.PI * 2), rand(0, Math.PI * 2));
+        node.scale.setScalar(lerp(CONSTELLATION_MAX_SCALE, CONSTELLATION_MIN_SCALE, t));
+        const base = lerp(CONSTELLATION_MAX_OPACITY, CONSTELLATION_MIN_OPACITY, t);
+
+        for (let b = 0; b < CONSTELLATION_BLUR; b++) {
+          const echo = source.clone(true);
+          echo.traverse((m) => {
+            if (!m.isMesh) return;
+            const src = Array.isArray(m.material) ? m.material : [m.material];
+            const cloned = src.map((mat) => {
+              const c = mat.clone();         // shares textures; frees cheap on dispose
+              c.transparent = true;
+              c.depthWrite  = false;         // so overlapping blur copies blend, not z-fight
+              c.opacity     = 0;
+              constellationMats.push({ mat: c, base });
+              return c;
+            });
+            m.material = Array.isArray(m.material) ? cloned : cloned[0];
+          });
+          // Wrap each copy in a jitter holder so the GLB's own centring transform
+          // on `echo` is preserved (setting echo.position would clobber it).
+          const jitter = new THREE.Group();
+          jitter.position.set(
+            rand(-CONSTELLATION_JITTER, CONSTELLATION_JITTER),
+            rand(-CONSTELLATION_JITTER, CONSTELLATION_JITTER),
+            rand(-CONSTELLATION_JITTER, CONSTELLATION_JITTER),
+          );
+          jitter.add(echo);
+          node.add(jitter);
+        }
+        anchor.add(node);
       }
-      constellationGroup.add(node);
     }
+    if (!constellationAnchors.length) return;
     constellationGroup.visible = true;
     gsap.fromTo(constellationFade, { v: 0 }, { v: 1, duration: 0.45, overwrite: true });
   }
@@ -620,19 +633,19 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     gsap.killTweensOf(constellationFade);
     constellationMats.forEach(({ mat }) => mat.dispose());
     constellationMats.length = 0;
+    constellationAnchors.length = 0;
     constellationGroup.clear();
     constellationGroup.visible = false;
   }
 
-  // Fade the cluster out, then drop it once it's gone (unless a new trophy
-  // grabbed the hover in the meantime).
+  // Fade the whole cluster out, then drop it once it's gone.
   function hideConstellation() {
     if (!constellationGroup.visible) return;
     gsap.to(constellationFade, {
       v: 0,
       duration: 0.3,
       overwrite: true,
-      onComplete: () => { if (!hovered) clearConstellation(); },
+      onComplete: () => clearConstellation(),
     });
   }
 
@@ -650,12 +663,8 @@ export function mountAwards({ container, webgl, content = null } = {}) {
       tooltipDetail1.textContent = a.details?.[0] ?? '';
       tooltipDetail2.textContent = a.details?.[1] ?? '';
       tooltip.classList.add('is-visible');
-      // Desktop only — the constellation is a motion flourish, so skip it on
-      // tablet/mobile (no hover or sub-desktop width) and for reduced motion.
-      if (isDesktop() && !prefersReducedMotion()) buildConstellation(mesh);
     } else {
       tooltip.classList.remove('is-visible');
-      hideConstellation();
     }
   }
 
@@ -704,12 +713,12 @@ export function mountAwards({ container, webgl, content = null } = {}) {
       }
     });
 
-    // Constellation copies ramp opacity with the fade EVERY frame the cluster
-    // exists — including the fade-out, when `hovered` is already null (so this
-    // must not be gated on hover, or the copies would freeze and pop instead of
-    // fading). Position-follow only applies while a trophy is hovered.
+    // Constellation: each trophy's anchor tracks its live (bobbing) position so
+    // the halo drifts with its trophy, and every copy ramps opacity with the
+    // shared fade EVERY frame the cluster exists (incl. the fade-out, so copies
+    // fade instead of freezing and popping).
     if (constellationGroup.visible) {
-      if (hovered) constellationGroup.position.copy(hovered.position);
+      for (const { group, slot } of constellationAnchors) group.position.copy(slot.position);
       for (const { mat, base } of constellationMats) mat.opacity = base * constellationFade.v;
     }
 
@@ -767,18 +776,19 @@ export function mountAwards({ container, webgl, content = null } = {}) {
     }
   }
 
-  // Trophy materialise — flatten every material under the cloud so we can
-  // pump them through a single stepped opacity tween on section enter. The
-  // GLB loads are async, so we collect on demand (cheap — a handful of
-  // meshes per slot).
+  // Trophy materialise — flatten every trophy material so we can pump them
+  // through a single stepped opacity tween on section enter. We traverse the
+  // trophy slots only (NOT the whole cloud), so the constellation clones — which
+  // run their own fade via constellationFade — are left untouched. The GLB loads
+  // are async, so we collect on demand (cheap — a handful of meshes per slot).
   function collectMaterials() {
     const mats = [];
-    cloud.traverse((n) => {
+    items.forEach((item) => item.traverse((n) => {
       if (n.isMesh) {
         const arr = Array.isArray(n.material) ? n.material : [n.material];
         arr.forEach((m) => { if (m) mats.push(m); });
       }
-    });
+    }));
     return mats;
   }
   const materialAlpha = { v: 1 };
@@ -873,11 +883,16 @@ export function mountAwards({ container, webgl, content = null } = {}) {
         scrollZ = FAR_Z;
         glitchInTrophies(0.55);
       }
+      // Ambient constellation — the faint blurry trophy field that used to need a
+      // hover now scatters around every trophy on enter. Desktop + motion only
+      // (it's a flourish and a heavy translucent draw), matching the old gate.
+      if (isDesktop() && !prefersReducedMotion()) buildConstellation(items);
     } else {
       previewing = false;
       stopTicker();
       titleHandle.glitchOut(0.4);
       setHovered(null);
+      clearConstellation();
     }
   }
 
