@@ -29,6 +29,12 @@ export default defineConfig({
     assetsInlineLimit: 4096,
     chunkSizeWarningLimit: 600,
     rollupOptions: {
+      // Multi-page build: the scroll site (index.html) plus the standalone Iris
+      // voice page (iris.html, served at /iris via cleanUrls).
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        iris: resolve(__dirname, 'iris.html'),
+      },
       output: {
         manualChunks(id) {
           if (!id.includes('/node_modules/')) return null;
