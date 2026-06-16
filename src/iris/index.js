@@ -108,10 +108,19 @@ async function start(theme) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ theme: theme || '' }),
     });
-    if (res.status === 429) {
-      throw new Error('Trop de sessions pour le moment. Réessayez dans quelques minutes.');
+    if (!res.ok) {
+      // Surface the server's reason so failures are diagnosable instead of a
+      // blanket "indisponible". The endpoint returns { error } on every path.
+      let detail = '';
+      try { detail = (await res.json())?.error || ''; } catch (_) {}
+      console.error('[iris] token endpoint', res.status, detail);
+      if (res.status === 429) {
+        throw new Error(detail || 'Trop de sessions pour le moment. Réessayez dans quelques minutes.');
+      }
+      throw new Error(
+        (detail || 'Le service est momentanément indisponible.') + ` (code ${res.status})`
+      );
     }
-    if (!res.ok) throw new Error('Le service est momentanément indisponible.');
     const { token, model, initialMessage } = await res.json();
 
     // 2. Microphone.
