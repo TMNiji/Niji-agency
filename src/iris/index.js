@@ -1,32 +1,30 @@
-// Iris — browser voice session shell.
+// Iris — browser voice + chat session shell.
 //
-// Replaces the original localhost-POST shell from NIJI AGENCY AI/index.html.
-// Flow: POST /api/iris-token → ephemeral token (+ server-built greeting) →
-// open mic → connect to the Gemini Live API directly over WebSocket → stream
-// 16 kHz PCM up, play 24 kHz PCM down. The agent's prompt/voice/model are locked
+// Voice: POST /api/iris-token → ephemeral Gemini token (+ server-built greeting +
+// locked model) → open mic → connect to the Gemini Live API over WebSocket →
+// stream 16 kHz PCM up, play 24 kHz PCM down. The prompt/voice/model are locked
 // server-side into the token, so nothing sensitive lives in this bundle.
 //
-// All visual state (status pill, body.active, equalizer, "parle / écoute" text)
-// is driven from real session + audio events rather than timers.
+// Chat: POST /api/iris-chat → same persona + knowledge, text only (Gemini flash).
+// The API key stays server-side there too.
+//
+// All visual state is driven from real session + audio events: the status pill,
+// body.active, the "Iris parle / En écoute" line, and the crystal-video
+// reactivity (scale / brightness / playback rate follow Iris's real RMS).
 import { GoogleGenAI, Modality } from '@google/genai';
 
 const SAMPLE_RATE_INPUT = 16000;
 const SAMPLE_RATE_OUTPUT = 24000;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ── DOM ──────────────────────────────────────────────────────────────────
+const video = document.getElementById('iris-video');
 const pill = document.getElementById('status-pill');
 const statusText = document.getElementById('status-text');
-const stateIdle = document.getElementById('state-text');
 const stateLive = document.getElementById('state-live');
 const btnStart = document.getElementById('btn-start');
 const btnStop = document.getElementById('btn-stop');
 const errorMsg = document.getElementById('error-msg');
-const bars = Array.from(document.querySelectorAll('.viz-bar'));
-const orbWrap = document.querySelector('.orb-wrap');
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// Per-bar gain so the equalizer looks alive off a single RMS level.
-const BAR_GAIN = [0.6, 0.85, 1.0, 0.75, 0.95, 0.8, 0.65];
 
 // ── Session state ──────────────────────────────────────────────────────────
 let session = null;
@@ -36,6 +34,66 @@ let outCtx = null;
 let micNode = null;
 let playNode = null;
 let connecting = false;
+let active = false;
+
+// Crystal-video reactivity. While a session is live this holds Iris's real RMS
+// (0 when she's silent/listening, up when she speaks); null hands the loop back
+// to the idle "breathing" envelope.
+let externalLevel = null;
+
+// ── Video autoplay (muted; relaunch on first interaction if blocked) ─────────
+if (video) {
+  video.muted = true;
+  video.playbackRate = 1.0; // already slowed (iris-web-slow)
+  const play = () => video.play().catch(() => {});
+  play();
+  window.addEventListener('pointerdown', play, { once: true });
+}
+
+// ── Film grain — 256×256 tile of random grey pixels, static overlay ──────────
+(function initNoise() {
+  const S = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const ctx = c.getContext('2d');
+  const im = ctx.createImageData(S, S), d = im.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = (Math.random() * 255) | 0;
+    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+  }
+  ctx.putImageData(im, 0, 0);
+  const n = document.createElement('div');
+  n.id = 'noise';
+  n.style.backgroundImage = `url(${c.toDataURL()})`;
+  document.body.appendChild(n);
+})();
+
+// ── Glitch title "Iris" — glyph-scramble decode ──────────────────────────────
+const nameEl = document.querySelector('.name');
+const GLYPHS = '!<>-_\\/[]{}—=+*^?#________01∮ABCDEF0123456789';
+const randGlyph = () => GLYPHS[(Math.random() * GLYPHS.length) | 0];
+function scrambleDecode(el, text, duration = 900, stagger = 95) {
+  const start = performance.now();
+  const chars = text.split('');
+  function step(now) {
+    const t = now - start;
+    let buf = '';
+    for (let i = 0; i < chars.length; i++) {
+      const tg = chars[i];
+      if (tg === ' ') { buf += tg; continue; }
+      buf += (t >= stagger * i + 220) ? tg : randGlyph();
+    }
+    el.textContent = buf;
+    if (t < duration) requestAnimationFrame(step);
+    else el.textContent = text;
+  }
+  requestAnimationFrame(step);
+}
+if (nameEl && !reduceMotion) {
+  const NAME = nameEl.textContent.trim();
+  setTimeout(() => { if (!document.hidden) scrambleDecode(nameEl, NAME, 1000, 110); }, 850);
+  setInterval(() => { if (!document.hidden) scrambleDecode(nameEl, NAME, 700, 80); }, 6500);
+}
 
 // ── UI helpers ───────────────────────────────────────────────────────────
 function setStatus(label, state) {
@@ -46,7 +104,6 @@ function setStatus(label, state) {
     pill.classList.remove('fading');
   }, 200);
 }
-
 function showError(msg) {
   errorMsg.textContent = msg;
   errorMsg.classList.add('show');
@@ -54,30 +111,10 @@ function showError(msg) {
 function clearError() {
   errorMsg.classList.remove('show');
 }
-
+let liveTxt = '';
 function setLiveText(txt) {
-  stateLive.textContent = txt;
+  if (txt !== liveTxt) { liveTxt = txt; stateLive.textContent = txt; }
 }
-
-function setBars(level) {
-  if (reduceMotion) return;
-  for (let i = 0; i < bars.length; i++) {
-    bars[i].style.setProperty('--level', (level * BAR_GAIN[i]).toFixed(3));
-  }
-}
-
-// Rotating idle prompt under the orb (paused while a session is active).
-const IDLE_STATES = ['Prête à échanger', 'Posez votre question', 'Découvrez l’agence'];
-let idleIdx = 0;
-setInterval(() => {
-  if (document.body.classList.contains('active')) return;
-  stateIdle.classList.remove('show');
-  setTimeout(() => {
-    idleIdx = (idleIdx + 1) % IDLE_STATES.length;
-    stateIdle.textContent = IDLE_STATES[idleIdx];
-    stateIdle.classList.add('show');
-  }, 800);
-}, 3000);
 
 // ── base64 <-> bytes (Gemini Live carries PCM as base64) ────────────────────
 function bytesToBase64(buffer) {
@@ -93,11 +130,12 @@ function base64ToInt16Buffer(b64) {
   return bytes.buffer;
 }
 
-// ── Session lifecycle ────────────────────────────────────────────────────
+// ── Voice session lifecycle ──────────────────────────────────────────────
 async function start(theme) {
   if (connecting || session) return;
   connecting = true;
   clearError();
+  if (document.body.classList.contains('chat-open')) closeChat();
   btnStart.setAttribute('disabled', '');
   setStatus('Connexion…', 'ready');
 
@@ -138,7 +176,7 @@ async function start(theme) {
     playNode.connect(outCtx.destination);
     playNode.port.onmessage = (e) => {
       const m = e.data;
-      if (m.type === 'level') setBars(m.level);
+      if (m.type === 'level') externalLevel = m.level;        // drives the crystal
       else if (m.type === 'playing') setLiveText('Iris parle…');
       else if (m.type === 'drained') setLiveText('En écoute…');
     };
@@ -173,9 +211,11 @@ async function start(theme) {
       turnComplete: true,
     });
 
+    active = true;
+    externalLevel = 0; // real-audio mode for the crystal loop
     document.body.classList.add('active');
     setLiveText('En écoute…');
-    setStatus('Session active', 'active');
+    setStatus('En écoute', 'active');
   } catch (err) {
     if (err?.name === 'NotAllowedError') {
       fail('Micro refusé. Autorisez l’accès au microphone pour parler à Iris.');
@@ -210,6 +250,7 @@ function handleMessage(message) {
 }
 
 function stop() {
+  if (!session && !active) return;
   const s = session;
   session = null;
   try { s?.close(); } catch (_) {}
@@ -221,8 +262,9 @@ function stop() {
   outCtx?.close();
   micNode = playNode = micStream = inCtx = outCtx = null;
 
+  active = false;
+  externalLevel = null; // back to idle breathing
   document.body.classList.remove('active');
-  setBars(0);
   setStatus('En veille', 'idle');
 }
 
@@ -231,34 +273,132 @@ function fail(msg) {
   stop();
 }
 
+// ── Crystal reactivity loop — scale / brightness / playback rate ─────────────
+const t0 = performance.now();
+let displayLevel = 0.12;
+function frame() {
+  requestAnimationFrame(frame);
+  const time = (performance.now() - t0) / 1000;
+
+  // Real audio (Iris's RMS) when live; gentle breathing when idle.
+  const target = externalLevel !== null
+    ? externalLevel
+    : 0.12 + 0.06 * Math.sin(time * 0.7);
+  displayLevel += (target - displayLevel) * 0.14;
+
+  if (video && !reduceMotion) {
+    const scale = 1.0 + 0.06 * displayLevel;
+    video.style.transform = `translate(-50%,-50%) scale(${scale.toFixed(3)})`;
+    video.style.filter = `brightness(${(0.96 + 0.30 * displayLevel).toFixed(3)}) saturate(${(1.0 + 0.55 * displayLevel).toFixed(3)})`;
+    const rate = active ? (1.0 + 0.35 * displayLevel) : 1.0;
+    if (Math.abs(video.playbackRate - rate) > 0.02) video.playbackRate = rate;
+  }
+}
+frame();
+
+// ── Written chat (POST /api/iris-chat) ───────────────────────────────────
+const chatThread = document.getElementById('chat-thread');
+const chatField = document.getElementById('chat-field');
+const GREETING = "Bonjour, je suis Iris, la voix de l'agence Niji. Avec qui ai-je le plaisir d'échanger ?";
+let chatHistory = [];
+let chatGreeted = false;
+let chatWaiting = false;
+
+function renderMsg(role, text) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + (role === 'user' ? 'user' : 'iris');
+  d.textContent = text;
+  chatThread.appendChild(d);
+  chatThread.scrollTop = chatThread.scrollHeight;
+}
+function showTyping(on) {
+  let ex = document.getElementById('chat-typing');
+  if (on) {
+    if (ex) return;
+    const d = document.createElement('div');
+    d.className = 'msg iris typing'; d.id = 'chat-typing';
+    d.innerHTML = '<span></span><span></span><span></span>';
+    chatThread.appendChild(d); chatThread.scrollTop = chatThread.scrollHeight;
+  } else if (ex) { ex.remove(); }
+}
+function openChat() {
+  if (active || connecting) stop();
+  document.body.classList.add('chat-open');
+  if (!chatGreeted) {
+    renderMsg('iris', GREETING);
+    chatHistory.push({ role: 'model', text: GREETING });
+    chatGreeted = true;
+  }
+  setTimeout(() => chatField && chatField.focus(), 80);
+}
+function closeChat() {
+  document.body.classList.remove('chat-open');
+}
+async function sendChat() {
+  if (chatWaiting) return;
+  const t = (chatField.value || '').trim();
+  if (!t) return;
+  chatField.value = '';
+  chatHistory.push({ role: 'user', text: t });
+  renderMsg('user', t);
+  chatWaiting = true;
+  showTyping(true);
+  try {
+    const res = await fetch('/api/iris-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory }),
+    });
+    let reply = '';
+    if (res.ok) {
+      reply = (await res.json())?.reply || '';
+    } else {
+      let detail = '';
+      try { detail = (await res.json())?.error || ''; } catch (_) {}
+      console.error('[iris] chat endpoint', res.status, detail);
+    }
+    if (!reply) reply = 'Désolée, je n’ai pas pu répondre. Réessayez dans un instant.';
+    chatHistory.push({ role: 'model', text: reply });
+    renderMsg('iris', reply);
+  } catch (err) {
+    console.error('[iris] chat', err);
+    renderMsg('iris', 'Connexion impossible pour le moment. Réessayez dans un instant.');
+  } finally {
+    chatWaiting = false;
+    showTyping(false);
+  }
+}
+
 // ── Wiring ───────────────────────────────────────────────────────────────
 btnStart.addEventListener('click', () => start(''));
 btnStop.addEventListener('click', stop);
 document.querySelectorAll('.chip').forEach((chip) => {
   chip.addEventListener('click', () => start(chip.dataset.theme || ''));
 });
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') stop();
-});
+
+const btnChat = document.getElementById('btn-chat');
+const btnChatClose = document.getElementById('chat-close');
+const btnChatSend = document.getElementById('chat-send');
+if (btnChat) btnChat.addEventListener('click', openChat);
+if (btnChatClose) btnChatClose.addEventListener('click', closeChat);
+if (btnChatSend) btnChatSend.addEventListener('click', sendChat);
+if (chatField) {
+  chatField.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
+  });
+}
 
 // CTA hover → "Prête" (green dot) when idle, mirroring the original.
 btnStart.addEventListener('mouseenter', () => {
-  if (!document.body.classList.contains('active') && !connecting) setStatus('Prête', 'ready');
+  if (!active && !connecting && !document.body.classList.contains('chat-open')) setStatus('Prête', 'ready');
 });
 btnStart.addEventListener('mouseleave', () => {
-  if (!document.body.classList.contains('active') && !connecting) setStatus('En veille', 'idle');
+  if (!active && !connecting && !document.body.classList.contains('chat-open')) setStatus('En veille', 'idle');
 });
 
-// Soft parallax — orb follows the cursor (±18px).
-if (orbWrap && !reduceMotion) {
-  document.addEventListener('mousemove', (e) => {
-    const dx = (e.clientX - window.innerWidth / 2) / (window.innerWidth / 2);
-    const dy = (e.clientY - window.innerHeight / 2) / (window.innerHeight / 2);
-    orbWrap.style.setProperty('--px', (dx * 18).toFixed(1) + 'px');
-    orbWrap.style.setProperty('--py', (dy * 18).toFixed(1) + 'px');
-  });
-  document.addEventListener('mouseleave', () => {
-    orbWrap.style.setProperty('--px', '0px');
-    orbWrap.style.setProperty('--py', '0px');
-  });
-}
+// Escape: close the chat if open, otherwise stop the voice session.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.body.classList.contains('chat-open') ? closeChat() : stop();
+  }
+});
