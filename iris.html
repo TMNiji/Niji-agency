@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" href="/favicon_white.png" />
 <style>
 /* ── N27 (typo signature Niji) — self-hosted dans /public/fonts ── */
+@font-face { font-family:'N27'; src:url('/fonts/N27-Thin.woff2') format('woff2');    font-weight:200; font-style:normal; font-display:swap; }
 @font-face { font-family:'N27'; src:url('/fonts/N27-Light.woff2') format('woff2');   font-weight:300; font-style:normal; font-display:swap; }
 @font-face { font-family:'N27'; src:url('/fonts/N27-Regular.woff2') format('woff2'); font-weight:400; font-style:normal; font-display:swap; }
 @font-face { font-family:'N27'; src:url('/fonts/N27-Medium.woff2') format('woff2');  font-weight:500; font-style:normal; font-display:swap; }
@@ -30,15 +31,33 @@ body { display:flex; flex-direction:column; height:100vh; height:100dvh;
   font-family:var(--font); color:var(--white);
   -webkit-font-smoothing:antialiased; background:#0a0a0a; }
 
-/* ── Vidéo cristal (rendu Niji) — cœur d'Iris ; le fond noir est retiré par blend ── */
-.iris-orb { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:0;
-  height:min(70vh, 760px); width:auto; max-width:150vw; pointer-events:none;
+/* ── Fleur d'iris décomposée (canvas #fx) — cœur visuel ; le fond noir est retiré par blend ── */
+.iris-orb { position:fixed; left:50%; top:44%; transform:translate(-50%,-50%); z-index:0;
+  height:min(64.8vh, 684px); width:auto; max-width:150vw; pointer-events:none;
   mix-blend-mode:screen; will-change:transform, filter;
-  /* fondu des bords (côtés + HAUT) : plus de trait sur le texte ni de bandeau en haut */
-  -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%), linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
-  -webkit-mask-composite:source-in;
-  mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%), linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
-  mask-composite:intersect; }
+  /* léger fondu vignette pour fondre le bord du cadre vidéo dans le noir */
+  -webkit-mask-image:radial-gradient(ellipse 70% 70% at 50% 50%, #000 60%, transparent 100%);
+  mask-image:radial-gradient(ellipse 70% 70% at 50% 50%, #000 60%, transparent 100%); }
+/* Vidéo source (cachée mais décodée) — alimente le canvas décomposé #fx */
+.vsrc { position:fixed; left:0; top:0; width:2px; height:2px; opacity:0.01; pointer-events:none; z-index:-1; }
+/* Particules / pollen (canvas plein écran) */
+#dust { position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; mix-blend-mode:screen; }
+
+/* Anneaux orbitaux (overlay façon export niji) — fins, irisés, en rotation lente */
+.orbits { position:fixed; left:50%; top:48%; transform:translate(-50%,-50%); z-index:2; pointer-events:none;
+  width:min(79.2vh,864px); height:min(79.2vh,864px); opacity:0.42; }
+.orbits svg { width:100%; height:100%; overflow:visible; animation:orbspin 90s linear infinite; transform-origin:center; }
+.orbits .o { fill:none; stroke:rgba(245,245,245,0.32); stroke-width:0.16;
+  filter:drop-shadow(0.5px 0 rgba(255,40,70,0.5)) drop-shadow(-0.5px 0 rgba(50,120,255,0.5)); }
+.orbits .node { fill:rgba(248,248,248,0.95);
+  filter:drop-shadow(0 0 2.4px rgba(255,255,255,0.9)) drop-shadow(0.4px 0 rgba(255,40,70,0.6)) drop-shadow(-0.4px 0 rgba(50,120,255,0.6)); }
+@keyframes orbspin { to { transform:rotate(360deg); } }
+
+/* Couche "data" — chiffres normalisés épars qui glitchent (lecture machine / IA) */
+.data { position:fixed; inset:0; z-index:2; pointer-events:none;
+  font-family:ui-monospace,'SF Mono',Menlo,monospace; }
+.data span { position:absolute; font-size:10px; letter-spacing:0.04em; color:rgba(245,245,245,0.30);
+  white-space:nowrap; text-shadow:0 0 6px rgba(0,0,0,0.7); transition:opacity 0.25s ease; }
 
 /* Voile gauche léger — lisibilité du titre par-dessus la vidéo */
 .scrim { position:fixed; inset:0; z-index:1; pointer-events:none;
@@ -114,10 +133,10 @@ body.active .state-live { opacity:1; }
 .btn-primary { position:relative; overflow:hidden; padding:24px 56px; border-radius:16px;
   color:#fff; font-family:var(--font); font-size:18px; font-weight:600; letter-spacing:0.18em;
   text-transform:uppercase; cursor:pointer;
-  background:rgba(255,255,255,0.07);
+  background:rgba(12,14,22,0.55);
   border:1px solid rgba(255,255,255,0.22);
-  -webkit-backdrop-filter:blur(18px) saturate(1.5); backdrop-filter:blur(18px) saturate(1.5);
-  box-shadow:0 10px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -10px 24px rgba(255,255,255,0.04);
+  -webkit-backdrop-filter:blur(18px) saturate(0.85); backdrop-filter:blur(18px) saturate(0.85);
+  box-shadow:0 10px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -10px 24px rgba(255,255,255,0.04);
   transition:transform 0.3s var(--ease), background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease); }
 /* reflet liquide qui balaie au survol */
 .btn-primary::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
@@ -126,7 +145,7 @@ body.active .state-live { opacity:1; }
 .btn-primary:hover::before { transform:translateX(130%); }
 .btn-label { position:relative; z-index:1; display:inline-flex; align-items:center; gap:12px; }
 .btn-primary .mic { display:block; transition:transform 0.3s var(--ease); }
-.btn-primary:hover { background:rgba(255,255,255,0.13); border-color:rgba(255,255,255,0.5); transform:translateY(-2px);
+.btn-primary:hover { background:rgba(22,26,40,0.5); border-color:rgba(255,255,255,0.5); transform:translateY(-2px);
   box-shadow:0 18px 46px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -12px 26px rgba(255,255,255,0.07); }
 .btn-primary:hover .mic { transform:scale(1.08); }
 .btn-primary:active { transform:translateY(0) scale(0.98); }
@@ -177,11 +196,11 @@ body.active .themes { opacity:0.18; pointer-events:none; }
 .info-badge:hover .info-tip { opacity:1; transform:translateY(0); }
 
 @media (max-width: 960px) {
-  /* compo recentrée en colonne : titre haut · cristal centre · contrôles · questions bas-centre */
+  /* compo recentrée en colonne : titre haut · fleur centre · contrôles · questions bas-centre */
   .brand-title { left:50%; right:auto; transform:translateX(-50%); top:clamp(72px,11vh,128px); text-align:center; width:92vw; }
   .name { font-size:clamp(58px,13vw,104px); }
   .subtitle { font-size:clamp(22px,4.2vw,34px); }
-  .iris-orb { height:min(48vh,520px); top:47%; }
+  .iris-orb { height:min(43.2vh,468px); top:47%; }
   .center-controls { bottom:clamp(150px,27vh,300px); }
   .themes { right:auto; left:50%; transform:translateX(-50%); bottom:clamp(22px,4vh,46px); text-align:center; }
   .themes-label { text-align:center; }
@@ -189,12 +208,12 @@ body.active .themes { opacity:0.18; pointer-events:none; }
 }
 
 @media (max-width: 700px) {
-  /* MOBILE : page scrollable, cristal en fond fixe, contenu empilé centré */
+  /* MOBILE : page scrollable, fleur en fond fixe, contenu empilé centré */
   html, body { height:auto; min-height:100dvh; overflow-x:hidden; overflow-y:auto; }
   body { display:block; }
   .topbar { padding:22px 18px 0; }
   .brand-mark { height:60px; width:60px; }
-  .iris-orb { position:fixed; top:38%; height:38vh; opacity:0.5; }
+  .iris-orb { position:fixed; top:38%; height:34.2vh; opacity:0.5; }
   .brand-title { position:static; transform:none; width:auto; text-align:center; padding:104px 20px 0; }
   .name { font-size:clamp(54px,17vw,92px); }
   .subtitle { font-size:clamp(20px,5.4vw,30px); }
@@ -223,7 +242,7 @@ body.active .themes { opacity:0.18; pointer-events:none; }
 body.active .btn-ghost, body.chat-open .btn-ghost { display:none; }
 body.chat-open .brand-title, body.chat-open .center-controls, body.chat-open .themes { opacity:0; pointer-events:none; }
 .brand-title, .center-controls, .themes { transition:opacity 0.4s ease; }
-.iris-orb { transition:opacity 0.5s ease, transform 0.12s linear, filter 0.12s linear; }
+.iris-orb { transition:opacity 0.5s ease, transform 0.05s linear, filter 0.05s linear; }
 body.chat-open .iris-orb { opacity:0.35; }
 .chat { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(0.98); z-index:6;
   width:min(640px,92vw); height:min(72vh,620px); display:flex; flex-direction:column;
@@ -263,9 +282,24 @@ body.chat-open .chat { opacity:1; pointer-events:auto; transform:translate(-50%,
 </head>
 <body>
 
-<video id="iris-video" class="iris-orb" autoplay loop muted playsinline poster="/iris/iris-poster.jpg">
-  <source src="/iris/iris-web-slow.mp4" type="video/mp4">
+<video id="iris-video" class="vsrc" autoplay loop muted playsinline>
+  <source src="/iris/fleur-web.mp4" type="video/mp4">
 </video>
+<canvas id="fx" class="iris-orb" width="1280" height="600"></canvas>
+<div class="orbits" aria-hidden="true">
+  <svg viewBox="-50 -50 100 100">
+    <ellipse class="o" rx="48" ry="19" transform="rotate(18)"/>
+    <ellipse class="o" rx="43" ry="41" transform="rotate(-34)"/>
+    <ellipse class="o" rx="21" ry="47" transform="rotate(7)"/>
+    <circle class="node" r="1.5" transform="rotate(18) translate(48 0)"/>
+    <circle class="node" r="1.0" transform="rotate(18) translate(-48 0)"/>
+    <circle class="node" r="1.3" transform="rotate(-34) translate(43 0)"/>
+    <circle class="node" r="1.4" transform="rotate(7) translate(0 47)"/>
+    <circle class="node" r="0.9" transform="rotate(7) translate(0 -47)"/>
+  </svg>
+</div>
+<canvas id="dust" aria-hidden="true"></canvas>
+<div class="data" id="data" aria-hidden="true"></div>
 <div class="scrim"></div>
 
 <header class="topbar">
