@@ -426,7 +426,7 @@
   opacity: 0.30;
 }
 
-@media (max-width: 600px), (max-width: 950px) and (max-height: 600px) {
+@media (max-width: 600px), (max-width: 1024px) and (max-height: 720px) {
   .lang-switcher { top: 26px; right: 20px; }
 }
 
@@ -544,12 +544,12 @@
 /* ── Responsive guards ──────────────────────────────────────────────────────
    Conservative mobile tweaks to prevent overflow/clutter. A bespoke mobile
    choreography (touch interactions, layout) is a larger design effort. */
-@media (max-width: 768px), (max-width: 950px) and (max-height: 600px) {
+@media (max-width: 768px), (max-width: 1024px) and (max-height: 720px) {
   .hero-header { top: 24px; left: 24px; }
   .hero-header__logo-square { width: 52px; height: 52px; }
 }
 
-@media (max-width: 600px), (max-width: 950px) and (max-height: 600px) {
+@media (max-width: 600px), (max-width: 1024px) and (max-height: 720px) {
   /* Drop the timeline ruler entirely on phones — it overlaps the centred cell
      and adds clutter on the small viewport. */
   .hero-timeline { display: none; }
