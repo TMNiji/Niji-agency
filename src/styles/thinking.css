@@ -632,7 +632,7 @@
    Fixed-width cards (240px) and benchmark windows (300px) overflow narrow
    phones, and the bottom-right panel needs to hug the edge. Cap widths to the
    viewport and tighten the panel so nothing spills off-screen or clips. */
-@media (max-width: 600px), (max-width: 950px) and (max-height: 600px) {
+@media (max-width: 600px), (max-width: 1024px) and (max-height: 720px) {
   /* Split the bottom bar: service dropdowns hug the bottom-RIGHT, the
      "Explore with AI" block (label + buttons) sits bottom-LEFT. The panel
      spans the full width as a row; `order` pulls the AI block ahead so it

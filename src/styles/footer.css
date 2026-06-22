@@ -127,7 +127,7 @@
   justify-content: flex-start;
 }
 
-@media (max-width: 720px), (max-width: 950px) and (max-height: 600px) {
+@media (max-width: 720px), (max-width: 1024px) and (max-height: 720px) {
   .footer__columns {
     flex-direction: column;
     align-items: center;
@@ -229,12 +229,12 @@
 .footer__contact:focus-visible .footer__contact-email::after { transform: scaleX(1); }
 .footer__contact:hover .footer__contact-topic { color: rgba(255, 255, 255, 0.85); }
 
-@media (max-width: 720px), (max-width: 950px) and (max-height: 600px) {
+@media (max-width: 720px), (max-width: 1024px) and (max-height: 720px) {
   .footer__contact { align-items: center; text-align: center; }
 }
 
 /* Phones — 16px horizontal gutters on the contact stage. */
-@media (max-width: 600px), (max-width: 950px) and (max-height: 600px) {
+@media (max-width: 600px), (max-width: 1024px) and (max-height: 720px) {
   .footer__stage { padding-left: 16px; padding-right: 16px; }
   /* Section headings + content bottom out small on phones — bump them up so the
      contact block matches the legibility of the other sections' titles. */
@@ -314,7 +314,7 @@
 
 /* On phones the centred loop CTA + left-anchored links would crowd; drop the
    links to their own stacked block, centred under the CTA. */
-@media (max-width: 600px), (max-width: 950px) and (max-height: 600px) {
+@media (max-width: 600px), (max-width: 1024px) and (max-height: 720px) {
   .footer__meta {
     left: 50%;
     bottom: 12px;
