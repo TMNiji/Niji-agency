@@ -297,7 +297,7 @@ const COPY = {
         { tag: 'IA PIXEL CODER', items: ['De Figma a React, sin handoff',         'Diseño y código en un mismo flujo, sin pérdida de intención'] },
       ],
     },
-    clients: { title: 'Algunos grandes nombres que confían en nosotros', subtitle: 'productos a su altura' },
+    clients: { title: 'Algunos grandes nombres que confían en nosotros', subtitle: 'Productos a su altura' },
     awards:  { headingTop: '56 awards · 2020 → 2025', headingBottom: 'Miramos el P&L antes que el palmarés.' },
     contact: {
       headline: ['¿Pregunta rápida? Pregunta a una IA.', '¿Tema serio? Pregunta a un humano.'],
