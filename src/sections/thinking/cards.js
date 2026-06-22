@@ -8,15 +8,64 @@
 // close. orbital.js draws the connector to the card's bottom-centre.
 
 import { prefersReducedMotion } from '@modules/motion.js';
+import { pick } from '@/lib/lang.js';
+
+// Card UI chrome + per-card default copy, by language. CMS content (passed in
+// from orbital.js) overrides the defaults; the chrome strings are code-only.
+const UI = {
+  fr: {
+    close: 'Fermer',
+    flipAria: 'Retourner la carte',
+    toFlip: 'Cliquer pour retourner →',
+    back: '← Retour',
+    done: (n) => `terminé${n > 1 ? 's' : ''}`,
+  },
+  en: {
+    close: 'Close',
+    flipAria: 'Flip the card',
+    toFlip: 'Click to flip →',
+    back: '← Back',
+    done: () => 'done',
+  },
+};
+
+const DEFAULTS = {
+  fr: {
+    strategy:      { title: '/Stratégie', recto: 'Pas une feature à ajouter.', verso: 'Une expérience à réinventer.' },
+    businessValue: { title: '/Business Value', deltaTag: 'LCV', deltaValue: '+38 %' },
+    designSprint:  { title: '/Design Sprint', steps: ['Brief', 'Hypothèse', 'Proto', 'Test', 'Décision'] },
+    brainstorm:    { title: '/Brainstorming', messages: [
+      { side: 'in',  text: "C'est quoi le vrai problème ?" },
+      { side: 'out', text: '40 % abandonnent au checkout.' },
+      { side: 'in',  text: 'Humains ? Agents ?' },
+      { side: 'out', text: 'Les 2' },
+      { side: 'out', text: 'Ok, on active le protocole AI.Commerce' },
+    ] },
+  },
+  en: {
+    strategy:      { title: '/Strategy', recto: 'Not a feature to bolt on.', verso: 'An experience to reinvent.' },
+    businessValue: { title: '/Business Value', deltaTag: 'LCV', deltaValue: '+38 %' },
+    designSprint:  { title: '/Design Sprint', steps: ['Brief', 'Hypothesis', 'Proto', 'Test', 'Decision'] },
+    brainstorm:    { title: '/Brainstorming', messages: [
+      { side: 'in',  text: "What's the real problem?" },
+      { side: 'out', text: '40% drop off at checkout.' },
+      { side: 'in',  text: 'Humans? Agents?' },
+      { side: 'out', text: 'Both.' },
+    ] },
+  },
+};
+
+const ui = (lang) => pick(UI, lang);
+const def = (lang, card) => pick(DEFAULTS, lang)[card];
 
 // ── Shared free-form card chrome (dots 2-4) ──────────────────────────────────
-function baseCard({ title, modifier }) {
+function baseCard({ title, modifier, closeLabel = 'Fermer' }) {
   const el = document.createElement('div');
   el.className = `bcard bcard--${modifier}`;
   el.innerHTML = `
     <div class="bcard__head">
       <span class="bcard__title">${title}</span>
-      <button class="bcard__close" type="button" aria-label="Fermer">×</button>
+      <button class="bcard__close" type="button" aria-label="${closeLabel}">×</button>
     </div>
     <div class="bcard__body"></div>
   `;
@@ -28,24 +77,23 @@ function baseCard({ title, modifier }) {
 // statement: the recto reads "Pas une feature à ajouter." and a click flips to
 // the verso "Une expérience à réinventer." A small chevron hints at the flip.
 // play()/stop() reset the card to its recto on each open.
-export function createStrategyCard({
-  title = '/Stratégie',
-  recto = 'Pas une feature à ajouter.',
-  verso = 'Une expérience à réinventer.',
-} = {}) {
-  const el = baseCard({ title, modifier: 'st' });
+export function createStrategyCard(opts = {}, lang = 'fr') {
+  const L = ui(lang);
+  const d = def(lang, 'strategy');
+  const { title = d.title, recto = d.recto, verso = d.verso } = opts;
+  const el = baseCard({ title, modifier: 'st', closeLabel: L.close });
 
   const body = el.querySelector('.bcard__body');
   body.innerHTML = `
-    <div class="st-flip" role="button" tabindex="0" aria-label="Retourner la carte">
+    <div class="st-flip" role="button" tabindex="0" aria-label="${L.flipAria}">
       <div class="st-flip__inner">
         <div class="st-flip__face st-flip__face--recto">
           <p class="st-flip__text"></p>
-          <span class="st-flip__hint">Cliquer pour retourner →</span>
+          <span class="st-flip__hint">${L.toFlip}</span>
         </div>
         <div class="st-flip__face st-flip__face--verso">
           <p class="st-flip__text"></p>
-          <span class="st-flip__hint">← Retour</span>
+          <span class="st-flip__hint">${L.back}</span>
         </div>
       </div>
     </div>
@@ -72,12 +120,11 @@ export function createStrategyCard({
 }
 
 // ── Dot 2 — /Business Value — a line graph that draws itself upward ──────────
-export function createBusinessValueCard({
-  title = '/Business Value',
-  deltaTag = 'LCV',
-  deltaValue = '+38 %',
-} = {}) {
-  const el = baseCard({ title, modifier: 'bv' });
+export function createBusinessValueCard(opts = {}, lang = 'fr') {
+  const L = ui(lang);
+  const d = def(lang, 'businessValue');
+  const { title = d.title, deltaTag = d.deltaTag, deltaValue = d.deltaValue } = opts;
+  const el = baseCard({ title, modifier: 'bv', closeLabel: L.close });
   el.querySelector('.bcard__body').innerHTML = `
     <div class="bv">
       <span class="bv__delta"><span class="bv__delta-tag"></span> <span class="bv__delta-val"></span></span>
@@ -125,12 +172,12 @@ export function createBusinessValueCard({
 }
 
 // ── Dot 3 — /Design Sprint — an interactive checklist ────────────────────────
-export function createDesignSprintCard({
-  title = '/Design Sprint',
-  steps,
-} = {}) {
-  const el = baseCard({ title, modifier: 'ds' });
-  const STEPS = steps?.length ? steps : ['Brief', 'Hypothèse', 'Proto', 'Test', 'Décision'];
+export function createDesignSprintCard(opts = {}, lang = 'fr') {
+  const L = ui(lang);
+  const d = def(lang, 'designSprint');
+  const { title = d.title, steps } = opts;
+  const el = baseCard({ title, modifier: 'ds', closeLabel: L.close });
+  const STEPS = steps?.length ? steps : d.steps;
   el.querySelector('.bcard__body').innerHTML = `
     <ul class="ds">
       ${STEPS.map((_, i) => `
@@ -154,7 +201,7 @@ export function createDesignSprintCard({
   const update = () => {
     const done = items.filter((it) => it.classList.contains('is-done')).length;
     fill.style.width = `${(done / items.length) * 100}%`;
-    count.textContent = `${done}/${items.length} terminé${done > 1 ? 's' : ''}`;
+    count.textContent = `${done}/${items.length} ${L.done(done)}`;
     el.classList.toggle('is-ready', done === items.length);
   };
   const toggle = (it) => {
@@ -184,18 +231,15 @@ export function createDesignSprintCard({
 }
 
 // ── Dot 4 — /Brainstorming — chat messages that auto-play and loop ───────────
-export function createBrainstormCard({ title = '/Brainstorming', messages } = {}) {
-  const el = baseCard({ title, modifier: 'bs' });
+export function createBrainstormCard(opts = {}, lang = 'fr') {
+  const L = ui(lang);
+  const d = def(lang, 'brainstorm');
+  const { title = d.title, messages } = opts;
+  const el = baseCard({ title, modifier: 'bs', closeLabel: L.close });
   el.querySelector('.bcard__body').innerHTML = `<div class="bs"></div>`;
   const feed = el.querySelector('.bs');
 
-  const MSGS = messages?.length ? messages : [
-    { side: 'in',  text: 'C\'est quoi le vrai problème ?' },
-    { side: 'out', text: '40 % abandonnent au checkout.' },
-    { side: 'in',  text: 'Humains ? Agents ?' },
-    { side: 'out', text: 'Les 2' },
-    { side: 'out', text: 'Ok, on active le protocole AI.Commerce' },
-  ];
+  const MSGS = messages?.length ? messages : d.messages;
 
   const TYPING_MS = 700;
   const READ_MS   = 600;
@@ -268,8 +312,9 @@ const SITES = [
   { url: 'apple.com',    accent: '#555555' },
 ];
 
-export function createBenchmarkStack({ stage, sites } = {}) {
+export function createBenchmarkStack({ stage, sites, lang = 'fr' } = {}) {
   const SITE_LIST = sites?.length ? sites : SITES;
+  const closeLabel = ui(lang).close;
   const layer = document.createElement('div');
   layer.className = 'bwin-layer';
   stage.appendChild(layer);
@@ -287,7 +332,7 @@ export function createBenchmarkStack({ stage, sites } = {}) {
       <div class="bwin__bar">
         <span class="bwin__lights"><i></i><i></i><i></i></span>
         <span class="bwin__url"></span>
-        <button class="bwin__close" type="button" aria-label="Fermer">×</button>
+        <button class="bwin__close" type="button" aria-label="${closeLabel}">×</button>
       </div>
       <div class="bwin__view">
         <div class="bwin__nav"><span></span><span></span><span></span></div>

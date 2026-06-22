@@ -13,7 +13,11 @@ const QUERY_URL = (groq) =>
 // Returns null on failure — callers fall back to hardcoded defaults.
 const IMG = '{ asset->{ url } }';
 
-const QUERY = /* groq */ `*[_type == "homePage"][0]{
+// Document-level i18n: one homePage document per language, tagged with a
+// `language` field. The `!defined(language)` clause keeps an un-migrated single
+// document serving as French, so the page never goes blank before the EN doc
+// (and the language tags) are populated. lang is a controlled 'fr' | 'en'.
+const QUERY = (lang) => /* groq */ `*[_type == "homePage" && (language == "${lang}" || (!defined(language) && "${lang}" == "fr"))] | order(defined(language) desc)[0]{
   logo ${IMG},
   sectionLabels,
   hero {
@@ -68,6 +72,7 @@ const QUERY = /* groq */ `*[_type == "homePage"][0]{
     list[] { title, details, trophy { asset->{ url } } }
   },
   contact {
+    headline,
     email,
     loopLabel,
     aiLinks { label, buttons[] { label, url } }
@@ -83,11 +88,11 @@ const QUERY = /* groq */ `*[_type == "homePage"][0]{
 // bad connection; only a genuinely dead network now falls back to defaults.
 const TIMEOUT_MS = 6000;
 
-export async function fetchHomePage() {
+export async function fetchHomePage(lang = 'fr') {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(QUERY_URL(QUERY), { signal: controller.signal });
+    const res = await fetch(QUERY_URL(QUERY(lang)), { signal: controller.signal });
     if (!res.ok) throw new Error(`Sanity query HTTP ${res.status}`);
     const { result } = await res.json();
     return result ?? null;

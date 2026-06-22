@@ -3,18 +3,28 @@ import { createTimeline } from './timeline.js';
 import { createTitle }    from './title.js';
 import { createFacePack } from './facePack.js';
 import { ease }           from '@modules/motion.js';
+import { pick }           from '@/lib/lang.js';
 
 // Four stacked lines, each with its own size/alignment (see hero.css). A CMS
 // `hero.title` with explicit line breaks overrides this; a plain (unbroken)
-// CMS string keeps the designed layout below.
-const DEFAULT_LINES = [
-  { text: 'We',            cls: 'hero-title__line--we' },
-  { text: 'Make products', cls: 'hero-title__line--make' },
-  { text: 'for humans.',   cls: 'hero-title__line--humans' },
-  { text: '&Agents',       cls: 'hero-title__line--agents' },
-];
+// CMS string keeps the designed layout below. EN follows the source doc copy
+// ("…And agents."); FR keeps the "&Agents" lockup.
+const DEFAULT_LINES = {
+  fr: [
+    { text: 'We',            cls: 'hero-title__line--we' },
+    { text: 'Make products', cls: 'hero-title__line--make' },
+    { text: 'for humans.',   cls: 'hero-title__line--humans' },
+    { text: '&Agents',       cls: 'hero-title__line--agents' },
+  ],
+  en: [
+    { text: 'We',            cls: 'hero-title__line--we' },
+    { text: 'Make products', cls: 'hero-title__line--make' },
+    { text: 'for humans.',   cls: 'hero-title__line--humans' },
+    { text: 'And agents.',   cls: 'hero-title__line--agents' },
+  ],
+};
 
-export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null } = {}) {
+export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null, lang = 'fr' } = {}) {
   const section = container.querySelector('[data-section="hero"]');
   if (!section) return null;
 
@@ -42,14 +52,14 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
       .map(([k, v]) => [k, v.asset.url]),
   );
 
-  const header   = createHeader({ logoSrc: content?.logo?.asset?.url });
+  const header   = createHeader({ logoSrc: content?.logo?.asset?.url, lang });
   // A "back to start" loop anchor past CONTACT hints at the seamless wrap-around
   // to the top (see main.js loop handler).
   const timeline = createTimeline({ labels: sectionLabels, loopLabel: 'BACK TO START' });
   const cmsTitle = content?.hero?.title;
   const lines    = cmsTitle?.includes('\n')
     ? cmsTitle.split('\n').map((text) => ({ text }))
-    : DEFAULT_LINES;
+    : pick(DEFAULT_LINES, lang);
   const title    = createTitle({ lines });
   const facePack = createFacePack({ webgl, imageSrcs });
 
@@ -75,10 +85,15 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   // spaces glue numbers to their units ("115 Designers", "9 bureaux") and a
   // non-breaking hyphen (‑, U+2011) keeps "AI-native" together; the " | "
   // separator is also made non-breaking so line 2 never splits mid-phrase.
-  const DEFAULT_SUBTITLE =
-    "Agence de Product Design AI-native.\n"
-    + "115 Designers | 9 bureaux\n"
-    + "25 ans à construire ce qui se regarde, s'utilise et maintenant se parle.";
+  const DEFAULT_SUBTITLE = pick({
+    fr: "Agence de Product Design AI-native.\n"
+      + "115 Designers | 9 bureaux\n"
+      + "25 ans à construire ce qui se regarde, s'utilise et maintenant se parle.",
+    en: "AI-native product design agency.\n"
+      + "Creative force in build, operational rigor in run.\n"
+      + "115 designers | 9 offices\n"
+      + "25 years building what you look at, use, and now talk to.",
+  }, lang);
   // The CMS value is plain multiline text; its line breaks become <br>. Each
   // line is escaped (so a visitor can't inject markup) before the safe
   // typographic glue is added. Falls back to the designed default above.
@@ -112,6 +127,7 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
   // AWARDS / CONTACT / BACK TO START).
   document.body.appendChild(timeline.el);
   document.body.appendChild(header.el);
+  document.body.appendChild(header.switcher);
 
   requestAnimationFrame(() => requestAnimationFrame(() => title.play()));
 

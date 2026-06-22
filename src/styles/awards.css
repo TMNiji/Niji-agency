@@ -168,13 +168,13 @@ body.is-contact .awards__stage {
 }
 
 /* ── Narrow screens ─────────────────────────────────────────────────────── */
-@media (max-width: 860px) {
+@media (max-width: 860px), (max-width: 950px) and (max-height: 600px) {
   .awards__head { top: clamp(150px, 19vh, 200px); }
 }
 
 /* Phones — constrain to the viewport minus 16px gutters and let the heading
    wrap rather than overflow the screen edge (down to 340px). */
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-width: 950px) and (max-height: 600px) {
   /* Phones — lay the heading out as a header beside the niji logo (top-left)
      instead of a centred overlay. The logo is a 52px square at top:24px/left:16px
      (hero.css), so the title sits to its right and centres against its height. */

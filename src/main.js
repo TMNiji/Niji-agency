@@ -9,8 +9,30 @@ import { mountClients }       from './sections/clients/index.js';
 import { mountAwards }        from './sections/awards/index.js';
 import { mountFooter }        from './sections/footer/index.js';
 import { fetchHomePage }      from './lib/sanity.js';
+import { getLang, pick }      from './lib/lang.js';
 import { initNoise }         from '@modules/noise.js';
 import { prefersReducedMotion } from '@modules/motion.js';
+
+// Site language ('fr' | 'en'), from the URL path (/ → fr, /en → en). Threaded
+// into the CMS read and every section so copy + fallbacks match the URL opened.
+const LANG = getLang();
+
+// DESIGN heading — a custom 3-line glitch stack (the middle word font-morphs).
+// Hardcoded here (not CMS-driven) so it ships per language as a code fallback.
+const DESIGN_TITLE_LINES = {
+  fr: [
+    { text: 'Du',              cls: 'video-title__line--lead video-title__line--du' },
+    { text: 'CHAOS',           cls: 'video-title__line--chaos', switch: true },
+    { text: 'naît le produit', cls: 'video-title__line--lead video-title__line--tagline' },
+  ],
+  en: [
+    { text: 'Out of',      cls: 'video-title__line--lead video-title__line--du' },
+    { text: 'CHAOS',       cls: 'video-title__line--chaos', switch: true },
+    { text: 'the product', cls: 'video-title__line--lead video-title__line--tagline' },
+  ],
+};
+const CODE_TITLE    = { fr: 'Le produit prend vie.', en: 'The product comes to life.' };
+const CODE_SUBTITLE = { fr: "Le go-live n'est que le début.", en: 'Go-live is just the start.' };
 
 // All sections share the same 200vh height so each occupies one full section of
 // scroll. The rainbow → DESIGN transition is driven by thinking's last quarter
@@ -137,7 +159,7 @@ async function boot() {
   // the hero is already on screen and patches in any edited content (below).
   const defaultLabels = SECTIONS.map((s) => s.label);
   const hero = mountHero({
-    container: root, orchestrator, webgl, sectionLabels: defaultLabels, content: null,
+    container: root, orchestrator, webgl, sectionLabels: defaultLabels, content: null, lang: LANG,
   });
 
   // Section-label clicks navigate the page. Use a smooth, eased scroll (not an
@@ -180,7 +202,7 @@ async function boot() {
   // Cap the wait — if the read loses the race the sections render from their
   // baked-in defaults (kept in sync with the CMS) and the hero is patched in
   // whenever the read finally lands.
-  const cmsFetch = fetchHomePage();
+  const cmsFetch = fetchHomePage(LANG);
   const sanityContent = await Promise.race([
     cmsFetch,
     new Promise((resolve) => setTimeout(() => resolve(undefined), 1500)),
@@ -202,7 +224,7 @@ async function boot() {
     });
   }
 
-  const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent });
+  const thinking = mountThinking({ container: root, orchestrator, webgl, content: sanityContent, lang: LANG });
   // DESIGN + CODE sections — one scroll-scrubbed image sequence (811 frames)
   // split at frame 262. Each mount preloads + scrubs only its own slice.
   const FRAME_BASE = { base: '/video/frames/frame_', pad: 4, ext: 'webp' };
@@ -214,12 +236,8 @@ async function boot() {
     // DESIGN heading sits dead-centre as "Du / CHAOS / naît le produit"; only
     // CHAOS carries the hero-style flicker + Niconne/Rubik font-morph (switch).
     titleVariant: 'center',
-    titleLines: [
-      { text: 'Du',              cls: 'video-title__line--lead video-title__line--du' },
-      { text: 'CHAOS',           cls: 'video-title__line--chaos', switch: true },
-      { text: 'naît le produit', cls: 'video-title__line--lead video-title__line--tagline' },
-    ],
-    services: sanityContent?.design?.services?.length ? sanityContent.design.services : DESIGN_SERVICES,
+    titleLines: DESIGN_TITLE_LINES[LANG],
+    services: sanityContent?.design?.services?.length ? sanityContent.design.services : pick(DESIGN_SERVICES, LANG),
   });
   // DESIGN heading starts hidden — it's revealed at frame 58, not on enter.
   video?.titleHandle?.hide();
@@ -230,13 +248,13 @@ async function boot() {
     frames: { ...FRAME_BASE, start: 263, end: 811 },
     // CODE heading centred at top, as before (title + subtitle).
     titleVariant: 'top',
-    title: sanityContent?.code?.title ?? 'Le produit prend vie.',
-    subtitle: sanityContent?.code?.subtitle ?? 'Le go-live n\'est que le début.',
-    services: sanityContent?.code?.services?.length ? sanityContent.code.services : CODE_SERVICES,
+    title: sanityContent?.code?.title ?? CODE_TITLE[LANG],
+    subtitle: sanityContent?.code?.subtitle ?? CODE_SUBTITLE[LANG],
+    services: sanityContent?.code?.services?.length ? sanityContent.code.services : pick(CODE_SERVICES, LANG),
   });
-  const clients  = mountClients({ container: root, orchestrator, content: sanityContent?.clients });
-  const awards   = mountAwards({ container: root, webgl, content: sanityContent?.awards });
-  const footer   = mountFooter({ container: root, content: sanityContent });
+  const clients  = mountClients({ container: root, orchestrator, content: sanityContent?.clients, lang: LANG });
+  const awards   = mountAwards({ container: root, webgl, content: sanityContent?.awards, lang: LANG });
+  const footer   = mountFooter({ container: root, content: sanityContent, lang: LANG });
 
   // ── Lazy frame prefetch ──────────────────────────────────────────────────
   // The DESIGN + CODE image sequences total ~500 WebP frames. Loading them all

@@ -17,18 +17,33 @@ import { asset } from '@/lib/asset.js';
 
 // ── Dropdown copy ────────────────────────────────────────────────────────────
 // DESIGN (frames 1-262) and CODE (frames 263-end) each get their own service
-// panel. Tags render with a leading "/" added by createServiceDropdowns.
-export const DESIGN_SERVICES = [
-  { tag: 'CONCEPT',  items: ['Vision produit, direction créative',  'Concepts qui tiennent en boardroom'] },
-  { tag: 'WORKSHOP', items: ['Idéation co-conçue avec vos équipes', 'Une idée par mur. Une décision par jour.'] },
-  { tag: 'WORKFLOW', items: ['IA générative dans le process créatif', 'Idée prototypée en quelques heures'] },
-];
+// panel. Tags render with a leading "/" added by createServiceDropdowns. Each
+// is a { fr, en } map — pick() in main.js selects the active language.
+export const DESIGN_SERVICES = {
+  fr: [
+    { tag: 'CONCEPT',  items: ['Vision produit, direction créative',  'Concepts qui tiennent en boardroom'] },
+    { tag: 'WORKSHOP', items: ['Idéation co-conçue avec vos équipes', 'Une idée par mur. Une décision par jour.'] },
+    { tag: 'WORKFLOW', items: ['IA générative dans le process créatif', 'Idée prototypée en quelques heures'] },
+  ],
+  en: [
+    { tag: 'CONCEPT',  items: ['Product vision, creative direction',   'Concepts that hold up in the boardroom'] },
+    { tag: 'WORKSHOP', items: ['Ideation co-built with your teams',    'One idea per wall. One decision per day.'] },
+    { tag: 'WORKFLOW', items: ['Generative AI inside the creative process', 'An idea prototyped in hours'] },
+  ],
+};
 
-export const CODE_SERVICES = [
-  { tag: 'FRONT',          items: ['React, Next.js, Vue, TypeScript',       'Shopify, Salesforce Commerce Cloud'] },
-  { tag: 'ANIMATION',      items: ['GSAP, Three.js, Framer Motion, Lottie', 'Le mouvement sert le produit, ou il sort'] },
-  { tag: 'AI PIXEL CODEUR', items: ['Figma vers React, sans handoff',        'Design-to-code-to-design'] },
-];
+export const CODE_SERVICES = {
+  fr: [
+    { tag: 'FRONT',           items: ['React, Next.js, Vue, TypeScript',       'Shopify, Salesforce Commerce Cloud'] },
+    { tag: 'ANIMATION',       items: ['GSAP, Three.js, Framer Motion, Lottie', 'Le mouvement sert le produit, ou il sort'] },
+    { tag: 'AI PIXEL CODEUR', items: ['Figma vers React, sans handoff',        'Design-to-code-to-design'] },
+  ],
+  en: [
+    { tag: 'FRONT',          items: ['React, Next.js, Vue, TypeScript',       'Shopify, Salesforce Commerce Cloud'] },
+    { tag: 'ANIMATION',      items: ['GSAP, Three.js, Framer Motion, Lottie', 'Motion serves the product, or it goes'] },
+    { tag: 'AI PIXEL CODER', items: ['Figma to React, no handoff',            'Design-to-code-to-design'] },
+  ],
+};
 
 export function mountVideo({
   container,
