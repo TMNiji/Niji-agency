@@ -88,7 +88,7 @@ function safeExternalUrl(url) {
 }
 
 const DEFAULT_TITLE    = { fr: 'Quelques grands noms qui nous font confiance', en: 'A few big names who trust us', es: 'Algunos grandes nombres que confían en nosotros' };
-const DEFAULT_SUBTITLE = { fr: 'Des produits à leur hauteur', en: 'Products that match them', es: 'productos a su altura' };
+const DEFAULT_SUBTITLE = { fr: 'Des produits à leur hauteur', en: 'Products that match them', es: 'Productos a su altura' };
 
 // Per-client shape:
 //   name        Brand name — used for alt text + back-face label
