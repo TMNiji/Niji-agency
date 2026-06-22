@@ -236,7 +236,7 @@ const COPY = {
         { tag: 'AI PIXEL CODER', items: ['Figma to React, no handoff',            'Design-to-code-to-design'] },
       ],
     },
-    clients: { title: 'A few big names who trust us', subtitle: 'products that match them' },
+    clients: { title: 'A few big names who trust us', subtitle: 'Products that match them' },
     awards:  { headingTop: '56 awards · 2020 → 2025', headingBottom: 'We look at the P&L before the trophy shelf.' },
     contact: {
       headline: ['Quick question? Ask an AI.', 'Serious matter? Ask a human.'],
