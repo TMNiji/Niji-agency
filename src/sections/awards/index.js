@@ -18,6 +18,7 @@ import { asset } from '@/lib/asset.js';
 import { gsap }   from 'gsap';
 import { prefersReducedMotion } from '@modules/motion.js';
 import { createTitle } from '../hero/title.js';
+import { pick } from '@/lib/lang.js';
 
 // Per-slot GLB URLs. null entries keep the placeholder primitive for that slot.
 // Order matches DEFAULT_AWARDS so each tooltip lands on the right trophy.
@@ -39,8 +40,8 @@ const TROPHY_BASE_ROTATION = [
 // placeholder shapes (~0.36 radius) so the cloud stays visually balanced.
 const TROPHY_GLB_RADIUS = 0.45;
 
-const DEFAULT_HEADING_TOP    = 'On ne les cherchait pas.';
-const DEFAULT_HEADING_BOTTOM = 'Ils sont là.';
+const DEFAULT_HEADING_TOP    = { fr: 'On ne les cherchait pas.', en: '56 awards · 2020 → 2025' };
+const DEFAULT_HEADING_BOTTOM = { fr: 'Ils sont là.', en: 'We look at the P&L before the trophy shelf.' };
 
 // Three trophies — title + detail lines (two per award). Order MUST match
 // TROPHY_GLB_URLS above so the right tooltip lands on each model.
@@ -182,9 +183,9 @@ const CONSTELLATION_MIN_OPACITY = 0.10;  // per-copy resting opacity (faint)
 const CONSTELLATION_MAX_OPACITY = 0.20;
 const CONSTELLATION_BACK_BIAS   = 0.5;   // push nodes this far behind the trophy (z) so it stays foremost
 
-export function mountAwards({ container, webgl, content = null } = {}) {
-  const headingTop    = content?.headingTop    ?? DEFAULT_HEADING_TOP;
-  const headingBottom = content?.headingBottom ?? DEFAULT_HEADING_BOTTOM;
+export function mountAwards({ container, webgl, content = null, lang = 'fr' } = {}) {
+  const headingTop    = content?.headingTop    ?? pick(DEFAULT_HEADING_TOP, lang);
+  const headingBottom = content?.headingBottom ?? pick(DEFAULT_HEADING_BOTTOM, lang);
   const awards        = content?.list?.length ? content.list : DEFAULT_AWARDS;
   // Per-slot GLB URL — CMS trophy asset wins, else the static fallback path.
   const glbUrls = awards.map((a, i) => a.trophy?.asset?.url ?? TROPHY_GLB_URLS[i] ?? null);

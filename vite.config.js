@@ -29,10 +29,12 @@ export default defineConfig({
     assetsInlineLimit: 4096,
     chunkSizeWarningLimit: 600,
     rollupOptions: {
-      // Multi-page build: the scroll site (index.html) plus the standalone Iris
-      // voice page (iris.html, served at /iris via cleanUrls).
+      // Multi-page build: the scroll site (index.html), its English version
+      // (en.html, served at /en via cleanUrls), plus the standalone Iris voice
+      // page (iris.html, served at /iris).
       input: {
         main: resolve(__dirname, 'index.html'),
+        en:   resolve(__dirname, 'en.html'),
         iris: resolve(__dirname, 'iris.html'),
       },
       output: {

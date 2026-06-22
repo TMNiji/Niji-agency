@@ -16,32 +16,42 @@ import { prefersReducedMotion } from '@modules/motion.js';
 import { openCaseOverlay } from '@modules/caseOverlay.js';
 import { createTitle } from '../hero/title.js';
 import { asset } from '@/lib/asset.js';
+import { pick } from '@/lib/lang.js';
+import { isPhoneViewport } from '@/lib/viewport.js';
+
+// CTA labels are always derived in code (never from the CMS), so they must be
+// localized here for the /en page to read English.
+const CTA_LABELS = {
+  fr: { app: "Télécharger l'app", case: 'Voir le case study', site: 'Voir le site' },
+  en: { app: 'Download the app',  case: 'View case study',    site: 'View site' },
+};
 
 // Resolve the verso CTA for a client from its case URL — both the visible label
 // and whether the click opens the in-page 16:9 overlay or just leaves the site.
-//   App store links  → "Télécharger l'app", external redirect
-//   Vimeo cases      → "Voir le case study", overlay (embedded player)
-//   Everything else  → "Voir le site",       external redirect (sites block
+//   App store links  → "Download the app", external redirect
+//   Vimeo cases      → "View case study",  overlay (embedded player)
+//   Everything else  → "View site",        external redirect (sites block
 //                       iframe embedding, so we open them in a new tab)
-function ctaConfig(caseUrl) {
+function ctaConfig(caseUrl, lang = 'fr') {
   const url = safeExternalUrl(caseUrl);
   if (!url) return null;
+  const labels = CTA_LABELS[lang] ?? CTA_LABELS.fr;
   let host = '';
   try { host = new URL(url).hostname; } catch (_) {}
   if (/(^|\.)(apps\.apple\.com|play\.google\.com)$/.test(host)) {
-    return { url, label: "Télécharger l'app", overlay: false };
+    return { url, label: labels.app, overlay: false };
   }
   if (/(^|\.)vimeo\.com$/.test(host)) {
-    return { url, label: 'Voir le case study', overlay: true };
+    return { url, label: labels.case, overlay: true };
   }
-  return { url, label: 'Voir le site', overlay: false };
+  return { url, label: labels.site, overlay: false };
 }
 
 // Build the verso CTA — a bordered pill with a label + arrow. Replaces the old
 // fixed-text button.svg so the label can vary per client, and routes the click
 // to the overlay (Vimeo / site preview) unless it's a store download link.
-function makeCta(caseUrl, brandName) {
-  const cfg = ctaConfig(caseUrl);
+function makeCta(caseUrl, brandName, lang = 'fr') {
+  const cfg = ctaConfig(caseUrl, lang);
   if (!cfg) return null;
   const cta = document.createElement('a');
   cta.className = 'clients__card-cta';
@@ -76,8 +86,8 @@ function safeExternalUrl(url) {
   }
 }
 
-const DEFAULT_TITLE    = 'Quelques grands noms qui nous font confiance';
-const DEFAULT_SUBTITLE = 'Des produits à leur hauteur';
+const DEFAULT_TITLE    = { fr: 'Quelques grands noms qui nous font confiance', en: 'A few big names who trust us' };
+const DEFAULT_SUBTITLE = { fr: 'Des produits à leur hauteur', en: 'products that match them' };
 
 // Per-client shape:
 //   name        Brand name — used for alt text + back-face label
@@ -93,124 +103,135 @@ const DEFAULT_SUBTITLE = 'Des produits à leur hauteur';
 //   accent      Brand hex sampled from the logo's dominant colour. Read by
 //               .clients__card-glow / .clients__card-inner via --card-accent
 //               so each card's tint and glow match its brand.
+// frontLabel / blurb are { fr, en } maps (resolved per language in mountClients);
+// EN follows the source doc copy. Aromazone + Arte aren't in the doc, so their
+// EN is a faithful translation of the FR.
 const DEFAULT_CLIENTS = [
-  // 1. Lacoste — 1ère app m-commerce / screenshot
+  // 1. Lacoste — first m-commerce app / screenshot
   {
     name: 'Lacoste',
     logo: '/logo/lacoste.svg',
     logoScale: 1.5, // wide wordmark — enlarge past the default 48.6% card width
-    frontLabel: '1ère app m-commerce',
+    frontLabel: { fr: '1ère app m-commerce', en: 'First m-commerce app' },
     back: 'image',
     image: '/clients/screenshots/lacoste.webp',
     accent: '#00563F',
   },
-  // 2. Grand Frais — 1ère app m-commerce / screenshot
+  // 2. Grand Frais — first m-commerce app / screenshot
   {
     name: 'Grand Frais',
     logo: '/logo/grand_frais_grey.svg',
-    frontLabel: '1ère app m-commerce',
+    frontLabel: { fr: '1ère app m-commerce', en: 'First m-commerce app' },
     back: 'image',
     image: '/clients/screenshots/grand-frais.webp',
     caseUrl: 'https://apps.apple.com/fr/app/grand-frais/id6753673412',
     accent: '#2EA84A',
   },
-  // 3. Aromazone — App & Commerce / Product & Experience
+  // 3. Aromazone — App & Commerce / Product & Experience (not in source doc)
   {
     name: 'Aromazone',
     logo: '/logo/aromazone.svg',
     logoScale: 1.5, // wide wordmark — enlarge past the default 48.6% card width
-    frontLabel: 'App & Commerce',
+    frontLabel: { fr: 'App & Commerce', en: 'App & Commerce' },
     back: 'text',
-    blurb: 'Product & Experience',
+    blurb: { fr: 'Product & Experience', en: 'Product & Experience' },
     accent: '#4A3428',
   },
-  // 4. Orange — Experience / "Design Partenaire depuis 10 ans"
+  // 4. Orange — Experience Design / Partner for 10 years
   {
     name: 'Orange',
     logo: '/logo/orange.png',
-    frontLabel: 'Experience',
+    frontLabel: { fr: 'Experience', en: 'Experience Design' },
     back: 'text',
-    blurb: 'Design, Experience, B2C, B2B\nPartenaire depuis 10 ans',
+    blurb: { fr: 'Design, Experience, B2C, B2B\nPartenaire depuis 10 ans', en: 'Partner for 10 years' },
     accent: '#FF7900',
   },
-  // 5. Relais & Châteaux — Plateforme de marque & Ecosystème digital / QR + Vimeo
+  // 5. Relais & Châteaux — Brand platform & Digital ecosystem / QR + Vimeo
   {
     name: 'Relais & Châteaux',
     logo: '/logo/relais-chateaux.png',
-    frontLabel: 'Plateforme de marque & Ecosystème digital',
+    frontLabel: { fr: 'Plateforme de marque & Ecosystème digital', en: 'Brand platform & Digital ecosystem' },
     back: 'qr',
     qrSvg: '/clients/qr/relais-chateaux.svg',
     caseUrl: 'https://vimeo.com/842443761/4551f51afc?share=copy&fl=sv&fe=ci',
     accent: '#7A1A2F',
   },
-  // 6. Arte — Plateforme digitale / Product & Experience
+  // 6. Arte — Digital platform / Product & Experience (not in source doc)
   {
     name: 'Arte',
     logo: '/logo/arte.svg',
-    frontLabel: 'Plateforme digitale',
+    frontLabel: { fr: 'Plateforme digitale', en: 'Digital platform' },
     back: 'text',
-    blurb: 'Product & Experience',
+    blurb: { fr: 'Product & Experience', en: 'Product & Experience' },
     accent: '#FF4E00',
   },
-  // 7. Decathlon — Application métiers / 8 ans
+  // 7. Decathlon — Business app / Partner for 8 years
   {
     name: 'Decathlon',
     logo: '/logo/decathlon.svg',
-    frontLabel: 'Application métiers',
+    frontLabel: { fr: 'Application métiers', en: 'Business app' },
     back: 'text',
-    blurb: 'Partenaire depuis 8 ans',
+    blurb: { fr: 'Partenaire depuis 8 ans', en: 'Partner for 8 years' },
     accent: '#0082C3',
   },
-  // 8. Accor — Site Corporate / screenshot
+  // 8. Accor — Corporate site / screenshot
   {
     name: 'Accor',
     logo: '/logo/accor.png',
-    frontLabel: 'Site Corporate',
+    frontLabel: { fr: 'Site Corporate', en: 'Corporate site' },
     back: 'image',
     image: '/clients/screenshots/accor.webp',
     caseUrl: 'https://group.accor.com/fr',
     accent: '#C9A14D',
   },
-  // 9. BNP Paribas — Design System / Partenaire depuis 9 ans
+  // 9. BNP Paribas — Design System / Partner for 9 years
   {
     name: 'BNP Paribas',
     logo: '/logo/bnp-paribas.png',
-    frontLabel: 'Design System. Partenaire depuis 9 ans.',
+    frontLabel: { fr: 'Design System. Partenaire depuis 9 ans.', en: 'Design System. Partner for 9 years.' },
     back: 'text',
-    blurb: 'Partenaire depuis 9 ans',
+    blurb: { fr: 'Partenaire depuis 9 ans', en: 'Partner for 9 years' },
     accent: '#008855',
   },
-  // 10. Ritz — Ecosystème digital / QR + Vimeo
+  // 10. Ritz — Digital ecosystem / QR + Vimeo
   {
     name: 'Ritz',
     logo: '/logo/ritz.png',
-    frontLabel: 'Ecosystème digital',
+    frontLabel: { fr: 'Ecosystème digital', en: 'Digital ecosystem' },
     back: 'qr',
     qrSvg: '/clients/qr/ritz.svg',
     caseUrl: 'https://vimeo.com/911295072/ad02f28185?share=copy&fl=sv&fe=ci',
     accent: '#1F2A44',
   },
-  // 11. RATP — 1er site web eco-conçu et accessible / QR + Vimeo
+  // 11. RATP — First eco-designed, accessible website / QR + Vimeo
   {
     name: 'RATP',
     logo: '/logo/ratp.webp',
-    frontLabel: '1er site web eco-conçu et accessible',
+    frontLabel: { fr: '1er site web eco-conçu et accessible', en: 'First eco-designed, accessible website' },
     back: 'qr',
     qrSvg: '/clients/qr/ratp.svg',
     caseUrl: 'https://vimeo.com/911295002/cabba31990?share=copy&fl=sv&fe=ci',
     accent: '#008C53',
   },
-  // 12. Groupe Bel — Site Groupe / screenshot
+  // 12. Groupe Bel — Group site / screenshot
   {
     name: 'Groupe Bel',
     logo: '/logo/groupe-bel.png',
-    frontLabel: 'Site Groupe',
+    frontLabel: { fr: 'Site Groupe', en: 'Group site' },
     back: 'image',
     image: '/clients/screenshots/bel.webp',
     caseUrl: 'https://www.groupe-bel.com',
     accent: '#E60028',
   },
 ];
+
+// Resolve a default client's { fr, en } label maps down to plain strings for the
+// active language (the CMS path already supplies plain strings).
+const localizeDefault = (c, lang) => ({
+  ...c,
+  frontLabel: pick(c.frontLabel, lang),
+  ...(c.blurb ? { blurb: pick(c.blurb, lang) } : {}),
+});
 
 // Diagonal river geometry. Each unit of `rel` (distance from the focused card)
 // steps the card along the diagonal: right + up + into the screen.
@@ -246,10 +267,10 @@ function fromCms(c) {
   };
 }
 
-export function mountClients({ container, orchestrator, content = null } = {}) {
-  const title    = content?.title    ?? DEFAULT_TITLE;
-  const subtitle = content?.subtitle ?? DEFAULT_SUBTITLE;
-  const clients  = (content?.list?.length ? content.list.map(fromCms) : DEFAULT_CLIENTS)
+export function mountClients({ container, orchestrator, content = null, lang = 'fr' } = {}) {
+  const title    = content?.title    ?? pick(DEFAULT_TITLE, lang);
+  const subtitle = content?.subtitle ?? pick(DEFAULT_SUBTITLE, lang);
+  const clients  = (content?.list?.length ? content.list.map(fromCms) : DEFAULT_CLIENTS.map((c) => localizeDefault(c, lang)))
     // Ritz is hidden for now — drop it whether the list comes from the CMS or
     // the hardcoded defaults. Remove this filter to bring the card back.
     .filter((c) => c.name?.toLowerCase() !== 'ritz');
@@ -359,19 +380,19 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
       back.appendChild(qr);
 
       // Verso CTA — label + behaviour derived from the case URL (see makeCta).
-      const cta = makeCta(client.caseUrl, brandName);
+      const cta = makeCta(client.caseUrl, brandName, lang);
       if (cta) back.appendChild(cta);
     } else if (client.back === 'image' && client.image) {
       const shot = document.createElement('img');
       shot.className = 'clients__card-screenshot';
       shot.src = asset(client.image);
-      shot.alt = `${brandName} — capture d'écran`;
+      shot.alt = lang === 'en' ? `${brandName} — screenshot` : `${brandName} — capture d'écran`;
       shot.loading = 'lazy';
       back.appendChild(shot);
 
       // Verso CTA — label + behaviour derived from the case URL (see makeCta).
       // When there's no case URL, fall back to showing the brand label.
-      const cta = makeCta(client.caseUrl, brandName);
+      const cta = makeCta(client.caseUrl, brandName, lang);
       if (cta) {
         back.appendChild(cta);
       } else {
@@ -468,9 +489,9 @@ export function mountClients({ container, orchestrator, content = null } = {}) {
     // cycling stays — it's user-controlled content, not gratuitous motion).
     const tiltScale = prefersReducedMotion() ? 0 : 1;
     // On phones the per-card label is held constant instead of fading in/out as
-    // the river cycles (it just rides the card's own opacity). Matches the 600px
-    // phone breakpoint in clients.css.
-    const phone = window.innerWidth <= 600;
+    // the river cycles (it just rides the card's own opacity). Matches the phone
+    // breakpoint in clients.css (portrait + landscape).
+    const phone = isPhoneViewport();
     curMouseX += (targetMouseX - curMouseX) * MOUSE_LERP;
     curMouseY += (targetMouseY - curMouseY) * MOUSE_LERP;
 

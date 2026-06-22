@@ -7,10 +7,32 @@
 
 import { createTitle } from '../hero/title.js';
 import { createAiLinks, DEFAULT_AI_LINKS } from '../shared/aiLinks.js';
+import { pick } from '@/lib/lang.js';
 
-const DEFAULT_HEADLINE = ['Question rapide, demandez à votre IA.', 'Sujet sérieux, demandez à un humain.'];
+const DEFAULT_HEADLINE = {
+  fr: ['Question rapide, demandez à votre IA.', 'Sujet sérieux, demandez à un humain.'],
+  en: ['Quick question? Ask an AI.', 'Serious matter? Ask a human.'],
+};
 const DEFAULT_EMAIL = 'hello@niji.agency';
 const DEFAULT_LOOP_LABEL = 'Keep scrolling — back to start';
+
+// Code-only chrome strings (the mail draft + legal links + back-to-start aria).
+const UI = {
+  fr: {
+    backToStart: 'Retour au début',
+    mailSubject: 'Prise de contact',
+    mailBody: "J'ai potentiellement un projet sur lequel vous pourriez m'aider et j'aimerais en savoir plus sur votre agence.",
+    legal: 'Mentions légales',
+    cookies: 'Gérer mes cookies',
+  },
+  en: {
+    backToStart: 'Back to start',
+    mailSubject: 'Getting in touch',
+    mailBody: "I might have a project you could help with and I'd like to learn more about your agency.",
+    legal: 'Legal notice',
+    cookies: 'Manage cookies',
+  },
+};
 
 // Break a headline sentence into non-wrapping glitch lines. The title builder
 // renders one line per array entry with white-space:nowrap, so we split at the
@@ -21,8 +43,9 @@ function splitHeadline(sentence) {
   return [sentence.slice(0, i + 1), sentence.slice(i + 1).trim()];
 }
 
-export function mountFooter({ container, content = null } = {}) {
-  const HEADLINE   = content?.contact?.headline?.length ? content.contact.headline : DEFAULT_HEADLINE;
+export function mountFooter({ container, content = null, lang = 'fr' } = {}) {
+  const L = pick(UI, lang);
+  const HEADLINE   = content?.contact?.headline?.length ? content.contact.headline : pick(DEFAULT_HEADLINE, lang);
   const EMAIL      = content?.contact?.email ?? DEFAULT_EMAIL;
   const LOOP_LABEL = content?.contact?.loopLabel ?? DEFAULT_LOOP_LABEL;
   const section = container.querySelector('[data-section="contact"]');
@@ -48,7 +71,7 @@ export function mountFooter({ container, content = null } = {}) {
     return t;
   };
   const titleAi    = makeTitle(HEADLINE[0]);
-  const titleHuman = makeTitle(HEADLINE[1] ?? DEFAULT_HEADLINE[1]);
+  const titleHuman = makeTitle(HEADLINE[1] ?? pick(DEFAULT_HEADLINE, lang)[1]);
 
   const columns = document.createElement('div');
   columns.className = 'footer__columns';
@@ -71,9 +94,7 @@ export function mountFooter({ container, content = null } = {}) {
   contactsCol.className = 'footer__col footer__contacts';
   const item = document.createElement('a');
   item.className = 'footer__contact';
-  const MAIL_SUBJECT = 'Prise de contact';
-  const MAIL_BODY = "J'ai potentiellement un projet sur lequel vous pourriez m'aider et j'aimerais en savoir plus sur votre agence.";
-  item.href = `mailto:${EMAIL}?subject=${encodeURIComponent(MAIL_SUBJECT)}&body=${encodeURIComponent(MAIL_BODY)}`;
+  item.href = `mailto:${EMAIL}?subject=${encodeURIComponent(L.mailSubject)}&body=${encodeURIComponent(L.mailBody)}`;
   const emailEl = document.createElement('span');
   emailEl.className = 'footer__contact-email';
   emailEl.textContent = EMAIL;
@@ -89,7 +110,7 @@ export function mountFooter({ container, content = null } = {}) {
   const loopCta = document.createElement('button');
   loopCta.type = 'button';
   loopCta.className = 'footer__loop-cta';
-  loopCta.setAttribute('aria-label', 'Back to start');
+  loopCta.setAttribute('aria-label', L.backToStart);
   loopCta.innerHTML = `
     <span class="footer__loop-cta-label"></span>
     <span class="footer__loop-cta-arrow" aria-hidden="true">↓</span>
@@ -116,12 +137,12 @@ export function mountFooter({ container, content = null } = {}) {
   const legal = document.createElement('a');
   legal.className = 'footer__meta-link';
   legal.href = '/mentions-legales';
-  legal.textContent = 'Mentions légales';
+  legal.textContent = L.legal;
 
   const cookies = document.createElement('button');
   cookies.type = 'button';
   cookies.className = 'footer__meta-link';
-  cookies.textContent = 'Gérer mes cookies';
+  cookies.textContent = L.cookies;
   cookies.addEventListener('click', () => window.nijiConsent?.open());
 
   meta.append(legal, cookies);

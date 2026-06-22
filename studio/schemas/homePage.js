@@ -79,6 +79,16 @@ export default {
   fields: [
     // ── Global ────────────────────────────────────────────────────────────────
     {
+      name: 'language',
+      title: 'Language',
+      description: 'Which language version this document holds. One document per language (FR served at /, EN at /en).',
+      type: 'string',
+      options: { list: [{ title: 'Français', value: 'fr' }, { title: 'English', value: 'en' }], layout: 'radio' },
+      initialValue: 'fr',
+      validation: (R) => R.required(),
+      group: 'global',
+    },
+    {
       name: 'logo',
       title: 'Header logo',
       description: 'Fixed top-left Niji mark (SVG recommended).',
@@ -378,9 +388,10 @@ export default {
   ],
 
   preview: {
-    select: { title: 'hero.title' },
-    prepare({ title }) {
-      return { title: (title ?? 'Home page').split('\n')[0] };
+    select: { title: 'hero.title', language: 'language' },
+    prepare({ title, language }) {
+      const lang = (language ?? 'fr').toUpperCase();
+      return { title: `[${lang}] ${(title ?? 'Home page').split('\n')[0]}` };
     },
   },
 };

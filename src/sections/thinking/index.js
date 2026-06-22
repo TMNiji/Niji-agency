@@ -1,15 +1,24 @@
 import { createOrbital } from '../hero/orbital.js';
 import { createAiLinks, DEFAULT_AI_LINKS } from '../shared/aiLinks.js';
 import { createServiceDropdowns } from '../shared/serviceDropdowns.js';
+import { pick } from '@/lib/lang.js';
 
-const DEFAULT_SERVICES = [
-  { tag: 'PRODUCT',  items: ['Vision, conception et roadmap',     'Design system, tokens, gouvernance'] },
-  { tag: 'AI',       items: ['Audit, workflows',                  'Développement d\'agents'] },
-  { tag: 'BUSINESS', items: ['Unit economics, cost-to-serve',      'Cadrage produit, business case, go-to-market'] },
-  { tag: 'BRANDING', items: ['Plateforme et positionnement',      'Promesse, preuves, expérience'] },
-];
+const DEFAULT_SERVICES = {
+  fr: [
+    { tag: 'PRODUCT',  items: ['Vision, conception et roadmap',     'Design system, tokens, gouvernance'] },
+    { tag: 'AI',       items: ['Audit, workflows',                  'Développement d\'agents'] },
+    { tag: 'BUSINESS', items: ['Unit economics, cost-to-serve',      'Cadrage produit, business case, go-to-market'] },
+    { tag: 'BRANDING', items: ['Plateforme et positionnement',      'Promesse, preuves, expérience'] },
+  ],
+  en: [
+    { tag: 'PRODUCT',  items: ['Vision, design and roadmap',        'Design system, tokens, governance'] },
+    { tag: 'AI',       items: ['Audit, workflows',                  'Agent development'] },
+    { tag: 'BUSINESS', items: ['Unit economics, cost-to-serve',     'Product scoping, business case, go-to-market'] },
+    { tag: 'BRANDING', items: ['Platform and positioning',         'Promise, proof, experience'] },
+  ],
+};
 
-export function mountThinking({ container, orchestrator, webgl, content = null } = {}) {
+export function mountThinking({ container, orchestrator, webgl, content = null, lang = 'fr' } = {}) {
   const section = container.querySelector('[data-section="thinking"]');
   if (!section) return null;
   section.classList.add('thinking');
@@ -19,10 +28,10 @@ export function mountThinking({ container, orchestrator, webgl, content = null }
   stage.className = 'thinking__stage';
   section.appendChild(stage);
 
-  const orbital = createOrbital({ stage, cards: content?.thinking?.cards });
+  const orbital = createOrbital({ stage, cards: content?.thinking?.cards, lang });
 
   // ── Service panel — dropdowns ──────────────────────────────────────────────
-  const SERVICES   = content?.thinking?.services?.length ? content.thinking.services : DEFAULT_SERVICES;
+  const SERVICES   = content?.thinking?.services?.length ? content.thinking.services : pick(DEFAULT_SERVICES, lang);
   const AI_LINKS   = content?.thinking?.aiLinks?.buttons?.length ? content.thinking.aiLinks : DEFAULT_AI_LINKS;
 
   const { el: services } = createServiceDropdowns({ services: SERVICES });

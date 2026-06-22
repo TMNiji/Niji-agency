@@ -27,8 +27,12 @@ const CELL_OFFSET_VH = 0.08;
 // Ring diameters expressed as multiples of the cell radius (2× because diameter)
 const RING_FACTORS = [1.45, 2.00, 2.45]; // ring radius = factor * cellPx
 
-// Five clickable dots, each opening a distinct build-phase card.
-const DOT_LABELS = ['/Stratégie', '/Business Value', '/Design Sprint', '/Brainstorming', '/Benchmark'];
+// Five clickable dots, each opening a distinct build-phase card. Only the first
+// label differs by language (/Stratégie ↔ /Strategy); the rest read the same.
+const DOT_LABELS = {
+  fr: ['/Stratégie', '/Business Value', '/Design Sprint', '/Brainstorming', '/Benchmark'],
+  en: ['/Strategy',  '/Business Value', '/Design Sprint', '/Brainstorming', '/Benchmark'],
+};
 const BENCHMARK_IDX = 4; // dot 5 opens a window stack instead of a single card
 const CARD_BUILDERS = [
   createStrategyCard,
@@ -48,7 +52,7 @@ const R_BANDS    = [1.22, 1.60, 1.96]; // inner / mid / outer
 // capped there (much smaller px), so the same multiple barely moves the dot.
 const DESIGN_SPRINT_DROP        = 0.45; // desktop
 const DESIGN_SPRINT_DROP_MOBILE = 1.5;  // phones
-const DOT_COUNT  = DOT_LABELS.length;
+const DOT_COUNT  = DOT_LABELS.fr.length;
 const DOTS_DEF = Array.from({ length: DOT_COUNT }, (_, i) => {
   const angle   = (i * 137.508) % 360; // golden angle — no clustering
   const rBase   = R_BANDS[i % 3];
@@ -57,7 +61,8 @@ const DOTS_DEF = Array.from({ length: DOT_COUNT }, (_, i) => {
   return { angle, rFactor: rBase + jitter };
 });
 
-export function createOrbital({ stage, cards = {} } = {}) {
+export function createOrbital({ stage, cards = {}, lang = 'fr' } = {}) {
+  const dotLabels = DOT_LABELS[lang] ?? DOT_LABELS.fr;
   // Per-dot CMS content for the floating cards (dots 0-3). Index order matches
   // CARD_BUILDERS; undefined entries let each builder use its own defaults.
   const CARD_CONTENT = [cards.strategy, cards.businessValue, cards.designSprint, cards.brainstorm];
@@ -80,11 +85,11 @@ export function createOrbital({ stage, cards = {} } = {}) {
     el.className = 'hero-orbital__dot';
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', '0');
-    el.setAttribute('aria-label', DOT_LABELS[i].replace(/^\//, ''));
+    el.setAttribute('aria-label', dotLabels[i].replace(/^\//, ''));
     el.setAttribute('aria-expanded', 'false');
     const label = document.createElement('span');
     label.className = 'hero-orbital__dot-label';
-    label.textContent = DOT_LABELS[i];
+    label.textContent = dotLabels[i];
     el.appendChild(label);
     wrap.appendChild(el);
     return { el, def: d, x: 0, y: 0 };
@@ -254,13 +259,13 @@ export function createOrbital({ stage, cards = {} } = {}) {
   popup.hidden = true;
   document.body.appendChild(popup);
 
-  const benchmark = createBenchmarkStack({ stage, sites: cards.benchmark?.sites });
+  const benchmark = createBenchmarkStack({ stage, sites: cards.benchmark?.sites, lang });
 
   // Lazily built and cached so card state (e.g. checklist) survives re-opens.
   const cardCache = new Array(CARD_BUILDERS.length).fill(null);
   function getCard(idx) {
     if (!cardCache[idx]) {
-      const inst = CARD_BUILDERS[idx](CARD_CONTENT[idx]);
+      const inst = CARD_BUILDERS[idx](CARD_CONTENT[idx], lang);
       inst.el.querySelector(inst.closeSelector)
         ?.addEventListener('click', (e) => { e.stopPropagation(); closeAll(); });
       cardCache[idx] = inst;
