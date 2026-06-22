@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="icon" type="image/png" href="/favicon_white.png" />
+    <title>Niji — Agencia de product design IA-nativa</title>
+
+    <!-- SEO / GEO: the page renders client-side, so agents that don't run JS
+         only ever see this head + the <noscript> block in <body>. Keep both in
+         sync with index.html / en.html and the reference page at /llm. -->
+    <meta name="description" content="Niji es una agencia de product design IA-nativa. 25 años, 1400 personas en Francia, España y Marruecos, 133 M€ de facturación en 2025, 56 premios entre 2020 y 2025. Crear lo que aún no existe, hacer crecer lo que ya funciona." />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Niji" />
+    <link rel="canonical" href="https://niji.agency/es" />
+    <!-- Language alternates — keep identical across /, /en and /es. -->
+    <link rel="alternate" hreflang="fr" href="https://niji.agency/" />
+    <link rel="alternate" hreflang="en" href="https://niji.agency/en" />
+    <link rel="alternate" hreflang="es" href="https://niji.agency/es" />
+    <link rel="alternate" hreflang="x-default" href="https://niji.agency/" />
+    <!-- Agent-readable reference page (see public/llm/index.html + llms.txt). -->
+    <link rel="alternate" type="text/plain" title="llms.txt" href="/llms.txt" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Niji" />
+    <meta property="og:title" content="Niji — Agencia de product design IA-nativa" />
+    <meta property="og:description" content="Niji diseña, fabrica y opera productos digitales para empresas. Crear lo que aún no existe, hacer crecer lo que ya funciona. Top 4 mundial en los Lovie y Webby Awards." />
+    <meta property="og:url" content="https://niji.agency/es" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <!-- TODO: produce a dedicated 1200×630 share image at /og-image.png. -->
+    <meta property="og:image" content="https://niji.agency/og-image.png" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Niji — Agencia de product design IA-nativa" />
+    <meta name="twitter:description" content="Niji diseña, fabrica y opera productos digitales para empresas. Crear lo que aún no existe, hacer crecer lo que ya funciona." />
+    <meta name="twitter:image" content="https://niji.agency/og-image.png" />
+    <!-- Preload the two most-used N27 weights to avoid FOUT on first paint -->
+    <link rel="preload" href="/fonts/N27-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/N27-Bold.woff2"    as="font" type="font/woff2" crossorigin>
+    <!-- DotGothic16 (orbital dot labels + section tags) is self-hosted — see fonts.css -->
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <!-- GA4 + RGPD consent banner (Consent Mode v2) — see public/consent.js -->
+    <script src="/consent.js"></script>
+  </head>
+  <body>
+    <canvas id="webgl-canvas"></canvas>
+    <main id="app"></main>
+
+    <!-- Static fallback for agents and clients without JS. The interactive site
+         is rendered into #app by /src/main.js, which reads the /es path to serve
+         Spanish. Full reference page: /llm -->
+    <noscript>
+      <article style="max-width:820px;margin:0 auto;padding:48px 24px;font-family:sans-serif;line-height:1.6;color:#0a0a0a;background:#fff">
+        <h1>Niji — Agencia de product design IA-nativa</h1>
+        <p>Niji es una agencia de product design IA-nativa. Diseña, fabrica y opera productos digitales para empresas&nbsp;: sitios web, aplicaciones, plataformas, servicios conectados y agentes de IA. Su postura&nbsp;: <strong>crear lo que aún no existe, hacer crecer lo que ya funciona</strong>.</p>
+
+        <h2>La agencia en cifras</h2>
+        <ul>
+          <li>25 años de existencia (fundada en septiembre de 2001 por Hugues Meili)</li>
+          <li>1400 personas en Francia, España y Marruecos — 11 sedes operativas</li>
+          <li>133 millones de euros de facturación en 2025</li>
+          <li>56 premios obtenidos entre 2020 y 2025 — Top 4 mundial en los Lovie Awards y los Webby Awards</li>
+        </ul>
+
+        <h2>Servicios</h2>
+        <ul>
+          <li>Diseño y despliegue de agentes de IA</li>
+          <li>AI.COMMERCE — e-commerce deseable para los humanos, legible para los agentes de IA</li>
+          <li>Rediseño y creación de sitios web y aplicaciones</li>
+          <li>Product designer integrado</li>
+          <li>Design system</li>
+          <li>Accesibilidad (RGAA, WCAG, European Accessibility Act)</li>
+          <li>Branding y plataforma de marca</li>
+        </ul>
+
+        <h2>Algunos clientes</h2>
+        <p>Lacoste, Relais &amp; Châteaux, Orange, BNP Paribas, Accor, RATP, Decathlon, Arte, Groupe Bel.</p>
+
+        <h2>Más información</h2>
+        <p>
+          <a href="/llm">Ficha de referencia completa (FR / EN)</a> ·
+          <a href="/mentions-legales">Aviso legal</a>
+        </p>
+        <p>Contacto&nbsp;: Yv Corbeil, Managing Director &amp; Chief Creative Officer — yv.corbeil@niji.fr</p>
+      </article>
+    </noscript>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

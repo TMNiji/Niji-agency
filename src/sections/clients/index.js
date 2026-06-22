@@ -24,6 +24,7 @@ import { isPhoneViewport } from '@/lib/viewport.js';
 const CTA_LABELS = {
   fr: { app: "Télécharger l'app", case: 'Voir le case study', site: 'Voir le site' },
   en: { app: 'Download the app',  case: 'View case study',    site: 'View site' },
+  es: { app: 'Descargar la app',  case: 'Ver el caso',        site: 'Ver el sitio' },
 };
 
 // Resolve the verso CTA for a client from its case URL — both the visible label
@@ -86,8 +87,8 @@ function safeExternalUrl(url) {
   }
 }
 
-const DEFAULT_TITLE    = { fr: 'Quelques grands noms qui nous font confiance', en: 'A few big names who trust us' };
-const DEFAULT_SUBTITLE = { fr: 'Des produits à leur hauteur', en: 'products that match them' };
+const DEFAULT_TITLE    = { fr: 'Quelques grands noms qui nous font confiance', en: 'A few big names who trust us', es: 'Algunos grandes nombres que confían en nosotros' };
+const DEFAULT_SUBTITLE = { fr: 'Des produits à leur hauteur', en: 'products that match them', es: 'productos a su altura' };
 
 // Per-client shape:
 //   name        Brand name — used for alt text + back-face label
@@ -112,7 +113,7 @@ const DEFAULT_CLIENTS = [
     name: 'Lacoste',
     logo: '/logo/lacoste.svg',
     logoScale: 1.5, // wide wordmark — enlarge past the default 48.6% card width
-    frontLabel: { fr: '1ère app m-commerce', en: 'First m-commerce app' },
+    frontLabel: { fr: '1ère app m-commerce', en: 'First m-commerce app', es: 'Primera app m-commerce' },
     back: 'image',
     image: '/clients/screenshots/lacoste.webp',
     accent: '#00563F',
@@ -121,7 +122,7 @@ const DEFAULT_CLIENTS = [
   {
     name: 'Grand Frais',
     logo: '/logo/grand_frais_grey.svg',
-    frontLabel: { fr: '1ère app m-commerce', en: 'First m-commerce app' },
+    frontLabel: { fr: '1ère app m-commerce', en: 'First m-commerce app', es: 'Primera app m-commerce' },
     back: 'image',
     image: '/clients/screenshots/grand-frais.webp',
     caseUrl: 'https://apps.apple.com/fr/app/grand-frais/id6753673412',
@@ -132,25 +133,25 @@ const DEFAULT_CLIENTS = [
     name: 'Aromazone',
     logo: '/logo/aromazone.svg',
     logoScale: 1.5, // wide wordmark — enlarge past the default 48.6% card width
-    frontLabel: { fr: 'App & Commerce', en: 'App & Commerce' },
+    frontLabel: { fr: 'App & Commerce', en: 'App & Commerce', es: 'App & Commerce' },
     back: 'text',
-    blurb: { fr: 'Product & Experience', en: 'Product & Experience' },
+    blurb: { fr: 'Product & Experience', en: 'Product & Experience', es: 'Producto & Experiencia' },
     accent: '#4A3428',
   },
   // 4. Orange — Experience Design / Partner for 10 years
   {
     name: 'Orange',
     logo: '/logo/orange.png',
-    frontLabel: { fr: 'Experience', en: 'Experience Design' },
+    frontLabel: { fr: 'Experience', en: 'Experience Design', es: 'Experience Design' },
     back: 'text',
-    blurb: { fr: 'Design, Experience, B2C, B2B\nPartenaire depuis 10 ans', en: 'Partner for 10 years' },
+    blurb: { fr: 'Design, Experience, B2C, B2B\nPartenaire depuis 10 ans', en: 'Partner for 10 years', es: 'Socio desde hace 10 años' },
     accent: '#FF7900',
   },
   // 5. Relais & Châteaux — Brand platform & Digital ecosystem / QR + Vimeo
   {
     name: 'Relais & Châteaux',
     logo: '/logo/relais-chateaux.png',
-    frontLabel: { fr: 'Plateforme de marque & Ecosystème digital', en: 'Brand platform & Digital ecosystem' },
+    frontLabel: { fr: 'Plateforme de marque & Ecosystème digital', en: 'Brand platform & Digital ecosystem', es: 'Plataforma de marca & Ecosistema digital' },
     back: 'qr',
     qrSvg: '/clients/qr/relais-chateaux.svg',
     caseUrl: 'https://vimeo.com/842443761/4551f51afc?share=copy&fl=sv&fe=ci',
@@ -160,25 +161,25 @@ const DEFAULT_CLIENTS = [
   {
     name: 'Arte',
     logo: '/logo/arte.svg',
-    frontLabel: { fr: 'Plateforme digitale', en: 'Digital platform' },
+    frontLabel: { fr: 'Plateforme digitale', en: 'Digital platform', es: 'Plataforma digital' },
     back: 'text',
-    blurb: { fr: 'Product & Experience', en: 'Product & Experience' },
+    blurb: { fr: 'Product & Experience', en: 'Product & Experience', es: 'Producto & Experiencia' },
     accent: '#FF4E00',
   },
   // 7. Decathlon — Business app / Partner for 8 years
   {
     name: 'Decathlon',
     logo: '/logo/decathlon.svg',
-    frontLabel: { fr: 'Application métiers', en: 'Business app' },
+    frontLabel: { fr: 'Application métiers', en: 'Business app', es: 'Aplicación de negocio' },
     back: 'text',
-    blurb: { fr: 'Partenaire depuis 8 ans', en: 'Partner for 8 years' },
+    blurb: { fr: 'Partenaire depuis 8 ans', en: 'Partner for 8 years', es: 'Socio desde hace 8 años' },
     accent: '#0082C3',
   },
   // 8. Accor — Corporate site / screenshot
   {
     name: 'Accor',
     logo: '/logo/accor.png',
-    frontLabel: { fr: 'Site Corporate', en: 'Corporate site' },
+    frontLabel: { fr: 'Site Corporate', en: 'Corporate site', es: 'Sitio corporativo' },
     back: 'image',
     image: '/clients/screenshots/accor.webp',
     caseUrl: 'https://group.accor.com/fr',
@@ -188,16 +189,16 @@ const DEFAULT_CLIENTS = [
   {
     name: 'BNP Paribas',
     logo: '/logo/bnp-paribas.png',
-    frontLabel: { fr: 'Design System. Partenaire depuis 9 ans.', en: 'Design System. Partner for 9 years.' },
+    frontLabel: { fr: 'Design System. Partenaire depuis 9 ans.', en: 'Design System. Partner for 9 years.', es: 'Design System. Socio desde hace 9 años.' },
     back: 'text',
-    blurb: { fr: 'Partenaire depuis 9 ans', en: 'Partner for 9 years' },
+    blurb: { fr: 'Partenaire depuis 9 ans', en: 'Partner for 9 years', es: 'Socio desde hace 9 años' },
     accent: '#008855',
   },
   // 10. Ritz — Digital ecosystem / QR + Vimeo
   {
     name: 'Ritz',
     logo: '/logo/ritz.png',
-    frontLabel: { fr: 'Ecosystème digital', en: 'Digital ecosystem' },
+    frontLabel: { fr: 'Ecosystème digital', en: 'Digital ecosystem', es: 'Ecosistema digital' },
     back: 'qr',
     qrSvg: '/clients/qr/ritz.svg',
     caseUrl: 'https://vimeo.com/911295072/ad02f28185?share=copy&fl=sv&fe=ci',
@@ -207,7 +208,7 @@ const DEFAULT_CLIENTS = [
   {
     name: 'RATP',
     logo: '/logo/ratp.webp',
-    frontLabel: { fr: '1er site web eco-conçu et accessible', en: 'First eco-designed, accessible website' },
+    frontLabel: { fr: '1er site web eco-conçu et accessible', en: 'First eco-designed, accessible website', es: 'Primer sitio web ecodiseñado y accesible' },
     back: 'qr',
     qrSvg: '/clients/qr/ratp.svg',
     caseUrl: 'https://vimeo.com/911295002/cabba31990?share=copy&fl=sv&fe=ci',
@@ -217,7 +218,7 @@ const DEFAULT_CLIENTS = [
   {
     name: 'Groupe Bel',
     logo: '/logo/groupe-bel.png',
-    frontLabel: { fr: 'Site Groupe', en: 'Group site' },
+    frontLabel: { fr: 'Site Groupe', en: 'Group site', es: 'Sitio de grupo' },
     back: 'image',
     image: '/clients/screenshots/bel.webp',
     caseUrl: 'https://www.groupe-bel.com',
@@ -386,7 +387,8 @@ export function mountClients({ container, orchestrator, content = null, lang = '
       const shot = document.createElement('img');
       shot.className = 'clients__card-screenshot';
       shot.src = asset(client.image);
-      shot.alt = lang === 'en' ? `${brandName} — screenshot` : `${brandName} — capture d'écran`;
+      shot.alt = { en: `${brandName} — screenshot`, es: `${brandName} — captura de pantalla` }[lang]
+        ?? `${brandName} — capture d'écran`;
       shot.loading = 'lazy';
       back.appendChild(shot);
 

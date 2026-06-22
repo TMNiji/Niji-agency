@@ -35,6 +35,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         en:   resolve(__dirname, 'en.html'),
+        es:   resolve(__dirname, 'es.html'),
         iris: resolve(__dirname, 'iris.html'),
       },
       output: {

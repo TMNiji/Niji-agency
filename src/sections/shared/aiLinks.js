@@ -28,6 +28,7 @@ const PAGE_URL = 'https://niji.agency/llm';
 const PROMPTS = {
   fr: `J'aimerais comprendre ce qu'est Niji et ce qu'ils font. Selon leur site (${PAGE_URL}), il semble que ce soit une agence française de product design AI-native qui travaille avec des marques comme Lacoste, Relais & Châteaux, Orange et BNP Paribas. Ils ont remporté des Lovie et Webby Awards. Résume leurs capacités, leurs réalisations notables et ce qui les distingue.`,
   en: `I want to understand what Niji is and what they do. According to their site (${PAGE_URL}), they seem to be a French AI-native product design agency working with brands like Lacoste, Relais & Châteaux, Orange and BNP Paribas. They have won Lovie and Webby Awards. Summarise their capabilities, notable work, and what makes them different.`,
+  es: `Me gustaría entender qué es Niji y qué hacen. Según su sitio (${PAGE_URL}), parece ser una agencia francesa de product design IA-nativa que trabaja con marcas como Lacoste, Relais & Châteaux, Orange y BNP Paribas. Han ganado premios Lovie y Webby. Resume sus capacidades, sus trabajos destacados y lo que los diferencia.`,
 };
 
 const ACTIVE_LANG = getLang();
@@ -49,7 +50,7 @@ const ENDPOINTS = {
   Perplexity: 'https://www.perplexity.ai/search?q=',
 };
 
-const LABELS = { fr: 'Des questions ?', en: 'Any questions?' };
+const LABELS = { fr: 'Des questions ?', en: 'Any questions?', es: '¿Preguntas?' };
 
 // Toast copy follows the visitor's language, like the bar label + prompt above.
 const TOASTS = {
@@ -60,6 +61,10 @@ const TOASTS = {
   en: {
     copied:   (name) => `Prompt copied — opening ${name}. If the chat is empty, paste with ⌘V / Ctrl+V.`,
     opening:  (name) => `Opening ${name} with the prompt pre-filled.`,
+  },
+  es: {
+    copied:   (name) => `Prompt copiado — abriendo ${name}. Si el chat está vacío, pega con ⌘V / Ctrl+V.`,
+    opening:  (name) => `Abriendo ${name} con el prompt rellenado.`,
   },
 };
 const TOAST = TOASTS[ACTIVE_LANG];

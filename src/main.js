@@ -30,9 +30,14 @@ const DESIGN_TITLE_LINES = {
     { text: 'CHAOS',       cls: 'video-title__line--chaos', switch: true },
     { text: 'the product', cls: 'video-title__line--lead video-title__line--tagline' },
   ],
+  es: [
+    { text: 'Del',             cls: 'video-title__line--lead video-title__line--du' },
+    { text: 'CAOS',            cls: 'video-title__line--chaos', switch: true },
+    { text: 'nace el producto', cls: 'video-title__line--lead video-title__line--tagline' },
+  ],
 };
-const CODE_TITLE    = { fr: 'Le produit prend vie.', en: 'The product comes to life.' };
-const CODE_SUBTITLE = { fr: "Le go-live n'est que le début.", en: 'Go-live is just the start.' };
+const CODE_TITLE    = { fr: 'Le produit prend vie.', en: 'The product comes to life.', es: 'El producto cobra vida.' };
+const CODE_SUBTITLE = { fr: "Le go-live n'est que le début.", en: 'Go-live is just the start.', es: 'El go-live es solo el comienzo.' };
 
 // All sections share the same 200vh height so each occupies one full section of
 // scroll. The rainbow → DESIGN transition is driven by thinking's last quarter

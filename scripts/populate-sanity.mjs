@@ -31,7 +31,7 @@ const client = createClient({
 
 // One document id per language. The FR id is the original singleton so existing
 // references / history are preserved; EN is a new sibling document.
-const DOC_ID = { fr: '97134c16-fdf9-4c99-99c2-a2ef0a018939', en: 'homePage-en' };
+const DOC_ID = { fr: '97134c16-fdf9-4c99-99c2-a2ef0a018939', en: 'homePage-en', es: 'homePage-es' };
 
 // ── Asset upload with per-path cache so a file shared across fields uploads once.
 const cache = new Map();
@@ -71,34 +71,34 @@ const FACE = {
 // front label and (text-back) blurb are translated.
 const CLIENTS = [
   { name: 'Lacoste',          logo: 'logo/lacoste.png',          accent: '#00563F', back: 'image', image: 'clients/screenshots/lacoste.webp',
-    frontLabel: { fr: '1ère app m-commerce',                       en: 'First m-commerce app' } },
+    frontLabel: { fr: '1ère app m-commerce',                       en: 'First m-commerce app', es: 'Primera app m-commerce' } },
   { name: 'Grand Frais',      logo: 'logo/grand_frais_grey.svg', accent: '#2EA84A', back: 'image', image: 'clients/screenshots/grand-frais.webp', caseUrl: 'https://apps.apple.com/fr/app/grand-frais/id6753673412',
-    frontLabel: { fr: '1ère app m-commerce',                       en: 'First m-commerce app' } },
+    frontLabel: { fr: '1ère app m-commerce',                       en: 'First m-commerce app', es: 'Primera app m-commerce' } },
   { name: 'Aromazone',        logo: 'logo/aromazone.svg',        accent: '#4A3428', back: 'text',
-    frontLabel: { fr: 'App & Commerce',                            en: 'App & Commerce' },
-    blurb:      { fr: 'Product & Experience',                      en: 'Product & Experience' } },
+    frontLabel: { fr: 'App & Commerce',                            en: 'App & Commerce', es: 'App & Commerce' },
+    blurb:      { fr: 'Product & Experience',                      en: 'Product & Experience', es: 'Producto & Experiencia' } },
   { name: 'Orange',           logo: 'logo/orange.png',           accent: '#FF7900', back: 'text',
-    frontLabel: { fr: 'Experience',                               en: 'Experience Design' },
-    blurb:      { fr: 'Design Partenaire depuis 10 ans',          en: 'Partner for 10 years' } },
+    frontLabel: { fr: 'Experience',                               en: 'Experience Design', es: 'Experience Design' },
+    blurb:      { fr: 'Design Partenaire depuis 10 ans',          en: 'Partner for 10 years', es: 'Socio desde hace 10 años' } },
   { name: 'Relais & Châteaux',logo: 'logo/relais-chateaux.png',  accent: '#7A1A2F', back: 'qr',    qr: 'clients/qr/relais-chateaux.svg', caseUrl: 'https://vimeo.com/842443761/4551f51afc?share=copy&fl=sv&fe=ci',
-    frontLabel: { fr: 'Plateforme de marque & Ecosystème digital', en: 'Brand platform & Digital ecosystem' } },
+    frontLabel: { fr: 'Plateforme de marque & Ecosystème digital', en: 'Brand platform & Digital ecosystem', es: 'Plataforma de marca & Ecosistema digital' } },
   { name: 'Arte',             logo: 'logo/arte.svg',             accent: '#FF4E00', back: 'text',
-    frontLabel: { fr: 'Plateforme digitale',                      en: 'Digital platform' },
-    blurb:      { fr: 'Product & Experience',                      en: 'Product & Experience' } },
+    frontLabel: { fr: 'Plateforme digitale',                      en: 'Digital platform', es: 'Plataforma digital' },
+    blurb:      { fr: 'Product & Experience',                      en: 'Product & Experience', es: 'Producto & Experiencia' } },
   { name: 'Decathlon',        logo: 'logo/decathlon.svg',        accent: '#0082C3', back: 'text',
-    frontLabel: { fr: 'Application métiers',                       en: 'Business app' },
-    blurb:      { fr: 'Partenaire depuis 8 ans',                   en: 'Partner for 8 years' } },
+    frontLabel: { fr: 'Application métiers',                       en: 'Business app', es: 'Aplicación de negocio' },
+    blurb:      { fr: 'Partenaire depuis 8 ans',                   en: 'Partner for 8 years', es: 'Socio desde hace 8 años' } },
   { name: 'Accor',            logo: 'logo/accor.png',            accent: '#C9A14D', back: 'image', image: 'clients/screenshots/accor.webp', caseUrl: 'https://group.accor.com/fr',
-    frontLabel: { fr: 'Site Corporate',                           en: 'Corporate site' } },
+    frontLabel: { fr: 'Site Corporate',                           en: 'Corporate site', es: 'Sitio corporativo' } },
   { name: 'BNP Paribas',      logo: 'logo/bnp-paribas.png',      accent: '#008855', back: 'text',
-    frontLabel: { fr: 'Design System. Partenaire depuis 9 ans.',  en: 'Design System. Partner for 9 years.' },
-    blurb:      { fr: 'Partenaire depuis 9 ans',                  en: 'Partner for 9 years' } },
+    frontLabel: { fr: 'Design System. Partenaire depuis 9 ans.',  en: 'Design System. Partner for 9 years.', es: 'Design System. Socio desde hace 9 años.' },
+    blurb:      { fr: 'Partenaire depuis 9 ans',                  en: 'Partner for 9 years', es: 'Socio desde hace 9 años' } },
   { name: 'Ritz',             logo: 'logo/ritz.png',             accent: '#1F2A44', back: 'qr',    qr: 'clients/qr/ritz.svg', caseUrl: 'https://vimeo.com/911295072/ad02f28185?share=copy&fl=sv&fe=ci',
-    frontLabel: { fr: 'Ecosystème digital',                       en: 'Digital ecosystem' } },
+    frontLabel: { fr: 'Ecosystème digital',                       en: 'Digital ecosystem', es: 'Ecosistema digital' } },
   { name: 'RATP',             logo: 'logo/ratp.webp',            accent: '#008C53', back: 'qr',    qr: 'clients/qr/ratp.svg', caseUrl: 'https://vimeo.com/911295002/cabba31990?share=copy&fl=sv&fe=ci',
-    frontLabel: { fr: '1er site web eco-conçu et accessible',     en: 'First eco-designed, accessible website' } },
+    frontLabel: { fr: '1er site web eco-conçu et accessible',     en: 'First eco-designed, accessible website', es: 'Primer sitio web ecodiseñado y accesible' } },
   { name: 'Groupe Bel',       logo: 'logo/groupe-bel.png',       accent: '#E60028', back: 'image', image: 'clients/screenshots/bel.webp', caseUrl: 'https://www.groupe-bel.com',
-    frontLabel: { fr: 'Site Groupe',                              en: 'Group site' } },
+    frontLabel: { fr: 'Site Groupe',                              en: 'Group site', es: 'Sitio de grupo' } },
 ];
 
 // Award tallies are language-neutral (proper names + counts); only the section
@@ -248,6 +248,67 @@ const COPY = {
       loopLabel: 'Keep scrolling — back to start',
     },
   },
+
+  es: {
+    sectionLabels: ['VISION', 'THINKING', 'DESIGN', 'CODE', 'CLIENTS', 'AWARDS', 'CONTACT'],
+    hero: {
+      title: 'Creamos\nproductos\npara humanos.\nY agentes.',
+      subtitle: [
+        'Agencia de product design IA-nativa.',
+        'Crear lo que aún no existe. Hacer crecer lo que ya funciona.',
+        '115 diseñadores | 9 oficinas',
+        '25 años construyendo experiencias: primero lo visual, luego lo interactivo, ahora lo conversacional.',
+      ].join('\n'),
+    },
+    thinking: {
+      services: [
+        { tag: 'PRODUCTO', items: ['Visión, concepción y roadmap',      'Design system, tokens, gobernanza'] },
+        { tag: 'IA',       items: ['Auditoría, workflows',              'Desarrollo de agentes, procesos y business cases aplicables a su negocio'] },
+        { tag: 'BUSINESS', items: ['Unit economics, cost-to-serve',     'Encuadre de producto, business case, go-to-market'] },
+        { tag: 'BRANDING', items: ['Plataforma y posicionamiento',      'Promesa, pruebas, experiencia'] },
+      ],
+      cards: {
+        strategy:      { title: '/Estrategia', recto: 'No una función que añadir.', verso: 'Una experiencia que reinventar.' },
+        businessValue: { title: '/Business Value', deltaTag: 'LCV', deltaValue: '+38 %' },
+        designSprint:  { title: '/Design Sprint', steps: ['Brief', 'Hipótesis', 'Prototipo', 'Test', 'Decisión'] },
+        brainstorm: { title: '/Brainstorming', messages: [
+          { side: 'in',  text: '¿Cuál es el verdadero problema?' },
+          { side: 'out', text: 'El 40 % de los clientes abandona en el checkout.' },
+          { side: 'in',  text: '¿Humanos? ¿Agentes?' },
+          { side: 'out', text: 'Los dos.' },
+        ] },
+      },
+    },
+    design: {
+      title: 'Del caos nace el producto',
+      subtitle: 'Una idea se juzga por lo que transforma',
+      services: [
+        { tag: 'CONCEPTO', items: ['Visión de producto, dirección creativa', 'Conceptos que resisten en comité de dirección'] },
+        { tag: 'WORKSHOP', items: ['Ideación co-creada con tus equipos',   'Co-creación con tus equipos. Una dirección validada. Una decisión tomada.'] },
+        { tag: 'WORKFLOW', items: ['IA generativa en el proceso creativo', 'Idea prototipada en unas horas'] },
+      ],
+    },
+    code: {
+      title: 'El producto cobra vida.',
+      subtitle: 'El go-live es solo el comienzo.',
+      services: [
+        { tag: 'FRONT',          items: ['React, Next.js, Vue, TypeScript',       'Interfaces de producto en código real, conectadas a Shopify y Salesforce Commerce Cloud'] },
+        { tag: 'ANIMATION',      items: ['GSAP, Three.js, Framer Motion, Lottie', 'El movimiento como parte del producto, solo si mejora la experiencia'] },
+        { tag: 'IA PIXEL CODER', items: ['De Figma a React, sin handoff',         'Diseño y código en un mismo flujo, sin pérdida de intención'] },
+      ],
+    },
+    clients: { title: 'Algunos grandes nombres que confían en nosotros', subtitle: 'productos a su altura' },
+    awards:  { headingTop: '56 awards · 2020 → 2025', headingBottom: 'Miramos el P&L antes que el palmarés.' },
+    contact: {
+      headline: ['¿Pregunta rápida? Pregunta a una IA.', '¿Tema serio? Pregunta a un humano.'],
+      contacts: [
+        { topic: 'Para hablar de burning platform e impacto global en el P&L', email: 'yv.corbeil@niji.fr' },
+        { topic: 'Para hablar de AI commerce, conversión y rediseño e-commerce', email: 'nicolas.prudhomme@niji.fr' },
+        { topic: 'Para hablar de producto, branding y agentes IA', email: 'chris.de-abreu@niji.fr' },
+      ],
+      loopLabel: 'Keep scrolling — back to start',
+    },
+  },
 };
 
 const withKeys = (arr) => arr.map((o, i) => ({ _key: `k${i}`, ...o }));
@@ -324,7 +385,7 @@ async function main() {
 
   const shared = { logo, facePack, clientAssets, awardAssets };
 
-  for (const lang of ['fr', 'en']) {
+  for (const lang of ['fr', 'en', 'es']) {
     console.log(`Writing ${lang.toUpperCase()} homePage document…`);
     await client.createOrReplace(buildDoc(lang, COPY[lang], shared));
   }

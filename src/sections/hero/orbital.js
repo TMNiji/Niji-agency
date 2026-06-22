@@ -32,6 +32,7 @@ const RING_FACTORS = [1.45, 2.00, 2.45]; // ring radius = factor * cellPx
 const DOT_LABELS = {
   fr: ['/Stratégie', '/Business Value', '/Design Sprint', '/Brainstorming', '/Benchmark'],
   en: ['/Strategy',  '/Business Value', '/Design Sprint', '/Brainstorming', '/Benchmark'],
+  es: ['/Estrategia', '/Business Value', '/Design Sprint', '/Brainstorming', '/Benchmark'],
 };
 const BENCHMARK_IDX = 4; // dot 5 opens a window stack instead of a single card
 const CARD_BUILDERS = [
