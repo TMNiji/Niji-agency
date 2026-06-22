@@ -16,6 +16,12 @@ const DEFAULT_SERVICES = {
     { tag: 'BUSINESS', items: ['Unit economics, cost-to-serve',     'Product scoping, business case, go-to-market'] },
     { tag: 'BRANDING', items: ['Platform and positioning',         'Promise, proof, experience'] },
   ],
+  es: [
+    { tag: 'PRODUCTO', items: ['Visión, concepción y roadmap',      'Design system, tokens, gobernanza'] },
+    { tag: 'IA',       items: ['Auditoría, workflows',              'Desarrollo de agentes, procesos y business cases aplicables a su negocio'] },
+    { tag: 'BUSINESS', items: ['Unit economics, cost-to-serve',     'Encuadre de producto, business case, go-to-market'] },
+    { tag: 'BRANDING', items: ['Plataforma y posicionamiento',      'Promesa, pruebas, experiencia'] },
+  ],
 };
 
 export function mountThinking({ container, orchestrator, webgl, content = null, lang = 'fr' } = {}) {

@@ -22,6 +22,12 @@ const DEFAULT_LINES = {
     { text: 'for humans.',   cls: 'hero-title__line--humans' },
     { text: 'And agents.',   cls: 'hero-title__line--agents' },
   ],
+  es: [
+    { text: 'Creamos',       cls: 'hero-title__line--we' },
+    { text: 'productos',     cls: 'hero-title__line--make' },
+    { text: 'para humanos.', cls: 'hero-title__line--humans' },
+    { text: 'Y agentes.',    cls: 'hero-title__line--agents' },
+  ],
 };
 
 export function mountHero({ container, orchestrator, webgl, sectionLabels = [], content = null, lang = 'fr' } = {}) {
@@ -93,6 +99,10 @@ export function mountHero({ container, orchestrator, webgl, sectionLabels = [], 
       + "Creative force in build, operational rigor in run.\n"
       + "115 designers | 9 offices\n"
       + "25 years building what you look at, use, and now talk to.",
+    es: "Agencia de product design IA-nativa.\n"
+      + "Crear lo que aún no existe. Hacer crecer lo que ya funciona.\n"
+      + "115 diseñadores | 9 oficinas\n"
+      + "25 años construyendo experiencias: primero lo visual, luego lo interactivo, ahora lo conversacional.",
   }, lang);
   // The CMS value is plain multiline text; its line breaks become <br>. Each
   // line is escaped (so a visitor can't inject markup) before the safe

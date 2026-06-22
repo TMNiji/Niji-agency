@@ -27,6 +27,13 @@ const UI = {
     back: '← Back',
     done: () => 'done',
   },
+  es: {
+    close: 'Cerrar',
+    flipAria: 'Girar la tarjeta',
+    toFlip: 'Clic para girar →',
+    back: '← Volver',
+    done: (n) => `completado${n > 1 ? 's' : ''}`,
+  },
 };
 
 const DEFAULTS = {
@@ -51,6 +58,17 @@ const DEFAULTS = {
       { side: 'out', text: '40% drop off at checkout.' },
       { side: 'in',  text: 'Humans? Agents?' },
       { side: 'out', text: 'Both.' },
+    ] },
+  },
+  es: {
+    strategy:      { title: '/Estrategia', recto: 'No una función que añadir.', verso: 'Una experiencia que reinventar.' },
+    businessValue: { title: '/Business Value', deltaTag: 'LCV', deltaValue: '+38 %' },
+    designSprint:  { title: '/Design Sprint', steps: ['Brief', 'Hipótesis', 'Prototipo', 'Test', 'Decisión'] },
+    brainstorm:    { title: '/Brainstorming', messages: [
+      { side: 'in',  text: '¿Cuál es el verdadero problema?' },
+      { side: 'out', text: 'El 40 % de los clientes abandona en el checkout.' },
+      { side: 'in',  text: '¿Humanos? ¿Agentes?' },
+      { side: 'out', text: 'Los dos.' },
     ] },
   },
 };

@@ -40,8 +40,8 @@ const TROPHY_BASE_ROTATION = [
 // placeholder shapes (~0.36 radius) so the cloud stays visually balanced.
 const TROPHY_GLB_RADIUS = 0.45;
 
-const DEFAULT_HEADING_TOP    = { fr: 'On ne les cherchait pas.', en: '56 awards · 2020 → 2025' };
-const DEFAULT_HEADING_BOTTOM = { fr: 'Ils sont là.', en: 'We look at the P&L before the trophy shelf.' };
+const DEFAULT_HEADING_TOP    = { fr: 'On ne les cherchait pas.', en: '56 awards · 2020 → 2025', es: '56 awards · 2020 → 2025' };
+const DEFAULT_HEADING_BOTTOM = { fr: 'Ils sont là.', en: 'We look at the P&L before the trophy shelf.', es: 'Miramos el P&L antes que el palmarés.' };
 
 // Three trophies — title + detail lines (two per award). Order MUST match
 // TROPHY_GLB_URLS above so the right tooltip lands on each model.

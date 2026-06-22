@@ -30,6 +30,11 @@ export const DESIGN_SERVICES = {
     { tag: 'WORKSHOP', items: ['Ideation co-built with your teams',    'One idea per wall. One decision per day.'] },
     { tag: 'WORKFLOW', items: ['Generative AI inside the creative process', 'An idea prototyped in hours'] },
   ],
+  es: [
+    { tag: 'CONCEPTO', items: ['Visión de producto, dirección creativa', 'Conceptos que resisten en comité de dirección'] },
+    { tag: 'WORKSHOP', items: ['Ideación co-creada con tus equipos',   'Co-creación con tus equipos. Una dirección validada. Una decisión tomada.'] },
+    { tag: 'WORKFLOW', items: ['IA generativa en el proceso creativo', 'Idea prototipada en unas horas'] },
+  ],
 };
 
 export const CODE_SERVICES = {
@@ -42,6 +47,11 @@ export const CODE_SERVICES = {
     { tag: 'FRONT',          items: ['React, Next.js, Vue, TypeScript',       'Shopify, Salesforce Commerce Cloud'] },
     { tag: 'ANIMATION',      items: ['GSAP, Three.js, Framer Motion, Lottie', 'Motion serves the product, or it goes'] },
     { tag: 'AI PIXEL CODER', items: ['Figma to React, no handoff',            'Design-to-code-to-design'] },
+  ],
+  es: [
+    { tag: 'FRONT',          items: ['React, Next.js, Vue, TypeScript',       'Interfaces de producto en código real, conectadas a Shopify y Salesforce Commerce Cloud'] },
+    { tag: 'ANIMATION',      items: ['GSAP, Three.js, Framer Motion, Lottie', 'El movimiento como parte del producto, solo si mejora la experiencia'] },
+    { tag: 'IA PIXEL CODER', items: ['De Figma a React, sin handoff',         'Diseño y código en un mismo flujo, sin pérdida de intención'] },
   ],
 };
 

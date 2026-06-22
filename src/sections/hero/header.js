@@ -31,6 +31,7 @@ export function createHeader({ logoSrc, lang = 'fr' } = {}) {
   const LANGS = [
     { code: 'fr', label: 'FR' },
     { code: 'en', label: 'EN' },
+    { code: 'es', label: 'ES' },
   ];
   switcher.innerHTML = LANGS.map(({ code, label }) => {
     const active = code === lang;

@@ -12,6 +12,7 @@ import { pick } from '@/lib/lang.js';
 const DEFAULT_HEADLINE = {
   fr: ['Question rapide, demandez à votre IA.', 'Sujet sérieux, demandez à un humain.'],
   en: ['Quick question? Ask an AI.', 'Serious matter? Ask a human.'],
+  es: ['¿Pregunta rápida? Pregunta a una IA.', '¿Tema serio? Pregunta a un humano.'],
 };
 const DEFAULT_EMAIL = 'hello@niji.agency';
 const DEFAULT_LOOP_LABEL = 'Keep scrolling — back to start';
@@ -31,6 +32,13 @@ const UI = {
     mailBody: "I might have a project you could help with and I'd like to learn more about your agency.",
     legal: 'Legal notice',
     cookies: 'Manage cookies',
+  },
+  es: {
+    backToStart: 'Volver al inicio',
+    mailSubject: 'Contacto',
+    mailBody: 'Tengo un posible proyecto en el que podríais ayudarme y me gustaría saber más sobre vuestra agencia.',
+    legal: 'Aviso legal',
+    cookies: 'Gestionar cookies',
   },
 };
 
